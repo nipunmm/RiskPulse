@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>RiskIntel MIS - Global View</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;family=JetBrains+Mono:wght@450&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-primary-fixed-variant": "#2e476f",
+                      "surface-dim": "#d8dadc",
+                      "surface-container-highest": "#e0e3e5",
+                      "tertiary": "#182033",
+                      "surface-tint": "#465f88",
+                      "on-primary-container": "#87a0cd",
+                      "on-background": "#191c1e",
+                      "tertiary-container": "#2d354a",
+                      "on-secondary-fixed-variant": "#38485d",
+                      "inverse-primary": "#aec7f7",
+                      "on-secondary": "#ffffff",
+                      "primary": "#002046",
+                      "tertiary-fixed": "#dae2fd",
+                      "outline": "#74777f",
+                      "inverse-surface": "#2d3133",
+                      "on-secondary-container": "#54647a",
+                      "background": "#f7f9fb",
+                      "error-container": "#ffdad6",
+                      "on-tertiary-fixed-variant": "#3f465c",
+                      "tertiary-fixed-dim": "#bec6e0",
+                      "outline-variant": "#c4c6cf",
+                      "surface": "#f7f9fb",
+                      "secondary-container": "#d0e1fb",
+                      "on-primary-fixed": "#001b3d",
+                      "on-error-container": "#93000a",
+                      "surface-container-lowest": "#ffffff",
+                      "secondary": "#505f76",
+                      "primary-container": "#1b365d",
+                      "primary-fixed-dim": "#aec7f7",
+                      "surface-bright": "#f7f9fb",
+                      "inverse-on-surface": "#eff1f3",
+                      "surface-container-low": "#f2f4f6",
+                      "on-error": "#ffffff",
+                      "secondary-fixed-dim": "#b7c8e1",
+                      "on-primary": "#ffffff",
+                      "on-secondary-fixed": "#0b1c30",
+                      "secondary-fixed": "#d3e4fe",
+                      "primary-fixed": "#d6e3ff",
+                      "surface-container": "#eceef0",
+                      "on-surface-variant": "#44474e",
+                      "on-surface": "#191c1e",
+                      "surface-variant": "#e0e3e5",
+                      "on-tertiary-container": "#969eb7",
+                      "error": "#ba1a1a",
+                      "on-tertiary-fixed": "#131b2e",
+                      "surface-container-high": "#e6e8ea",
+                      "on-tertiary": "#ffffff"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "xs": "8px",
+                      "sm": "16px",
+                      "md": "24px",
+                      "container-max": "1440px",
+                      "xl": "48px",
+                      "lg": "32px",
+                      "base": "4px",
+                      "gutter": "20px"
+              },
+              "fontFamily": {
+                      "body-md": ["Inter"],
+                      "body-sm": ["Inter"],
+                      "display-lg": ["Inter"],
+                      "body-lg": ["Inter"],
+                      "headline-md": ["Inter"],
+                      "label-md": ["Inter"],
+                      "data-mono": ["JetBrains Mono"],
+                      "headline-sm": ["Inter"]
+              },
+              "fontSize": {
+                      "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                      "body-sm": ["12px", {"lineHeight": "16px", "fontWeight": "400"}],
+                      "display-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                      "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                      "headline-md": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                      "label-md": ["12px", {"lineHeight": "16px", "fontWeight": "600"}],
+                      "data-mono": ["13px", {"lineHeight": "18px", "fontWeight": "450"}],
+                      "headline-sm": ["18px", {"lineHeight": "24px", "fontWeight": "600"}]
+              }
+            }
+          }
+        }
+    </script>
+<style>
+        .rag-green { background-color: rgba(34, 197, 94, 0.1); color: #166534; }
+        .rag-amber { background-color: rgba(245, 158, 11, 0.1); color: #b45309; }
+        .rag-red { background-color: rgba(239, 68, 68, 0.1); color: #991b1b; }
+        
+        .rag-indicator-green { background-color: #22c55e; }
+        .rag-indicator-amber { background-color: #f59e0b; }
+        .rag-indicator-red { background-color: #ef4444; }
+
+        table { border-collapse: separate; border-spacing: 0; }
+        th { position: sticky; top: 0; background-color: #f7f9fb; z-index: 10; }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md min-h-screen flex">
+<!-- SideNavBar (Dark Theme) -->
+<nav class="hidden md:flex flex-col h-screen left-0 w-64 bg-tertiary p-sm gap-xs flex-shrink-0 z-50 fixed">
+<div class="flex items-center gap-sm mb-md px-xs">
+<div class="w-8 h-8 rounded-full bg-tertiary-container flex items-center justify-center overflow-hidden flex-shrink-0">
+<img class="w-full h-full object-cover" data-alt="A minimalist, highly professional institution logo icon, utilizing sharp geometric shapes in silver and deep blue, against a dark navy background, evoking trust and security in a financial context." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBBtZ0jV69cAa4kVWYjPXcqapTxao_WNTY5x-j-hCieCsaqJLxp2zCjQXKCt8qO5wDfg_aIeUTriac7bV2OObV59lpky9JUqXBMf_kFsAaA0Mc3hp7SyI-tO-hhKQSPwPEqRuBVYrn5mGjV5wV_N2sq0UUf9a07Ank_ukhcFT_AYs8TZrP47DotXqMi0XNoxv02O4sv4zOB6SDutnHoCJgOUsidQeWmyL0YFRWAfnDiFjp6BvScIdG7qmyQCgPXjJFPfylnq47GF9gE"/>
+</div>
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm font-bold text-tertiary-fixed">Risk Management</span>
+<span class="font-label-md text-label-md text-tertiary-fixed-dim">Enterprise Division</span>
+</div>
+</div>
+<button class="w-full bg-primary-container text-on-primary text-body-md py-sm px-md rounded hover:bg-primary-container/90 transition-colors mb-sm flex justify-center items-center gap-xs shadow-sm">
+<span class="material-symbols-outlined text-[18px]">add</span> New Assessment
+        </button>
+<div class="flex-1 overflow-y-auto flex flex-col gap-xs font-label-md text-label-md">
+<a class="flex items-center gap-sm p-sm rounded-lg bg-tertiary-container text-on-tertiary-container duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+                Global Overview
+            </a>
+<a class="flex items-center gap-sm p-sm rounded-lg text-tertiary-fixed-dim hover:bg-tertiary-container/50 duration-200 ease-in-out hover:bg-tertiary-container/30 transition-all" href="#">
+<span class="material-symbols-outlined">qr_code_2</span>
+                Risk Heatmap
+            </a>
+<a class="flex items-center gap-sm p-sm rounded-lg text-tertiary-fixed-dim hover:bg-tertiary-container/50 duration-200 ease-in-out hover:bg-tertiary-container/30 transition-all" href="#">
+<span class="material-symbols-outlined">monitoring</span>
+                KRI Tracking
+            </a>
+<a class="flex items-center gap-sm p-sm rounded-lg text-tertiary-fixed-dim hover:bg-tertiary-container/50 duration-200 ease-in-out hover:bg-tertiary-container/30 transition-all" href="#">
+<span class="material-symbols-outlined">report_problem</span>
+                Incident Logs
+            </a>
+<a class="flex items-center gap-sm p-sm rounded-lg text-tertiary-fixed-dim hover:bg-tertiary-container/50 duration-200 ease-in-out hover:bg-tertiary-container/30 transition-all" href="#">
+<span class="material-symbols-outlined">history</span>
+                Audit Trail
+            </a>
+<a class="flex items-center gap-sm p-sm rounded-lg text-tertiary-fixed-dim hover:bg-tertiary-container/50 duration-200 ease-in-out hover:bg-tertiary-container/30 transition-all" href="#">
+<span class="material-symbols-outlined">settings</span>
+                Settings
+            </a>
+</div>
+<div class="mt-auto flex flex-col gap-xs border-t border-tertiary-container pt-sm font-label-md text-label-md">
+<a class="flex items-center gap-sm p-sm rounded-lg text-tertiary-fixed-dim hover:bg-tertiary-container/50 duration-200 ease-in-out hover:bg-tertiary-container/30 transition-all" href="#">
+<span class="material-symbols-outlined">help</span>
+                Help Center
+            </a>
+<a class="flex items-center gap-sm p-sm rounded-lg text-tertiary-fixed-dim hover:bg-tertiary-container/50 duration-200 ease-in-out hover:bg-tertiary-container/30 transition-all" href="#">
+<span class="material-symbols-outlined">logout</span>
+                Logout
+            </a>
+</div>
+</nav>
+<!-- Main Content Area -->
+<main class="flex-1 md:ml-64 bg-background min-h-screen">
+<!-- Top Nav (Compact, as side nav is primary) -->
+<header class="h-16 px-md flex items-center justify-between border-b border-outline-variant bg-surface sticky top-0 z-40 w-full max-w-container-max mx-auto">
+<div class="flex items-center gap-md">
+<!-- Mobile Menu Toggle (Visible only on md-) -->
+<button class="md:hidden text-on-surface-variant">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<h1 class="font-headline-md text-headline-md font-bold text-primary">RiskIntel MIS</h1>
+</div>
+<div class="flex items-center gap-md">
+<div class="relative hidden sm:block w-64">
+<span class="material-symbols-outlined absolute left-2 top-1/2 -translate-y-1/2 text-outline text-[20px]">search</span>
+<input class="w-full pl-8 pr-3 py-1.5 bg-surface-container-highest border border-outline-variant rounded text-body-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" placeholder="Search entity or ID... (/)" type="text"/>
+</div>
+<div class="flex items-center gap-sm text-on-surface-variant">
+<button class="hover:text-primary transition-colors"><span class="material-symbols-outlined">notifications</span></button>
+<button class="hover:text-primary transition-colors"><span class="material-symbols-outlined">account_circle</span></button>
+</div>
+</div>
+</header>
+<!-- Canvas -->
+<div class="p-md max-w-container-max mx-auto space-y-md">
+<!-- Page Header -->
+<div class="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-sm">
+<div>
+<h2 class="font-display-lg text-display-lg text-on-background">Global Overview</h2>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1">Consolidated enterprise risk posture and critical pending actions.</p>
+</div>
+<div class="flex gap-sm">
+<button class="px-sm py-2 bg-surface border border-primary text-primary font-label-md text-label-md rounded hover:bg-surface-container-highest transition-colors">Export Report</button>
+</div>
+</div>
+<!-- Bento Grid Layout -->
+</div>
+</main>
+</body></html>

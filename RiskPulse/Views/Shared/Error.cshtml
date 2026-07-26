@@ -1,0 +1,71 @@
+@model ErrorViewModel
+@{
+    Layout = null;
+    ViewData["Title"] = "Error";
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Error @Model.StatusCode - Risk Pulse</title>
+    <link rel="stylesheet" href="~/lib/font-awesome/css/all.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body class="error-page">
+
+    <div class="error-card">
+
+        <!-- Branding -->
+        <div class="mb-lg">
+            <img alt="Risk Pulse Logo"
+                 class="mb-3"
+                 style="width: 64px; height: 64px; object-fit: contain;"
+                 src="~/images/logo.png" />
+            <h2 class="font-headline-sm" style="color: var(--on-surface); margin: 0;">Risk Pulse</h2>
+        </div>
+
+        <!-- Error Icon -->
+        <div class="error-icon-circle">
+            <i class="fas fa-triangle-exclamation"></i>
+        </div>
+
+        <!-- Status Code -->
+        <div class="error-status-code">@Model.StatusCode</div>
+
+        <!-- Friendly Message -->
+        <h1 class="font-headline-sm mb-2" style="color: var(--on-surface);">Error</h1>
+        <p class="font-body-lg mb-lg" style="color: var(--on-surface-variant);">
+            @Model.FriendlyMessage
+        </p>
+
+        <!-- Technical Details (Development only) -->
+        @if (!string.IsNullOrEmpty(Model.TechnicalDetails))
+        {
+            <details class="error-technical-details">
+                <summary>Technical Details</summary>
+                <pre>@Model.TechnicalDetails</pre>
+            </details>
+        }
+
+        <!-- Request ID -->
+        @if (Model.ShowRequestId)
+        {
+            <div class="error-request-id">
+                <span class="font-data-mono" style="color: var(--on-surface-variant); select-all;">
+                    Request ID: @Model.RequestId
+                </span>
+            </div>
+        }
+
+        <!-- Return Button -->
+        <a href="@Url.Action("Index", "Dashboard")"
+           class="btn-stasis-primary w-100 d-inline-flex justify-content-center">
+            Return to Dashboard
+        </a>
+
+    </div>
+
+</body>
+</html>
