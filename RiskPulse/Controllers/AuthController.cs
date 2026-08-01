@@ -34,7 +34,8 @@ namespace RiskPulse.Controllers
             {
                 var claims = new List<Claim>
                 {
-                    new Claim(ClaimTypes.Name, username)
+                    new Claim(ClaimTypes.Name, username),
+                    new Claim(ClaimTypes.Role, "Admin")
                 };
 
                 var identity = new ClaimsIdentity(
@@ -63,7 +64,8 @@ namespace RiskPulse.Controllers
         [AllowAnonymous]
         public IActionResult AccessDenied()
         {
-            return RedirectToAction("Login");
+            ViewData["RequestId"] = HttpContext.TraceIdentifier;
+            return View();
         }
     }
 }

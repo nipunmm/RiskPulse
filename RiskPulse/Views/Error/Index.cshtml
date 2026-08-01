@@ -1,0 +1,153 @@
+@model ErrorViewModel
+@{
+    Layout = null;
+    ViewData["Title"] = "Error";
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Error @Model.RequestId - RiskPulse</title>
+    <link rel="stylesheet" href="~/lib/font-awesome/css/all.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <style>
+        .error-page {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--background);
+            padding: 24px;
+            position: relative;
+            overflow: hidden;
+            margin: 0;
+        }
+
+        .error-bg-pattern {
+            position: absolute;
+            inset: 0;
+            z-index: 0;
+            opacity: 0.06;
+            background-image:
+                radial-gradient(circle at 20% 30%, var(--primary-container) 1px, transparent 1px),
+                radial-gradient(circle at 80% 70%, var(--primary-container) 1px, transparent 1px),
+                radial-gradient(circle at 50% 50%, var(--outline) 0.5px, transparent 0.5px);
+            background-size: 60px 60px, 80px 80px, 40px 40px;
+            pointer-events: none;
+        }
+
+        .error-card {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 480px;
+            background: var(--surface-container-lowest);
+            border: 1px solid var(--outline-variant);
+            border-radius: 8px;
+            padding: 48px;
+            box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.03);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            gap: 8px;
+        }
+
+        .error-brand {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 24px;
+        }
+
+        .error-brand h2 {
+            margin: 0;
+        }
+
+        .error-icon-circle {
+            width: 64px;
+            height: 64px;
+            background-color: var(--error-container);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 24px;
+        }
+
+        .error-icon-circle i {
+            font-size: 32px;
+            color: var(--on-error-container);
+        }
+
+        .error-headline {
+            margin: 0 0 8px;
+        }
+
+        .error-message {
+            margin: 0 0 24px;
+        }
+
+        .error-request-id {
+            background-color: var(--surface-container-low);
+            border-radius: 4px;
+            padding: 8px 16px;
+            width: 100%;
+            margin-bottom: 32px;
+        }
+
+        .error-request-id span {
+            user-select: all;
+        }
+    </style>
+</head>
+<body class="error-page">
+
+    <!-- Subtle geometric background pattern -->
+    <div class="error-bg-pattern"></div>
+
+    <main class="error-card">
+
+        <!-- Branding -->
+        <div class="error-brand">
+            <div style="width: 48px; height: 48px; background-color: var(--surface-container); border: 1px solid var(--outline-variant); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 0;">
+                <i class="fas fa-shield-halved" style="font-size: 22px; color: var(--primary-container);"></i>
+            </div>
+            <h2 class="font-headline-md" style="color: var(--primary-container); margin: 0;">RiskPulse</h2>
+            <p class="font-body-sm" style="color: var(--on-surface-variant); margin: 0;">System Error</p>
+        </div>
+
+        <!-- Visual Indicator -->
+        <div class="error-icon-circle">
+            <i class="fas fa-triangle-exclamation"></i>
+        </div>
+
+        <!-- Messaging -->
+        <h1 class="font-display-lg error-headline" style="color: var(--on-surface);">Something went wrong.</h1>
+        <p class="font-body-lg error-message" style="color: var(--on-surface-variant);">
+            The system encountered an unexpected issue while processing your request. Please try again or contact support if the issue persists.
+        </p>
+
+        <!-- Request ID -->
+        @if (Model.ShowRequestId)
+        {
+            <div class="error-request-id">
+                <span class="font-data-mono" style="color: var(--on-surface-variant);">
+                    Request ID: @Model.RequestId
+                </span>
+            </div>
+        }
+
+        <!-- Recovery Action -->
+        <a href="@Url.Action("Index", "Dashboard")"
+           class="btn-stasis-primary w-100 d-inline-flex justify-content-center">
+            Return to Dashboard
+        </a>
+
+    </main>
+
+</body>
+</html>

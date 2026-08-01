@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
@@ -19,7 +19,7 @@
     <!-- ================================ -->
     <!-- SIDEBAR (Dark Navy)              -->
     <!-- ================================ -->
-    <nav class="sidebar" aria-label="Main navigation">
+    <nav id="sidebarNav" class="sidebar" aria-label="Main navigation">
         <!-- Logo -->
         <div class="sidebar-logo">
             <div class="sidebar-logo-icon">
@@ -72,9 +72,9 @@
         <!-- Top Header Bar -->
         <header class="top-header">
             <div class="d-flex align-items-center gap-3">
-                <!-- Mobile Menu Toggle -->
-                <button class="btn p-1 d-md-none" onclick="toggleSidebar()" aria-label="Toggle navigation">
-                    <i class="fas fa-bars fa-lg" style="color: var(--on-surface-variant);"></i>
+                <!-- Navigation Toggle -->
+                <button id="sidebarToggle" class="header-icon-btn" onclick="toggleSidebar()" aria-label="Toggle navigation" aria-expanded="true" aria-controls="sidebarNav">
+                    <i class="fas fa-bars fa-lg"></i>
                 </button>
                 <h1 class="app-title">RiskIntel MIS</h1>
             </div>

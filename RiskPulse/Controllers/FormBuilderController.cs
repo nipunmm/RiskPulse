@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace RiskPulse.Controllers
 {
-    [Authorize]
+    [Authorize(Roles = "Admin")]
     public class FormBuilderController : Controller
     {
         public IActionResult Index()
