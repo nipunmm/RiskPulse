@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using RiskPulse.Models;
+using RiskPulse.Models.ViewModel;
 using System.Diagnostics;
 
 namespace RiskPulse.Controllers

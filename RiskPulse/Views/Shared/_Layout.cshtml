@@ -17,49 +17,83 @@
 <body class="d-flex">
 
     <!-- ================================ -->
-    <!-- SIDEBAR (Dark Navy)              -->
+    <!-- SIDEBAR (Dark Navy Enterprise)   -->
     <!-- ================================ -->
-    <nav id="sidebarNav" class="sidebar" aria-label="Main navigation">
-        <!-- Logo -->
-        <div class="sidebar-logo">
-            <div class="sidebar-logo-icon">
+    <nav id="sidebarNav" class="sidebar d-flex flex-column" aria-label="Main navigation">
+        <!-- Logo Header -->
+        <div class="sidebar-logo d-flex align-items-center gap-3 px-3">
+            <div class="sidebar-logo-icon d-flex align-items-center justify-content-center rounded-circle flex-shrink-0">
                 <i class="fas fa-shield-halved"></i>
             </div>
-            <div class="sidebar-logo-text">
-                <h5>Risk Pulse</h5>
-                <small>Risk Managment System</small>
+            <div class="sidebar-logo-text text-truncate">
+                <h5 class="mb-0 fw-semibold">Risk Pulse</h5>
+                <small class="text-muted">Risk Management System</small>
             </div>
         </div>
 
-        <!-- Navigation Links -->
-        <div class="sidebar-nav">
+        <!-- Navigation Links Container -->
+        <div class="sidebar-nav d-flex flex-column gap-1 px-2 py-3">
             <a asp-controller="Dashboard" asp-action="Index"
-               class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Dashboard" ? "active" : "")">
+               class="nav-link d-flex align-items-center gap-3 px-3 py-2 rounded @(ViewContext.RouteData.Values["controller"]?.ToString() == "Dashboard" ? "active" : "")">
                 <i class="fas fa-chart-line"></i>
-                <span>Dashboard</span>
+                <span class="text-truncate">Dashboard</span>
             </a>
             <a asp-controller="Submissions" asp-action="Index"
-               class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Submissions" ? "active" : "")">
+               class="nav-link d-flex align-items-center gap-3 px-3 py-2 rounded @(ViewContext.RouteData.Values["controller"]?.ToString() == "Submissions" ? "active" : "")">
                 <i class="fas fa-inbox"></i>
-                <span>Submissions</span>
+                <span class="text-truncate">Submissions</span>
             </a>
             <a asp-controller="AssessmentControl" asp-action="Index"
-               class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "AssessmentControl" ? "active" : "")">
+               class="nav-link d-flex align-items-center gap-3 px-3 py-2 rounded @(ViewContext.RouteData.Values["controller"]?.ToString() == "AssessmentControl" ? "active" : "")">
                 <i class="fas fa-clipboard-check"></i>
-                <span>Assessment Control</span>
+                <span class="text-truncate">Assessment Control</span>
             </a>
             <a asp-controller="FormBuilder" asp-action="Index"
-               class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "FormBuilder" ? "active" : "")">
+               class="nav-link d-flex align-items-center gap-3 px-3 py-2 rounded @(ViewContext.RouteData.Values["controller"]?.ToString() == "FormBuilder" ? "active" : "")">
                 <i class="fas fa-wpforms"></i>
-                <span>Form Builder</span>
+                <span class="text-truncate">Form Builder</span>
             </a>
+
+            @{
+                var currentCtrl = ViewContext.RouteData.Values["controller"]?.ToString();
+                var isEntityMgmtActive = currentCtrl == "Roles" || currentCtrl == "Users" || currentCtrl == "Permissions";
+            }
+
+            <!-- Parent Item: Entity Management -->
+            <div class="sidebar-group w-100">
+                <button type="button" 
+                        class="sidebar-parent nav-link d-flex align-items-center gap-3 px-3 py-2 rounded @(isEntityMgmtActive ? "expanded" : "")" 
+                        onclick="toggleSubmenu(this)" 
+                        aria-expanded="@(isEntityMgmtActive ? "true" : "false")">
+                    <i class="fas fa-users-gear"></i>
+                    <span class="text-truncate me-auto">Entity Management</span>
+                    <i class="fas fa-chevron-down toggle-icon ms-auto"></i>
+                </button>
+                <div class="sidebar-submenu @(isEntityMgmtActive ? "open" : "")">
+                    <a asp-controller="Users" asp-action="Index"
+                       class="sidebar-child nav-link d-flex align-items-center gap-2 py-2 @(currentCtrl == "Users" ? "active" : "")">
+                        <i class="fas fa-user-group"></i>
+                        <span class="text-truncate">Users</span>
+                    </a>
+                    <a asp-controller="Roles" asp-action="Index"
+                       class="sidebar-child nav-link d-flex align-items-center gap-2 py-2 @(currentCtrl == "Roles" ? "active" : "")">
+                        <i class="fas fa-user-shield"></i>
+                        <span class="text-truncate">Roles</span>
+                    </a>
+                    <a asp-controller="Permissions" asp-action="Index"
+                       class="sidebar-child nav-link d-flex align-items-center gap-2 py-2 @(currentCtrl == "Permissions" ? "active" : "")">
+                        <i class="fas fa-key"></i>
+                        <span class="text-truncate">Permissions</span>
+                    </a>
+                </div>
+            </div>
         </div>
 
-        <!-- Footer -->
-        <div class="sidebar-footer">
-            <a asp-controller="Auth" asp-action="Logout" class="nav-link">
+        <!-- Sidebar Footer -->
+        <div class="sidebar-footer px-2 py-3 mt-auto">
+            <a asp-controller="Auth" asp-action="Logout" class="nav-link d-flex align-items-center gap-3 px-3 py-2 rounded">
                 <i class="fas fa-right-from-bracket"></i>
-                <span>Logout</span>
+                <span class="text-truncate">Logout</span>
             </a>
         </div>
     </nav>
@@ -72,23 +106,19 @@
         <!-- Top Header Bar -->
         <header class="top-header">
             <div class="d-flex align-items-center gap-3">
-                <!-- Navigation Toggle -->
                 <button id="sidebarToggle" class="header-icon-btn" onclick="toggleSidebar()" aria-label="Toggle navigation" aria-expanded="true" aria-controls="sidebarNav">
                     <i class="fas fa-bars fa-lg"></i>
                 </button>
                 <h1 class="app-title">RiskIntel MIS</h1>
             </div>
             <div class="d-flex align-items-center gap-3">
-                <!-- Search -->
                 <div class="search-wrapper">
                     <i class="fas fa-search search-icon"></i>
                     <input type="text" class="search-input" placeholder="Search entity or ID... (/)" />
                 </div>
-                <!-- Notifications -->
                 <button class="header-icon-btn" aria-label="Notifications">
                     <i class="fas fa-bell"></i>
                 </button>
-                <!-- Account -->
                 <button class="header-icon-btn" aria-label="Account">
                     <i class="fas fa-circle-user fa-lg"></i>
                 </button>
@@ -96,7 +126,7 @@
         </header>
 
         <!-- Page Canvas -->
-        <div class="page-canvas">
+        <div class="page-canvas container-fluid px-3 px-md-4 py-3">
             @RenderBody()
         </div>
     </main>

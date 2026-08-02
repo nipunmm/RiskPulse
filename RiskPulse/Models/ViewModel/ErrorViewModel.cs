@@ -1,4 +1,4 @@
-namespace RiskPulse.Models
+namespace RiskPulse.Models.ViewModel
 {
     public class ErrorViewModel
     {

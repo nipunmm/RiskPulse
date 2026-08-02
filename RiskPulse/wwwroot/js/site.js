@@ -1,4 +1,8 @@
-// Sidebar Toggle Logic (Desktop & Mobile)
+// ============================================================
+// STASIS ENTERPRISE — Sidebar & Layout Logic
+// ============================================================
+
+// Sidebar Collapse / Expand Toggle (Desktop & Mobile)
 function toggleSidebar() {
     var sidebar = document.querySelector('.sidebar');
     var mainContent = document.querySelector('.main-content');
@@ -26,7 +30,30 @@ function toggleSidebar() {
     }
 }
 
-// Restore saved sidebar state on DOMContentLoaded for Desktop
+// Submenu Accordion Toggle
+function toggleSubmenu(parentBtn) {
+    if (!parentBtn) return;
+
+    var sidebarGroup = parentBtn.closest('.sidebar-group');
+    if (!sidebarGroup) return;
+
+    var submenu = sidebarGroup.querySelector('.sidebar-submenu');
+    if (!submenu) return;
+
+    var isOpen = submenu.classList.contains('open');
+
+    if (isOpen) {
+        submenu.classList.remove('open');
+        parentBtn.classList.remove('expanded');
+        parentBtn.setAttribute('aria-expanded', 'false');
+    } else {
+        submenu.classList.add('open');
+        parentBtn.classList.add('expanded');
+        parentBtn.setAttribute('aria-expanded', 'true');
+    }
+}
+
+// Restore saved sidebar state on DOMContentLoaded
 document.addEventListener('DOMContentLoaded', function () {
     if (window.innerWidth >= 768) {
         var isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
@@ -42,7 +69,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 });
 
-// Close sidebar when clicking outside on mobile
+// Close sidebar on mobile when clicking outside
 document.addEventListener('click', function (e) {
     var sidebar = document.querySelector('.sidebar');
     var toggleBtn = document.getElementById('sidebarToggle');
@@ -56,7 +83,7 @@ document.addEventListener('click', function (e) {
     }
 });
 
-// Search "/" keyboard shortcut
+// Keyboard shortcut "/" for top search bar focus
 document.addEventListener('keydown', function (e) {
     if (e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey) {
         var searchInput = document.querySelector('.search-input');
