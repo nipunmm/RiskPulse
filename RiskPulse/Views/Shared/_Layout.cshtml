@@ -13,6 +13,17 @@
 
     <!-- Stasis Enterprise Design System -->
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+
+    <!-- Apply saved sidebar state before first paint to avoid FOUC -->
+    <script>
+        (function () {
+            try {
+                if (localStorage.getItem('sidebarCollapsed') === 'true') {
+                    document.documentElement.setAttribute('data-sidebar', 'collapsed');
+                }
+            } catch (e) { }
+        })();
+    </script>
 </head>
 <body class="d-flex">
 
