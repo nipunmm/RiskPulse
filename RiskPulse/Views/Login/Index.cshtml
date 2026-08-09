@@ -216,22 +216,36 @@
     </main>
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    @await Html.PartialAsync("_ValidationScriptsPartial")
     <script>
         function resetBtn() {
             $('#loginBtn').prop('disabled', false)
                 .find('.btn-text').text('Authenticate');
         }
 
+        $('#loginForm').validate({
+            rules: {
+                username: { validUsername: true }
+            },
+            errorPlacement: function (error, element) {
+                $('#loginError').text(error.text()).show();
+            }
+        });
+
         $('#loginForm').on('submit', function (e) {
             e.preventDefault();
             var $error = $('#loginError');
             $error.hide();
 
+            if (!$('#loginForm').valid()) {
+                return;
+            }
+
             $('#loginBtn').prop('disabled', true)
                 .find('.btn-text').html('<i class="fas fa-spinner"></i> Authenticating...');
 
             $.ajax({
-                url: '@Url.Action("Login", "Auth")',
+                url: '@Url.Action("Login", "Login")',
                 type: 'POST',
                 data: {
                     username: $('#username').val(),

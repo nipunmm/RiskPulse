@@ -1,0 +1,345 @@
+@model RiskPulse.Models.ViewModel.UserManagementIndexViewModel
+@{
+    ViewData["Title"] = "User Management";
+
+    var usersJson = Json.Serialize(Model.Users.Select(u => new { id = u.Id, username = u.Username, unitId = u.UnitId, roleId = u.RoleId, isActive = u.IsActive }));
+    var unitsJson = Json.Serialize(Model.Units.Select(u => new { unitId = u.UnitId, unitCode = u.UnitCode, unitDesc = u.UnitDesc }));
+    var rolesJson = Json.Serialize(Model.Roles.Select(r => new { roleId = r.RoleId, roleDesc = r.RoleDesc }));
+    var currentUserId = Model.CurrentUserId;
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/lib/datatables/dataTables.bootstrap5.min.css" />
+    <link rel="stylesheet" href="~/lib/select2/select2.min.css" />
+    <link rel="stylesheet" href="~/lib/select2/select2-bootstrap-5-theme.min.css" />
+}
+
+<div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-end gap-3 mb-3">
+    <div>
+        <h2 class="font-display-lg" style="color: var(--on-background);">User Management</h2>
+        <p class="font-body-md mt-1 mb-0" style="color: var(--on-surface-variant);">
+            Manage system users and account status.
+        </p>
+    </div>
+    <button type="button" class="btn-stasis-primary" data-bs-toggle="modal" data-bs-target="#addUserModal">
+        <i class="fas fa-user-plus"></i> Add User
+    </button>
+</div>
+
+@if (TempData["SuccessMessage"] is string successMsg)
+{
+    <div class="alert alert-success" role="alert">@successMsg</div>
+}
+@if (TempData["ErrorMessage"] is string errorMsg)
+{
+    <div class="alert alert-danger" role="alert">@errorMsg</div>
+}
+
+<div class="card-stasis p-3">
+    <table id="userTable" class="table table-stasis w-100 align-middle">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Username</th>
+                <th>Status</th>
+                <th class="text-end">Actions</th>
+            </tr>
+        </thead>
+    </table>
+</div>
+
+<!-- ============================================================
+     ADD USER MODAL
+     ============================================================ -->
+<div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="addUserForm" novalidate>
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addUserModalLabel">Add User</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-danger d-none" id="addUserError" role="alert"></div>
+
+                    <div class="mb-3">
+                        <label class="input-label" for="addUsername">Username</label>
+                        <input type="text" id="addUsername" name="username" class="input-stasis" required autocomplete="off" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="input-label" for="addUnitId">Unit</label>
+                        <select id="addUnitId" name="unitId" class="input-stasis" required></select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="input-label" for="addRoleId">Role</label>
+                        <select id="addRoleId" name="roleId" class="input-stasis" required></select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-stasis-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn-stasis-primary"><i class="fas fa-check"></i> Create</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================
+     EDIT USER MODAL
+     Same fields as Add plus an Active toggle. Username is
+     read-only; it cannot be changed after creation.
+     ============================================================ -->
+<div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="editUserForm" novalidate>
+                <input type="hidden" id="editUserId" name="id" value="0" />
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editUserModalLabel">Edit User</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-danger d-none" id="editUserError" role="alert"></div>
+
+                    <div class="mb-3">
+                        <label class="input-label" for="editUsername">Username</label>
+                        <input type="text" id="editUsername" name="username" class="input-stasis" readonly autocomplete="off" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="input-label" for="editUnitId">Unit</label>
+                        <select id="editUnitId" name="unitId" class="input-stasis" required></select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="input-label" for="editRoleId">Role</label>
+                        <select id="editRoleId" name="roleId" class="input-stasis" required></select>
+                    </div>
+
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="editIsActive" name="isActive" checked />
+                        <label class="form-check-label" for="editIsActive">Active</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-stasis-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn-stasis-primary"><i class="fas fa-check"></i> Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/lib/datatables/jquery.dataTables.min.js"></script>
+    <script src="~/lib/datatables/dataTables.bootstrap5.min.js"></script>
+    <script src="~/lib/select2/select2.min.js"></script>
+    @await Html.PartialAsync("_ValidationScriptsPartial")
+    <script>
+        (function ($) {
+            /* ================================================================
+               Page data & endpoints
+               ================================================================ */
+            var users = @Html.Raw(usersJson);
+            var units = @Html.Raw(unitsJson);
+            var roles = @Html.Raw(rolesJson);
+            var currentUserId = @currentUserId;
+            var saveUrl = '@Url.Action("Save", "UserManagement")';
+
+            /* ================================================================
+               Helpers
+               ================================================================ */
+
+            // Populates a select with options from a data array.
+            // label for each option is derived by a labelFn(option) callback.
+            function populateSelect($select, data, labelFn) {
+                $select.empty();
+                $.each(data, function (index, item) {
+                    $select.append('<option value="' + item.value + '">' + labelFn(item) + '</option>');
+                });
+            }
+
+            // Builds value/label objects for the Unit dropdown.
+            function unitOptions() {
+                return $.map(units, function (unit) {
+                    return { value: unit.unitId, label: unit.unitDesc };
+                });
+            }
+
+            // Builds value/label objects for the Role dropdown.
+            function roleOptions() {
+                return $.map(roles, function (role) {
+                    return { value: role.roleId, label: role.roleDesc };
+                });
+            }
+
+            // Shows an inline error message inside a modal.
+            function showError($el, message) {
+                $el.removeClass('d-none').text(message);
+            }
+
+            // Collects the form's named fields into a JSON-ready object.
+            // The checkbox is synced first so serializeArray() always includes it.
+            function getFormPayload(formId) {
+                var $form = $('#' + formId);
+
+                var payload = {};
+                $.each($form.serializeArray(), function (index, field) {
+                    payload[field.name] = field.value;
+                });
+
+                var $active = $form.find('[name="isActive"]');
+                if ($active.length) {
+                    payload.isActive = $active.is(':checked');
+                }
+
+                // Coerce numeric fields so the JSON body sends numbers, not strings.
+                payload.id     = +payload.id     || 0;
+                payload.unitId = +payload.unitId || 0;
+                payload.roleId = +payload.roleId || 0;
+
+                return payload;
+            }
+
+            // The single AJAX call used by both Add and Edit forms.
+            // Reloads the grid on success or surfaces the error inside the modal.
+            function submitUser(payload, $errorEl) {
+                $.ajax({
+                    url: saveUrl,
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(payload),
+                    success: function (res) {
+                        if (res.success) {
+                            location.reload();
+                        } else {
+                            showError($errorEl, res.message || 'Unable to save user.');
+                        }
+                    },
+                    error: function () {
+                        showError($errorEl, 'An error occurred. Please try again.');
+                    }
+                });
+            }
+
+            // Wires a form to the shared save flow. Add and Edit share this.
+            function bindUserForm(formId, errorId) {
+                var $form = $('#' + formId);
+                var $error = $('#' + errorId);
+
+                $form.validate({
+                    ignore: '',
+                    rules: {
+                        username: { validUsername: true }
+                    },
+                    errorPlacement: function (error, element) {
+                        $error.removeClass('d-none').text(error.text());
+                    }
+                });
+
+                $form.on('submit', function (e) {
+                    e.preventDefault();
+                    $error.addClass('d-none');
+
+                    if (!$form.valid()) {
+                        return;
+                    }
+
+                    submitUser(getFormPayload(formId), $error);
+                });
+            }
+
+            /* ================================================================
+               Grid (DataTables) - client-side search, pagination, sorting
+               ================================================================ */
+            var userTable = $('#userTable').DataTable({
+                data: users,
+                columns: [
+                    { data: 'id' },
+                    { data: 'username' },
+                    {
+                        data: 'isActive',
+                        render: function (data) {
+                            return data
+                                ? '<span class="status-pill rag-green">Active</span>'
+                                : '<span class="status-pill rag-red">Inactive</span>';
+                        }
+                    },
+                    {
+                        data: null,
+                        orderable: false,
+                        searchable: false,
+                        className: 'text-end',
+                        render: function (data, type, row) {
+                            if (row.id === currentUserId) {
+                                return '<button type="button" class="btn-stasis-secondary" disabled title="You cannot edit your own record">' +
+                                       '<i class="fas fa-pen-to-square"></i> Edit</button>';
+                            }
+                            return '<button type="button" class="btn-stasis-secondary edit-user-btn">' +
+                                   '<i class="fas fa-pen-to-square"></i> Edit</button>';
+                        }
+                    }
+                ],
+                pageLength: 10,
+                lengthMenu: [10, 25, 50],
+                order: [[0, 'asc']]
+            });
+
+            /* ================================================================
+               Modal events
+               ================================================================ */
+
+            // Reset the Add form every time the modal opens.
+            $('#addUserModal').on('shown.bs.modal', function () {
+                $('#addUsername').val('').trigger('focus');
+                $('#addUnitId').val(unitOptions()[0].value).trigger('change');
+                $('#addRoleId').prop('selectedIndex', 0);
+                $('#addUserError').addClass('d-none');
+            });
+
+            // Clear stale errors whenever the Edit modal opens.
+            $('#editUserModal').on('shown.bs.modal', function () {
+                $('#editUserError').addClass('d-none');
+            });
+
+            // Edit button: load the row's values into the Edit modal, then open it.
+            $('#userTable tbody').on('click', '.edit-user-btn', function () {
+                var row = userTable.row($(this).closest('tr')).data();
+                $('#editUserId').val(row.id);
+                $('#editUsername').val(row.username);
+                $('#editUnitId').val(row.unitId).trigger('change');
+                $('#editRoleId').val(row.roleId);
+                $('#editIsActive').prop('checked', !!row.isActive);
+                $('#editUserModal').modal('show');
+            });
+
+            /* ================================================================
+               Dropdown population (Add + Edit share the Unit/Role options)
+               ================================================================ */
+            populateSelect($('#addUnitId'), unitOptions(), function (o) { return o.label; });
+            populateSelect($('#addRoleId'), roleOptions(), function (o) { return o.label; });
+            populateSelect($('#editUnitId'), unitOptions(), function (o) { return o.label; });
+            populateSelect($('#editRoleId'), roleOptions(), function (o) { return o.label; });
+
+            // Searchable Unit dropdowns (Select2), kept inside their modal.
+            $('#addUnitId').select2({
+                width: '100%',
+                theme: 'bootstrap-5',
+                dropdownParent: $('#addUnitId').closest('.modal')
+            });
+            $('#editUnitId').select2({
+                width: '100%',
+                theme: 'bootstrap-5',
+                dropdownParent: $('#editUnitId').closest('.modal')
+            });
+
+            /* ================================================================
+               Form submissions (shared pattern for Add and Edit)
+               ================================================================ */
+            bindUserForm('addUserForm', 'addUserError');
+            bindUserForm('editUserForm', 'editUserError');
+        })(jQuery);
+    </script>
+}

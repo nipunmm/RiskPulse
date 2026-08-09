@@ -2,7 +2,8 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 using RiskPulse.Data;
 using RiskPulse.Services;
-using RiskPulse.Services.AuthService;
+using RiskPulse.Services.AccessControlService;
+using RiskPulse.Services.LoginService;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,16 +13,19 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
-builder.Services.AddScoped<IAuthService, DevAuthService>();
+builder.Services.AddScoped<IUserAuthenticationService, AdAuthenticationService>();
+builder.Services.AddScoped<IUserAuthorizationService, DbAuthorizationService>();
+builder.Services.AddScoped<IUserManagementService, UserManagementService>();
+builder.Services.AddScoped<IRolesService, RolesService>();
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
-        options.LoginPath = "/Auth/Login";
-        options.AccessDeniedPath = "/Auth/AccessDenied";
+        options.LoginPath = "/Login/Index";
+        options.AccessDeniedPath = "/Login/AccessDenied";
         options.ExpireTimeSpan = TimeSpan.FromMinutes(20);
         options.SlidingExpiration = true;
         options.Cookie.HttpOnly = true;
-    });
+        });
 
 var app = builder.Build();
 
@@ -43,7 +47,7 @@ app.MapStaticAssets();
 
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Auth}/{action=Login}/{id?}")
+    pattern: "{controller=Login}/{action=Index}/{id?}")
     .WithStaticAssets();
 
 

@@ -14,6 +14,8 @@
     <!-- Stasis Enterprise Design System -->
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 
+    @await RenderSectionAsync("Styles", required: false)
+
     <!-- Apply saved sidebar state before first paint to avoid FOUC -->
     <script>
         (function () {
@@ -44,65 +46,87 @@
 
         <!-- Navigation Links Container -->
         <div class="sidebar-nav d-flex flex-column gap-1 px-2 py-3">
-            <a asp-controller="Dashboard" asp-action="Index"
-               class="nav-link d-flex align-items-center gap-3 px-3 py-2 rounded @(ViewContext.RouteData.Values["controller"]?.ToString() == "Dashboard" ? "active" : "")">
-                <i class="fas fa-chart-line"></i>
-                <span class="text-truncate">Dashboard</span>
-            </a>
-            <a asp-controller="Submissions" asp-action="Index"
-               class="nav-link d-flex align-items-center gap-3 px-3 py-2 rounded @(ViewContext.RouteData.Values["controller"]?.ToString() == "Submissions" ? "active" : "")">
-                <i class="fas fa-inbox"></i>
-                <span class="text-truncate">Submissions</span>
-            </a>
-            <a asp-controller="AssessmentControl" asp-action="Index"
-               class="nav-link d-flex align-items-center gap-3 px-3 py-2 rounded @(ViewContext.RouteData.Values["controller"]?.ToString() == "AssessmentControl" ? "active" : "")">
-                <i class="fas fa-clipboard-check"></i>
-                <span class="text-truncate">Assessment Control</span>
-            </a>
-            <a asp-controller="FormBuilder" asp-action="Index"
-               class="nav-link d-flex align-items-center gap-3 px-3 py-2 rounded @(ViewContext.RouteData.Values["controller"]?.ToString() == "FormBuilder" ? "active" : "")">
-                <i class="fas fa-wpforms"></i>
-                <span class="text-truncate">Form Builder</span>
-            </a>
+            @if (User.HasClaim("Permission", "Dashboard"))
+            {
+                <a asp-controller="Dashboard" asp-action="Index"
+                   class="nav-link d-flex align-items-center gap-3 px-3 py-2 rounded @(ViewContext.RouteData.Values["controller"]?.ToString() == "Dashboard" ? "active" : "")">
+                    <i class="fas fa-chart-line"></i>
+                    <span class="text-truncate">Dashboard</span>
+                </a>
+            }
+
+            @if (User.HasClaim("Permission", "Submissions"))
+            {
+                <a asp-controller="Submissions" asp-action="Index"
+                   class="nav-link d-flex align-items-center gap-3 px-3 py-2 rounded @(ViewContext.RouteData.Values["controller"]?.ToString() == "Submissions" ? "active" : "")">
+                    <i class="fas fa-inbox"></i>
+                    <span class="text-truncate">Submissions</span>
+                </a>
+            }
+
+            @if (User.HasClaim("Permission", "Assessment Control"))
+            {
+                <a asp-controller="AssessmentControl" asp-action="Index"
+                   class="nav-link d-flex align-items-center gap-3 px-3 py-2 rounded @(ViewContext.RouteData.Values["controller"]?.ToString() == "AssessmentControl" ? "active" : "")">
+                    <i class="fas fa-clipboard-check"></i>
+                    <span class="text-truncate">Assessment Control</span>
+                </a>
+            }
+
+            @if (User.HasClaim("Permission", "Form Builder"))
+            {
+                <a asp-controller="FormBuilder" asp-action="Index"
+                   class="nav-link d-flex align-items-center gap-3 px-3 py-2 rounded @(ViewContext.RouteData.Values["controller"]?.ToString() == "FormBuilder" ? "active" : "")">
+                    <i class="fas fa-wpforms"></i>
+                    <span class="text-truncate">Form Builder</span>
+                </a>
+            }
 
             @{
                 var currentCtrl = ViewContext.RouteData.Values["controller"]?.ToString();
-                var isEntityMgmtActive = currentCtrl == "Roles" || currentCtrl == "Users" || currentCtrl == "Permissions";
+                var canViewUsers = User.HasClaim("Permission", "Users");
+                var canViewRoles = User.HasClaim("Permission", "Roles");
+                var canViewEntityMgmt = canViewUsers || canViewRoles;
+                var isEntityMgmtActive = currentCtrl == "Roles" || currentCtrl == "Users" || currentCtrl == "UserManagement";
             }
 
-            <!-- Parent Item: Entity Management -->
-            <div class="sidebar-group w-100">
-                <button type="button" 
-                        class="sidebar-parent nav-link d-flex align-items-center gap-3 px-3 py-2 rounded @(isEntityMgmtActive ? "expanded" : "")" 
-                        onclick="toggleSubmenu(this)" 
-                        aria-expanded="@(isEntityMgmtActive ? "true" : "false")">
-                    <i class="fas fa-users-gear"></i>
-                    <span class="text-truncate me-auto">Entity Management</span>
-                    <i class="fas fa-chevron-down toggle-icon ms-auto"></i>
-                </button>
-                <div class="sidebar-submenu @(isEntityMgmtActive ? "open" : "")">
-                    <a asp-controller="Users" asp-action="Index"
-                       class="sidebar-child nav-link d-flex align-items-center gap-2 py-2 @(currentCtrl == "Users" ? "active" : "")">
-                        <i class="fas fa-user-group"></i>
-                        <span class="text-truncate">Users</span>
-                    </a>
-                    <a asp-controller="Roles" asp-action="Index"
-                       class="sidebar-child nav-link d-flex align-items-center gap-2 py-2 @(currentCtrl == "Roles" ? "active" : "")">
-                        <i class="fas fa-user-shield"></i>
-                        <span class="text-truncate">Roles</span>
-                    </a>
-                    <a asp-controller="Permissions" asp-action="Index"
-                       class="sidebar-child nav-link d-flex align-items-center gap-2 py-2 @(currentCtrl == "Permissions" ? "active" : "")">
-                        <i class="fas fa-key"></i>
-                        <span class="text-truncate">Permissions</span>
-                    </a>
+            @if (canViewEntityMgmt)
+            {
+                <!-- Parent Item: Entity Management -->
+                <div class="sidebar-group w-100">
+                    <button type="button" 
+                            class="sidebar-parent nav-link d-flex align-items-center gap-3 px-3 py-2 rounded @(isEntityMgmtActive ? "expanded" : "")" 
+                            onclick="toggleSubmenu(this)" 
+                            aria-expanded="@(isEntityMgmtActive ? "true" : "false")">
+                        <i class="fas fa-users-gear"></i>
+                        <span class="text-truncate me-auto">Entity Management</span>
+                        <i class="fas fa-chevron-down toggle-icon ms-auto"></i>
+                    </button>
+                    <div class="sidebar-submenu @(isEntityMgmtActive ? "open" : "")">
+                        @if (canViewUsers)
+                        {
+                            <a asp-controller="UserManagement" asp-action="Index"
+                               class="sidebar-child nav-link d-flex align-items-center gap-2 py-2 @(currentCtrl == "UserManagement" ? "active" : "")">
+                                <i class="fas fa-user-group"></i>
+                                <span class="text-truncate">Users</span>
+                            </a>
+                        }
+                        @if (canViewRoles)
+                        {
+                            <a asp-controller="Roles" asp-action="Index"
+                               class="sidebar-child nav-link d-flex align-items-center gap-2 py-2 @(currentCtrl == "Roles" ? "active" : "")">
+                                <i class="fas fa-user-shield"></i>
+                                <span class="text-truncate">Roles</span>
+                            </a>
+                        }
+                    </div>
                 </div>
-            </div>
+            }
         </div>
 
         <!-- Sidebar Footer -->
         <div class="sidebar-footer px-2 py-3 mt-auto">
-            <a asp-controller="Auth" asp-action="Logout" class="nav-link d-flex align-items-center gap-3 px-3 py-2 rounded">
+            <a asp-controller="Login" asp-action="Logout" class="nav-link d-flex align-items-center gap-3 px-3 py-2 rounded">
                 <i class="fas fa-right-from-bracket"></i>
                 <span class="text-truncate">Logout</span>
             </a>

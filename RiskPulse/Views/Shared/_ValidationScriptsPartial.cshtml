@@ -1,2 +1,13 @@
 ﻿<script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
 <script src="~/lib/jquery-validation-unobtrusive/dist/jquery.validate.unobtrusive.min.js"></script>
+<script>
+    (function ($) {
+        if (!$.validator) { return; }
+
+        // Shared username rule: lowercase letters only - no numbers,
+        // spaces, special characters or capital letters.
+        $.validator.addMethod('validUsername', function (value, element) {
+            return /^[a-z]+$/.test(value);
+        }, 'Username may only contain lowercase letters (a-z) - no numbers, spaces, or special characters.');
+    })(jQuery);
+</script>

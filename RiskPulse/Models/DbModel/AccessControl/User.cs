@@ -9,6 +9,8 @@ namespace RiskPulse.Models.DbModel.AccessControl
 
         public string Username { get; set; } = string.Empty;
 
+        public bool IsActive { get; set; } = true;
+
         public int UnitId { get; set; }
 
         public int RoleId { get; set; }
