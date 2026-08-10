@@ -4,7 +4,7 @@ using RiskPulse.Models.DbModel.AccessControl;
 
 namespace RiskPulse.Services.AccessControlService;
 
-public class RolesService : IRolesService
+public class RolesService
 {
     private readonly AppDbContext _db;
 

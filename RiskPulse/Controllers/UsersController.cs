@@ -1,21 +1,18 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using RiskPulse.Authorization;
 using RiskPulse.Models.DbModel.AccessControl;
 using RiskPulse.Models.ViewModel;
 using RiskPulse.Services.AccessControlService;
-using RiskPulse.Validation;
 
 namespace RiskPulse.Controllers;
 
-[Authorize]
-[PermissionAuthorize("Users")]
-public class UserManagementController : Controller
+[Authorize(Policy = "Permission:Users")]
+public class UsersController : Controller
 {
-    private readonly IUserManagementService _userService;
+    private readonly UsersService _userService;
 
-    public UserManagementController(IUserManagementService userService)
+    public UsersController(UsersService userService)
     {
         _userService = userService;
     }
@@ -27,7 +24,7 @@ public class UserManagementController : Controller
         var units = await _userService.GetAllUnitsAsync();
         var roles = await _userService.GetAllRolesAsync();
 
-        return View(new UserManagementIndexViewModel
+        return View(new UsersIndexViewModel
         {
             CurrentUserId = Convert.ToInt32(User.FindFirstValue(ClaimTypes.NameIdentifier)),
             Users = users,
@@ -41,12 +38,12 @@ public class UserManagementController : Controller
     {
         if (!ModelState.IsValid)
         {
-            return Json(new { success = false, message = "Please correct the form errors and try again." });
-        }
-
-        if (!UsernameValidator.IsValid(user.Username))
-        {
-            return Json(new { success = false, message = UsernameValidator.ErrorMessage });
+            return Json(new
+            {
+                success = false,
+                message = "Please correct the errors below.",
+                modelState = GetModelStateErrors()
+            });
         }
 
         try
@@ -66,12 +63,20 @@ public class UserManagementController : Controller
                 ? await _userService.CreateUserAsync(user)
                 : await _userService.UpdateUserAsync(user);
 
-            TempData["SuccessMessage"] = isNew ? "User created successfully." : "User updated successfully.";
-            return Json(new { success = true, message = TempData["SuccessMessage"], id = saved.Id });
+            return Json(new { success = true, message = isNew ? "User created successfully." : "User updated successfully.", id = saved.Id });
         }
         catch (Exception ex)
         {
             return Json(new { success = false, message = ex.Message });
         }
+    }
+
+    private Dictionary<string, string[]> GetModelStateErrors()
+    {
+        return ModelState
+            .Where(kvp => (kvp.Value?.Errors.Count ?? 0) > 0)
+            .ToDictionary(
+                kvp => kvp.Key,
+                kvp => kvp.Value!.Errors.Select(e => e.ErrorMessage).ToArray());
     }
 }

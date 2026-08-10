@@ -5,16 +5,15 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RiskPulse.Models.DbModel.AccessControl;
 using RiskPulse.Services.LoginService;
-using RiskPulse.Validation;
 
 namespace RiskPulse.Controllers
 {
     public class LoginController : Controller
     {
-        private readonly IUserAuthenticationService _authService;
-        private readonly IUserAuthorizationService _authorizationService;
+        private readonly AdAuthenticationService _authService;
+        private readonly DbAuthorizationService _authorizationService;
 
-        public LoginController(IUserAuthenticationService authService, IUserAuthorizationService authorizationService)
+        public LoginController(AdAuthenticationService authService, DbAuthorizationService authorizationService)
         {
             _authService = authService;
             _authorizationService = authorizationService;
@@ -34,11 +33,6 @@ namespace RiskPulse.Controllers
         [AllowAnonymous]
         public async Task<IActionResult> Login(string username, string password)
         {
-            if (!UsernameValidator.IsValid(username))
-            {
-                return Json(new { success = false, message = UsernameValidator.ErrorMessage });
-            }
-
             if (!await _authService.ValidateCredentialsAsync(username, password))
             {
                 return Json(new { success = false, message = "Authentication failed." });

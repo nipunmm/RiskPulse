@@ -13,10 +13,10 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
-builder.Services.AddScoped<IUserAuthenticationService, AdAuthenticationService>();
-builder.Services.AddScoped<IUserAuthorizationService, DbAuthorizationService>();
-builder.Services.AddScoped<IUserManagementService, UserManagementService>();
-builder.Services.AddScoped<IRolesService, RolesService>();
+builder.Services.AddScoped<AdAuthenticationService>();
+builder.Services.AddScoped<DbAuthorizationService>();
+builder.Services.AddScoped<UsersService>();
+builder.Services.AddScoped<RolesService>();
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
@@ -26,6 +26,16 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.SlidingExpiration = true;
         options.Cookie.HttpOnly = true;
         });
+
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("Permission:Dashboard", policy => policy.RequireClaim("Permission", "Dashboard"));
+    options.AddPolicy("Permission:Submissions", policy => policy.RequireClaim("Permission", "Submissions"));
+    options.AddPolicy("Permission:Assessment Control", policy => policy.RequireClaim("Permission", "Assessment Control"));
+    options.AddPolicy("Permission:Form Builder", policy => policy.RequireClaim("Permission", "Form Builder"));
+    options.AddPolicy("Permission:Roles", policy => policy.RequireClaim("Permission", "Roles"));
+    options.AddPolicy("Permission:Users", policy => policy.RequireClaim("Permission", "Users"));
+});
 
 var app = builder.Build();
 

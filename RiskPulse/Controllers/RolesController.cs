@@ -1,18 +1,16 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using RiskPulse.Authorization;
 using RiskPulse.Models.ViewModel;
 using RiskPulse.Services.AccessControlService;
 
 namespace RiskPulse.Controllers;
 
-[Authorize]
-[PermissionAuthorize("Roles")]
+[Authorize(Policy = "Permission:Roles")]
 public class RolesController : Controller
 {
-    private readonly IRolesService _rolesService;
+    private readonly RolesService _rolesService;
 
-    public RolesController(IRolesService rolesService)
+    public RolesController(RolesService rolesService)
     {
         _rolesService = rolesService;
     }
@@ -33,14 +31,9 @@ public class RolesController : Controller
     [HttpPost]
     public async Task<IActionResult> Save([FromBody] RoleSaveModel model)
     {
-        if (string.IsNullOrWhiteSpace(model.RoleDesc))
+        if (!ModelState.IsValid)
         {
-            return Json(new { success = false, message = "Role name is required." });
-        }
-
-        if (model.PermissionIds == null || model.PermissionIds.Count == 0)
-        {
-            return Json(new { success = false, message = "At least one permission is required." });
+            return Json(new { success = false, message = "Please correct the errors below.", modelState = GetModelStateErrors() });
         }
 
         try
@@ -50,12 +43,20 @@ public class RolesController : Controller
                 ? await _rolesService.CreateRoleAsync(model.RoleDesc, model.PermissionIds)
                 : await _rolesService.UpdateRoleAsync(model.RoleId, model.RoleDesc, model.PermissionIds);
 
-            TempData["SuccessMessage"] = isNew ? "Role created successfully." : "Role updated successfully.";
-            return Json(new { success = true, message = TempData["SuccessMessage"], id = saved.RoleId });
+            return Json(new { success = true, message = isNew ? "Role created successfully." : "Role updated successfully.", id = saved.RoleId });
         }
         catch (Exception ex)
         {
             return Json(new { success = false, message = ex.Message });
         }
+    }
+
+    private Dictionary<string, string[]> GetModelStateErrors()
+    {
+        return ModelState
+            .Where(kvp => (kvp.Value?.Errors.Count ?? 0) > 0)
+            .ToDictionary(
+                kvp => kvp.Key,
+                kvp => kvp.Value!.Errors.Select(e => e.ErrorMessage).ToArray());
     }
 }

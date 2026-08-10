@@ -2,7 +2,7 @@ using RiskPulse.Models.DbModel.AccessControl;
 
 namespace RiskPulse.Models.ViewModel
 {
-    public class UserManagementIndexViewModel
+    public class UsersIndexViewModel
     {
         public int CurrentUserId { get; set; }
 

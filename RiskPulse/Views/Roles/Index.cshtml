@@ -16,7 +16,7 @@
     <link rel="stylesheet" href="~/lib/datatables/dataTables.bootstrap5.min.css" />
 }
 
-<div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-end gap-3 mb-3">
+<div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-end gap-2 mb-2">
     <div>
         <h2 class="font-display-lg" style="color: var(--on-background);">Role Management</h2>
         <p class="font-body-md mt-1 mb-0" style="color: var(--on-surface-variant);">
@@ -28,17 +28,8 @@
     </button>
 </div>
 
-@if (TempData["SuccessMessage"] is string successMsg)
-{
-    <div class="alert alert-success" role="alert">@successMsg</div>
-}
-@if (TempData["ErrorMessage"] is string errorMsg)
-{
-    <div class="alert alert-danger" role="alert">@errorMsg</div>
-}
-
-<div class="card-stasis p-3">
-    <table id="roleTable" class="table table-stasis w-100 align-middle">
+<div class="card-stasis p-2">
+    <table id="roleTable" class="table table-stasis table-sm w-100 align-middle">
         <thead>
             <tr>
                 <th>ID</th>
@@ -62,11 +53,11 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="alert alert-danger d-none" id="addRoleError" role="alert"></div>
+                    <div class="validation-summary d-none" id="addRoleError" role="alert"></div>
 
                     <div class="mb-3">
                         <label class="input-label" for="addRoleDesc">Role Name</label>
-                        <input type="text" id="addRoleDesc" name="roleDesc" class="input-stasis" required autocomplete="off" />
+                        <input type="text" id="addRoleDesc" name="roleDesc" class="input-stasis" required data-msg-required="Role name is required." autocomplete="off" />
                     </div>
 
                     <div class="mb-3">
@@ -96,11 +87,11 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="alert alert-danger d-none" id="editRoleError" role="alert"></div>
+                    <div class="validation-summary d-none" id="editRoleError" role="alert"></div>
 
                     <div class="mb-3">
                         <label class="input-label" for="editRoleDesc">Role Name</label>
-                        <input type="text" id="editRoleDesc" name="roleDesc" class="input-stasis" required autocomplete="off" />
+                        <input type="text" id="editRoleDesc" name="roleDesc" class="input-stasis" required data-msg-required="Role name is required." autocomplete="off" />
                     </div>
 
                     <div class="mb-3">
@@ -133,7 +124,8 @@
                Helpers
                ================================================================ */
 
-            // Renders the permission checkbox group for a modal.
+            // Renders the permission checkbox group for a modal and wires the
+            // group-level "at least one" rule onto each rendered checkbox.
             function renderPermissionList(containerId, selectedIds) {
                 var $container = $('#' + containerId).empty();
                 $.each(permissions, function (index, permission) {
@@ -150,11 +142,11 @@
                         '</div>'
                     );
                 });
-            }
 
-            // Shows an inline error message inside a modal.
-            function showError($el, message) {
-                $el.removeClass('d-none').text(message);
+                $container.find('.permission-check').rules('add', {
+                    requireOnePermission: true,
+                    messages: { requireOnePermission: 'At least one permission is required.' }
+                });
             }
 
             // Collects the form's named fields into a JSON-ready object.
@@ -175,7 +167,9 @@
             }
 
             // The single AJAX call used by both Add and Edit forms.
-            function submitRole(payload, $errorEl) {
+            function submitRole(payload, $form) {
+                var validator = $form.data('validator');
+
                 $.ajax({
                     url: saveUrl,
                     type: 'POST',
@@ -183,44 +177,46 @@
                     data: JSON.stringify(payload),
                     success: function (res) {
                         if (res.success) {
-                            location.reload();
+                            $form.closest('.modal').modal('hide');
+                            Swal.fire({
+                                icon: 'success',
+                                title: res.message || 'Role saved successfully.'
+                            }).then(function () {
+                                location.reload();
+                            });
+                        } else if (res.modelState) {
+                            // Server-side field errors -> inline + summary
+                            applyServerErrors(validator, res);
                         } else {
-                            showError($errorEl, res.message || 'Unable to save role.');
+                            showValidationToast(res.message || 'Unable to save role.');
                         }
                     },
                     error: function () {
-                        showError($errorEl, 'An error occurred. Please try again.');
+                        showValidationToast('An error occurred. Please try again.');
                     }
                 });
             }
 
-            // Wires a form to the shared save flow. Add and Edit share this.
+            // Wires a form to the shared save flow via the unified validator.
+            // Add and Edit share this.
             function bindRoleForm(formId, errorId) {
-                $('#' + formId).on('submit', function (e) {
-                    e.preventDefault();
-                    var $error = $('#' + errorId);
-                    var payload = getFormPayload(formId);
+                initValidatedForm(formId, {
+                    summarySelector: '#' + errorId,
+                    onSubmit: function ($form) {
+                        var payload = getFormPayload(formId);
+                        var validator = $form.data('validator');
 
-                    if (!payload.roleDesc || !payload.roleDesc.trim()) {
-                        showError($error, 'Role name is required.');
-                        return;
+                        var duplicate = roles.some(function (r) {
+                            return r.roleDesc.toLowerCase() === payload.roleDesc.trim().toLowerCase()
+                                && r.roleId !== payload.roleId;
+                        });
+                        if (duplicate) {
+                            validator.showErrors({ roleDesc: 'A role with this name already exists.' });
+                            return;
+                        }
+
+                        submitRole(payload, $form);
                     }
-
-                    if (payload.permissionIds.length === 0) {
-                        showError($error, 'At least one permission is required.');
-                        return;
-                    }
-
-                    var duplicate = roles.some(function (r) {
-                        return r.roleDesc.toLowerCase() === payload.roleDesc.trim().toLowerCase()
-                            && r.roleId !== payload.roleId;
-                    });
-                    if (duplicate) {
-                        showError($error, 'A role with this name already exists.');
-                        return;
-                    }
-
-                    submitRole(payload, $error);
                 });
             }
 
@@ -265,6 +261,8 @@
 
             // Reset the Add form every time the modal opens.
             $('#addRoleModal').on('shown.bs.modal', function () {
+                var validator = $('#addRoleForm').data('validator');
+                if (validator) validator.resetForm();
                 $('#addRoleDesc').val('').trigger('focus');
                 renderPermissionList('addPermissionList', []);
                 $('#addRoleError').addClass('d-none');
@@ -272,6 +270,8 @@
 
             // Clear stale errors whenever the Edit modal opens.
             $('#editRoleModal').on('shown.bs.modal', function () {
+                var validator = $('#editRoleForm').data('validator');
+                if (validator) validator.resetForm();
                 $('#editRoleError').addClass('d-none');
             });
 

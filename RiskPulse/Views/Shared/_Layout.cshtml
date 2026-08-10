@@ -11,6 +11,13 @@
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
 
+    <!-- SweetAlert2 -->
+    <link rel="stylesheet" href="~/lib/sweetalert2/sweetalert2.min.css" />
+
+    <!-- Select2 -->
+    <link rel="stylesheet" href="~/lib/select2/select2.min.css" />
+    <link rel="stylesheet" href="~/lib/select2/select2-bootstrap-5-theme.min.css" />
+
     <!-- Stasis Enterprise Design System -->
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 
@@ -87,7 +94,7 @@
                 var canViewUsers = User.HasClaim("Permission", "Users");
                 var canViewRoles = User.HasClaim("Permission", "Roles");
                 var canViewEntityMgmt = canViewUsers || canViewRoles;
-                var isEntityMgmtActive = currentCtrl == "Roles" || currentCtrl == "Users" || currentCtrl == "UserManagement";
+                var isEntityMgmtActive = currentCtrl == "Roles" || currentCtrl == "Users";
             }
 
             @if (canViewEntityMgmt)
@@ -105,8 +112,8 @@
                     <div class="sidebar-submenu @(isEntityMgmtActive ? "open" : "")">
                         @if (canViewUsers)
                         {
-                            <a asp-controller="UserManagement" asp-action="Index"
-                               class="sidebar-child nav-link d-flex align-items-center gap-2 py-2 @(currentCtrl == "UserManagement" ? "active" : "")">
+                            <a asp-controller="Users" asp-action="Index"
+                               class="sidebar-child nav-link d-flex align-items-center gap-2 py-2 @(currentCtrl == "Users" ? "active" : "")">
                                 <i class="fas fa-user-group"></i>
                                 <span class="text-truncate">Users</span>
                             </a>
@@ -169,7 +176,23 @@
     <!-- Scripts -->
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/lib/sweetalert2/sweetalert2.min.js"></script>
+    <script src="~/lib/select2/select2.min.js"></script>
+    <script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
+    <script src="~/lib/jquery-validation-unobtrusive/dist/jquery.validate.unobtrusive.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="~/js/validation.js" asp-append-version="true"></script>
+
+    <script>
+        const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true
+        });
+    </script>
+
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

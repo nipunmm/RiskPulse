@@ -6,7 +6,7 @@ namespace RiskPulse.Services.LoginService;
 
 // Loads a user's authorization details (role, permissions, unit) from the database.
 // The result is used at login time to build the claims stored in the auth cookie.
-public class DbAuthorizationService : IUserAuthorizationService
+public class DbAuthorizationService
 {
     private readonly AppDbContext _db;
 

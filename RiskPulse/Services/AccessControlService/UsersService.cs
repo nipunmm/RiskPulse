@@ -4,11 +4,11 @@ using RiskPulse.Models.DbModel.AccessControl;
 
 namespace RiskPulse.Services.AccessControlService;
 
-public class UserManagementService : IUserManagementService
+public class UsersService
 {
     private readonly AppDbContext _db;
 
-    public UserManagementService(AppDbContext db)
+    public UsersService(AppDbContext db)
     {
         _db = db;
     }

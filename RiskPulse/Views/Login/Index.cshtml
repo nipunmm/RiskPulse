@@ -10,6 +10,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Login - RiskPulse</title>
     <link rel="stylesheet" href="~/lib/font-awesome/css/all.min.css" />
+    <link rel="stylesheet" href="~/lib/sweetalert2/sweetalert2.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <style>
         .login-page {
@@ -177,7 +178,8 @@
                            id="username"
                            name="username"
                            placeholder="Enter your username"
-                           required />
+                           required
+                           data-msg-required="Username is required." />
                 </div>
             </div>
 
@@ -191,12 +193,10 @@
                            id="password"
                            name="password"
                            placeholder="&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;"
-                           required />
+                           required
+                           data-msg-required="Password is required." />
                 </div>
             </div>
-
-            <!-- Validation Error -->
-            <div id="loginError" style="display:none; background: var(--error-container); color: var(--on-error-container); padding: 8px 12px; border-radius: 4px; font-size: 12px;"></div>
 
             <!-- Submit -->
             <button class="btn-stasis-primary login-submit" type="submit" id="loginBtn">
@@ -216,54 +216,50 @@
     </main>
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/sweetalert2/sweetalert2.min.js"></script>
     @await Html.PartialAsync("_ValidationScriptsPartial")
+    <script src="~/js/validation.js" asp-append-version="true"></script>
     <script>
+        const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true
+        });
+
         function resetBtn() {
             $('#loginBtn').prop('disabled', false)
                 .find('.btn-text').text('Authenticate');
         }
 
-        $('#loginForm').validate({
-            rules: {
-                username: { validUsername: true }
-            },
-            errorPlacement: function (error, element) {
-                $('#loginError').text(error.text()).show();
-            }
-        });
+        // Unified validation — inline field errors on the login form.
+        initValidatedForm('loginForm', {
+            onSubmit: function ($form, event) {
+                $('#loginBtn').prop('disabled', true)
+                    .find('.btn-text').html('<i class="fas fa-spinner"></i> Authenticating...');
 
-        $('#loginForm').on('submit', function (e) {
-            e.preventDefault();
-            var $error = $('#loginError');
-            $error.hide();
-
-            if (!$('#loginForm').valid()) {
-                return;
-            }
-
-            $('#loginBtn').prop('disabled', true)
-                .find('.btn-text').html('<i class="fas fa-spinner"></i> Authenticating...');
-
-            $.ajax({
-                url: '@Url.Action("Login", "Login")',
-                type: 'POST',
-                data: {
-                    username: $('#username').val(),
-                    password: $('#password').val()
-                },
-                success: function (response) {
-                    if (response.success) {
-                        window.location.href = response.redirectUrl;
-                    } else {
-                        $error.text(response.message).show();
+                $.ajax({
+                    url: '@Url.Action("Login", "Login")',
+                    type: 'POST',
+                    data: {
+                        username: $('#username').val(),
+                        password: $('#password').val()
+                    },
+                    success: function (response) {
+                        if (response.success) {
+                            window.location.href = response.redirectUrl;
+                        } else {
+                            showValidationToast(response.message || 'Login failed.');
+                            resetBtn();
+                        }
+                    },
+                    error: function () {
+                        showValidationToast('An error occurred. Please try again.');
                         resetBtn();
                     }
-                },
-                error: function () {
-                    $error.text('An error occurred. Please try again.').show();
-                    resetBtn();
-                }
-            });
+                });
+            }
         });
     </script>
 
