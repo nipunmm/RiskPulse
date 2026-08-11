@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RiskPulse.Models.DbModel.AccessControl;
+using RiskPulse.Services.AccessControlService;
 using RiskPulse.Services.LoginService;
 
 namespace RiskPulse.Controllers
@@ -24,7 +25,11 @@ namespace RiskPulse.Controllers
         public IActionResult Index()
         {
             if (User.Identity?.IsAuthenticated == true)
-                return RedirectToAction("Index", "Dashboard");
+            {
+                var defaultPage = User.FindFirst("DefaultPage")?.Value;
+                var (controller, action) = PermissionPageMapper.GetRouteForPermission(defaultPage);
+                return RedirectToAction(action, controller);
+            }
 
             return View();
         }
@@ -49,11 +54,14 @@ namespace RiskPulse.Controllers
                 return Json(new { success = false, message = "User account is inactive." });
             }
 
+            var defaultPageDesc = user.Role?.DefaultPermission?.PermissionDesc ?? "Dashboard";
+
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.Name, user.Username),
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new Claim(ClaimTypes.Role, user.Role?.RoleDesc ?? string.Empty)
+                new Claim(ClaimTypes.Role, user.Role?.RoleDesc ?? string.Empty),
+                new Claim("DefaultPage", defaultPageDesc)
             };
 
             if (user.Unit != null)
@@ -79,7 +87,10 @@ namespace RiskPulse.Controllers
                 CookieAuthenticationDefaults.AuthenticationScheme,
                 principal);
 
-            return Json(new { success = true, redirectUrl = Url.Action("Index", "Dashboard") });
+            var (targetController, targetAction) = PermissionPageMapper.GetRouteForPermission(defaultPageDesc);
+            var redirectUrl = Url.Action(targetAction, targetController) ?? Url.Action("Index", "Dashboard");
+
+            return Json(new { success = true, redirectUrl });
         }
 
         [AllowAnonymous]

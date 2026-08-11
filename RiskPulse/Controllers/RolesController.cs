@@ -45,8 +45,8 @@ public class RolesController : Controller
         {
             var isNew = model.RoleId == 0;
             var saved = isNew
-                ? await _rolesService.CreateRoleAsync(model.RoleDesc, model.PermissionIds)
-                : await _rolesService.UpdateRoleAsync(model.RoleId, model.RoleDesc, model.PermissionIds);
+                ? await _rolesService.CreateRoleAsync(model.RoleDesc, model.PermissionIds, model.DefaultPermissionId)
+                : await _rolesService.UpdateRoleAsync(model.RoleId, model.RoleDesc, model.PermissionIds, model.DefaultPermissionId);
 
             return Json(new { success = true, message = isNew ? "Role created successfully." : "Role updated successfully.", id = saved.RoleId });
         }

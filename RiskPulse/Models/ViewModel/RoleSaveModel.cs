@@ -7,5 +7,7 @@ namespace RiskPulse.Models.ViewModel
         public string RoleDesc { get; set; } = string.Empty;
 
         public List<int> PermissionIds { get; set; } = new List<int>();
+
+        public int? DefaultPermissionId { get; set; }
     }
 }

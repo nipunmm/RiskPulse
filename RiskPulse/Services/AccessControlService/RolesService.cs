@@ -16,6 +16,7 @@ public class RolesService
     public async Task<List<Role>> GetAllRolesAsync()
     {
         return await _db.Roles
+            .Include(r => r.DefaultPermission)
             .Include(r => r.RolePermissions)
                 .ThenInclude(rp => rp.Permission)
             .AsNoTracking()
@@ -31,7 +32,7 @@ public class RolesService
             .ToListAsync();
     }
 
-    public async Task<Role> CreateRoleAsync(string roleDesc, List<int> permissionIds)
+    public async Task<Role> CreateRoleAsync(string roleDesc, List<int> permissionIds, int? defaultPermissionId)
     {
         roleDesc = roleDesc.Trim();
 
@@ -44,6 +45,7 @@ public class RolesService
         var role = new Role
         {
             RoleDesc = roleDesc,
+            DefaultPermissionId = defaultPermissionId,
             RolePermissions = permissionIds
                 .Distinct()
                 .Select(permissionId => new RolePermission { PermissionId = permissionId })
@@ -55,7 +57,7 @@ public class RolesService
         return role;
     }
 
-    public async Task<Role> UpdateRoleAsync(int roleId, string roleDesc, List<int> permissionIds)
+    public async Task<Role> UpdateRoleAsync(int roleId, string roleDesc, List<int> permissionIds, int? defaultPermissionId)
     {
         roleDesc = roleDesc.Trim();
 
@@ -72,6 +74,7 @@ public class RolesService
             ?? throw new InvalidOperationException($"Role with Id {roleId} was not found.");
 
         existing.RoleDesc = roleDesc;
+        existing.DefaultPermissionId = defaultPermissionId;
         existing.RolePermissions.Clear();
 
         foreach (var permissionId in permissionIds.Distinct())

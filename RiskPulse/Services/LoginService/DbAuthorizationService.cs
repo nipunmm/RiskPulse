@@ -21,6 +21,8 @@ public class DbAuthorizationService
             .Include(u => u.Role)
                 .ThenInclude(r => r!.RolePermissions)
                 .ThenInclude(rp => rp.Permission)
+            .Include(u => u.Role)
+                .ThenInclude(r => r!.DefaultPermission)
             .Include(u => u.Unit)
             .AsNoTracking()
             .FirstOrDefaultAsync(u => u.Username == username);

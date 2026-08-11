@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using RiskPulse.Models.DbModel.AccessControl;
 
 namespace RiskPulse.Data

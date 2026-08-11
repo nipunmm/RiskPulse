@@ -29,20 +29,6 @@ namespace RiskPulse.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Roles",
-                schema: "riskpulse",
-                columns: table => new
-                {
-                    RoleId = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    RoleDesc = table.Column<string>(type: "text", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Roles", x => x.RoleId);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "Units",
                 schema: "riskpulse",
                 columns: table => new
@@ -56,6 +42,27 @@ namespace RiskPulse.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Units", x => x.UnitId);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Roles",
+                schema: "riskpulse",
+                columns: table => new
+                {
+                    RoleId = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    RoleDesc = table.Column<string>(type: "text", nullable: false),
+                    DefaultPermissionId = table.Column<int>(type: "integer", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Roles", x => x.RoleId);
+                    table.ForeignKey(
+                        name: "FK_Roles_Permissions_DefaultPermissionId",
+                        column: x => x.DefaultPermissionId,
+                        principalSchema: "riskpulse",
+                        principalTable: "Permissions",
+                        principalColumn: "PermissionId");
                 });
 
             migrationBuilder.CreateTable(
@@ -131,6 +138,12 @@ namespace RiskPulse.Migrations
                 column: "RoleId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Roles_DefaultPermissionId",
+                schema: "riskpulse",
+                table: "Roles",
+                column: "DefaultPermissionId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Users_RoleId",
                 schema: "riskpulse",
                 table: "Users",
@@ -155,15 +168,15 @@ namespace RiskPulse.Migrations
                 schema: "riskpulse");
 
             migrationBuilder.DropTable(
-                name: "Permissions",
-                schema: "riskpulse");
-
-            migrationBuilder.DropTable(
                 name: "Roles",
                 schema: "riskpulse");
 
             migrationBuilder.DropTable(
                 name: "Units",
+                schema: "riskpulse");
+
+            migrationBuilder.DropTable(
+                name: "Permissions",
                 schema: "riskpulse");
         }
     }

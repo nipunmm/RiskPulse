@@ -47,11 +47,16 @@ namespace RiskPulse.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("RoleId"));
 
+                    b.Property<int?>("DefaultPermissionId")
+                        .HasColumnType("integer");
+
                     b.Property<string>("RoleDesc")
                         .IsRequired()
                         .HasColumnType("text");
 
                     b.HasKey("RoleId");
+
+                    b.HasIndex("DefaultPermissionId");
 
                     b.ToTable("Roles", "riskpulse");
                 });
@@ -133,6 +138,15 @@ namespace RiskPulse.Migrations
                     b.HasIndex("UnitId");
 
                     b.ToTable("Users", "riskpulse");
+                });
+
+            modelBuilder.Entity("RiskPulse.Models.DbModel.AccessControl.Role", b =>
+                {
+                    b.HasOne("RiskPulse.Models.DbModel.AccessControl.Permission", "DefaultPermission")
+                        .WithMany()
+                        .HasForeignKey("DefaultPermissionId");
+
+                    b.Navigation("DefaultPermission");
                 });
 
             modelBuilder.Entity("RiskPulse.Models.DbModel.AccessControl.RolePermission", b =>

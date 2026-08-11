@@ -9,6 +9,10 @@ namespace RiskPulse.Models.DbModel.AccessControl
 
         public string RoleDesc { get; set; } = string.Empty;
 
+        public int? DefaultPermissionId { get; set; }
+
+        public Permission? DefaultPermission { get; set; }
+
         public ICollection<User> Users { get; set; } = new List<User>();
 
         public ICollection<RolePermission> RolePermissions { get; set; } = new List<RolePermission>();

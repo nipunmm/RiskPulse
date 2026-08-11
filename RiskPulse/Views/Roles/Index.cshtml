@@ -6,6 +6,8 @@
     {
         roleId = r.RoleId,
         roleDesc = r.RoleDesc,
+        defaultPermissionId = r.DefaultPermissionId,
+        defaultPermissionDesc = r.DefaultPermission?.PermissionDesc ?? "Dashboard",
         permissionIds = r.RolePermissions.Select(rp => rp.PermissionId).ToList(),
         permissionDescs = r.RolePermissions.Select(rp => rp.Permission?.PermissionDesc).ToList()
     }));
@@ -20,7 +22,7 @@
     <div>
         <h2 class="font-display-lg" style="color: var(--on-background);">Role Management</h2>
         <p class="font-body-md mt-1 mb-0" style="color: var(--on-surface-variant);">
-            Define roles and assign the system permissions they are allowed to access.
+            Define roles, set their landing page, and assign system permissions.
         </p>
     </div>
     <button type="button" class="btn-stasis-primary" data-bs-toggle="modal" data-bs-target="#addRoleModal">
@@ -34,6 +36,7 @@
             <tr>
                 <th>ID</th>
                 <th>Role Name</th>
+                <th>Default Page</th>
                 <th>Permissions</th>
                 <th class="text-end">Actions</th>
             </tr>
@@ -56,6 +59,15 @@
                     <div class="mb-3">
                         <label class="input-label" for="addRoleDesc">Role Name</label>
                         <input type="text" id="addRoleDesc" name="roleDesc" class="input-stasis" required autocomplete="off" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="input-label" for="addDefaultPermissionId">Default Landing Page</label>
+                        <select id="addDefaultPermissionId" name="defaultPermissionId" class="input-stasis form-select">
+                        </select>
+                        <small class="text-muted font-body-xs mt-1 d-block">
+                            Users with this role will be automatically redirected to this page after login. Enabled once at least one permission is assigned.
+                        </small>
                     </div>
 
                     <div class="mb-3">
@@ -91,6 +103,15 @@
                     </div>
 
                     <div class="mb-3">
+                        <label class="input-label" for="editDefaultPermissionId">Default Landing Page</label>
+                        <select id="editDefaultPermissionId" name="defaultPermissionId" class="input-stasis form-select">
+                        </select>
+                        <small class="text-muted font-body-xs mt-1 d-block">
+                            Users with this role will be automatically redirected to this page after login. Enabled once at least one permission is assigned.
+                        </small>
+                    </div>
+
+                    <div class="mb-3">
                         <label class="input-label d-block mb-2">Permissions</label>
                         <div class="permission-checkboxes" id="editPermissionList"></div>
                     </div>
@@ -119,6 +140,58 @@
             /* ================================================================
                Helpers
                ================================================================ */
+
+            // Populates the default page combo box options dynamically based on checked permissions
+            function renderDefaultPermissionOptions(selectId, selectedId, checkedPermissionIds) {
+                var $select = $('#' + selectId).empty();
+
+                // If no permissions are checked, keep the dropdown disabled with a placeholder
+                if (!Array.isArray(checkedPermissionIds) || checkedPermissionIds.length === 0) {
+                    $select.append($('<option></option>').val('').text('Select a default page'));
+                    $select.prop('disabled', true);
+                    return;
+                }
+
+                // Only offer permissions that are currently checked
+                var allowedPermissions = permissions.filter(function (p) {
+                    return checkedPermissionIds.indexOf(p.permissionId) > -1;
+                });
+
+                // Check if current selectedId is in allowed permissions; if not, fallback to Dashboard or first allowed
+                var effectiveSelectedId = selectedId;
+                var isCurrentlyAllowed = allowedPermissions.some(function (p) { return p.permissionId === effectiveSelectedId; });
+
+                if (!isCurrentlyAllowed) {
+                    var dashPermission = allowedPermissions.find(function (p) {
+                        return p.permissionDesc.toLowerCase() === 'dashboard';
+                    });
+                    effectiveSelectedId = dashPermission ? dashPermission.permissionId : (allowedPermissions[0] ? allowedPermissions[0].permissionId : null);
+                }
+
+                $.each(allowedPermissions, function (index, permission) {
+                    var isSelected = permission.permissionId === effectiveSelectedId;
+                    $select.append(
+                        $('<option></option>')
+                            .val(permission.permissionId)
+                            .text(permission.permissionDesc)
+                            .prop('selected', isSelected)
+                    );
+                });
+
+                $select.prop('disabled', false);
+            }
+
+            // Syncs the default page combo box with the currently checked permissions in a modal form
+            function syncDefaultPageDropdown(formId, selectId, preferredSelectedId) {
+                var checkedIds = $('#' + formId + ' .permission-check:checked')
+                    .map(function () { return +this.value; })
+                    .get();
+
+                var currentVal = +$('#' + selectId).val();
+                var targetSelectedId = currentVal || preferredSelectedId || null;
+
+                renderDefaultPermissionOptions(selectId, targetSelectedId, checkedIds);
+            }
 
             // Renders the permission checkbox group for a modal.
             function renderPermissionList(containerId, selectedIds) {
@@ -149,6 +222,7 @@
                 });
 
                 payload.roleId = +payload.roleId || 0;
+                payload.defaultPermissionId = payload.defaultPermissionId ? +payload.defaultPermissionId : null;
                 payload.permissionIds = $form.find('.permission-check:checked')
                     .map(function () { return +this.value; })
                     .get();
@@ -183,9 +257,7 @@
             }
 
             /* ================================================================
-               Validation & Form Binding (Add + Edit share this pattern)
-               Checks required fields + duplicates and reports via the shared
-               toast.
+               Validation & Form Binding
                ================================================================ */
             function validateRolePayload(payload) {
                 if (!payload.roleDesc || !payload.roleDesc.trim()) {
@@ -195,6 +267,11 @@
 
                 if (payload.permissionIds.length === 0) {
                     Toast.fire({ icon: 'error', title: 'At least one permission is required.' });
+                    return false;
+                }
+
+                if (payload.defaultPermissionId && payload.permissionIds.indexOf(payload.defaultPermissionId) === -1) {
+                    Toast.fire({ icon: 'error', title: 'The default page must be one of the assigned permissions.' });
                     return false;
                 }
 
@@ -210,7 +287,6 @@
                 return true;
             }
 
-            // Wires a form to the shared save flow. Add and Edit share this.
             function bindRoleForm(formId) {
                 $('#' + formId).on('submit', function (e) {
                     e.preventDefault();
@@ -226,13 +302,20 @@
             }
 
             /* ================================================================
-               Grid (DataTables) - client-side search, pagination, sorting
+               Grid (DataTables)
                ================================================================ */
             var roleTable = $('#roleTable').DataTable({
                 data: roles,
                 columns: [
                     { data: 'roleId' },
                     { data: 'roleDesc' },
+                    {
+                        data: 'defaultPermissionDesc',
+                        render: function (data) {
+                            var pageName = data || 'Dashboard';
+                            return '<span class="status-pill status-active"><i class="fas fa-house me-1"></i>' + pageName + '</span>';
+                        }
+                    },
                     {
                         data: 'permissionDescs',
                         orderable: false,
@@ -261,13 +344,23 @@
             });
 
             /* ================================================================
-               Modal events
+               Modal & Live Sync Event Listeners
                ================================================================ */
+
+            // Live sync Default Landing Page dropdown options when permission checkboxes change
+            $('#addRoleForm').on('change', '.permission-check', function () {
+                syncDefaultPageDropdown('addRoleForm', 'addDefaultPermissionId');
+            });
+
+            $('#editRoleForm').on('change', '.permission-check', function () {
+                syncDefaultPageDropdown('editRoleForm', 'editDefaultPermissionId');
+            });
 
             // Reset the Add form every time the modal opens.
             $('#addRoleModal').on('shown.bs.modal', function () {
                 $('#addRoleDesc').val('').trigger('focus');
                 renderPermissionList('addPermissionList', []);
+                syncDefaultPageDropdown('addRoleForm', 'addDefaultPermissionId');
             });
 
             // Edit button: load the row's values into the Edit modal, then open it.
@@ -276,11 +369,12 @@
                 $('#editRoleId').val(row.roleId);
                 $('#editRoleDesc').val(row.roleDesc);
                 renderPermissionList('editPermissionList', row.permissionIds || []);
+                renderDefaultPermissionOptions('editDefaultPermissionId', row.defaultPermissionId, row.permissionIds || []);
                 $('#editRoleModal').modal('show');
             });
 
             /* ================================================================
-               Form submissions (shared pattern for Add and Edit)
+               Form submissions
                ================================================================ */
             bindRoleForm('addRoleForm');
             bindRoleForm('editRoleForm');
