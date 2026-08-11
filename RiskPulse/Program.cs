@@ -15,6 +15,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddControllersWithViews();
 builder.Services.AddScoped<AdAuthenticationService>();
 builder.Services.AddScoped<DbAuthorizationService>();
+builder.Services.AddScoped<LoginOrchestratorService>();
 builder.Services.AddScoped<UsersService>();
 builder.Services.AddScoped<RolesService>();
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -29,12 +30,12 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 
 builder.Services.AddAuthorization(options =>
 {
-    options.AddPolicy("Permission:Dashboard", policy => policy.RequireClaim("Permission", "Dashboard"));
-    options.AddPolicy("Permission:Submissions", policy => policy.RequireClaim("Permission", "Submissions"));
-    options.AddPolicy("Permission:Assessment Control", policy => policy.RequireClaim("Permission", "Assessment Control"));
-    options.AddPolicy("Permission:Form Builder", policy => policy.RequireClaim("Permission", "Form Builder"));
-    options.AddPolicy("Permission:Roles", policy => policy.RequireClaim("Permission", "Roles"));
-    options.AddPolicy("Permission:Users", policy => policy.RequireClaim("Permission", "Users"));
+    options.AddPolicy($"Permission:{PermissionCatalog.Dashboard}", policy => policy.RequireClaim("Permission", PermissionCatalog.Dashboard));
+    options.AddPolicy($"Permission:{PermissionCatalog.Submissions}", policy => policy.RequireClaim("Permission", PermissionCatalog.Submissions));
+    options.AddPolicy($"Permission:{PermissionCatalog.AssessmentControl}", policy => policy.RequireClaim("Permission", PermissionCatalog.AssessmentControl));
+    options.AddPolicy($"Permission:{PermissionCatalog.FormBuilder}", policy => policy.RequireClaim("Permission", PermissionCatalog.FormBuilder));
+    options.AddPolicy($"Permission:{PermissionCatalog.Roles}", policy => policy.RequireClaim("Permission", PermissionCatalog.Roles));
+    options.AddPolicy($"Permission:{PermissionCatalog.Users}", policy => policy.RequireClaim("Permission", PermissionCatalog.Users));
 });
 
 var app = builder.Build();

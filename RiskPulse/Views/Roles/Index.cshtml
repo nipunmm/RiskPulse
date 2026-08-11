@@ -2,15 +2,6 @@
 @{
     ViewData["Title"] = "Role Management";
 
-    var rolesJson = Json.Serialize(Model.Roles.Select(r => new
-    {
-        roleId = r.RoleId,
-        roleDesc = r.RoleDesc,
-        defaultPermissionId = r.DefaultPermissionId,
-        defaultPermissionDesc = r.DefaultPermission?.PermissionDesc ?? "Dashboard",
-        permissionIds = r.RolePermissions.Select(rp => rp.PermissionId).ToList(),
-        permissionDescs = r.RolePermissions.Select(rp => rp.Permission?.PermissionDesc).ToList()
-    }));
     var permissionsJson = Json.Serialize(Model.Permissions.Select(p => new { permissionId = p.PermissionId, permissionDesc = p.PermissionDesc }));
 }
 
@@ -50,7 +41,7 @@
 <div class="modal fade" id="addRoleModal" tabindex="-1" aria-labelledby="addRoleModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
-            <form id="addRoleForm" novalidate>
+            <form id="addRoleForm" data-default-select="addDefaultPermissionId" novalidate>
                 <div class="modal-header">
                     <h5 class="modal-title" id="addRoleModalLabel">Add Role</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -90,7 +81,7 @@
 <div class="modal fade" id="editRoleModal" tabindex="-1" aria-labelledby="editRoleModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
-            <form id="editRoleForm" novalidate>
+            <form id="editRoleForm" data-default-select="editDefaultPermissionId" novalidate>
                 <input type="hidden" id="editRoleId" name="roleId" value="0" />
                 <div class="modal-header">
                     <h5 class="modal-title" id="editRoleModalLabel">Edit Role</h5>
@@ -130,107 +121,86 @@
     <script src="~/lib/datatables/dataTables.bootstrap5.min.js"></script>
     <script>
         (function ($) {
-            /* ================================================================
-               Page data & endpoints
-               ================================================================ */
-            var roles = @Html.Raw(rolesJson);
+
+            /* =================================================================
+               SECTION 1 — PAGE DATA & ENDPOINTS
+               ================================================================= */
             var permissions = @Html.Raw(permissionsJson);
+            var gridUrl = '@Url.Action("Grid", "Roles")';
             var saveUrl = '@Url.Action("Save", "Roles")';
 
-            /* ================================================================
-               Helpers
-               ================================================================ */
+            /* =================================================================
+               SECTION 2 — UI RENDERERS
+               ================================================================= */
 
-            // Populates the default page combo box options dynamically based on checked permissions
-            function renderDefaultPermissionOptions(selectId, selectedId, checkedPermissionIds) {
+            // Builds the permission checkbox list for a modal
+            function renderPermissionList(containerId, selectedIds) {
+                $('#' + containerId).empty().append($.map(permissions, function (p) {
+                    return $('<div class="form-check">').append(
+                        $('<input class="form-check-input permission-check" type="checkbox" name="permissionIds">')
+                            .attr('id', containerId + '_' + p.permissionId)
+                            .val(p.permissionId)
+                            .prop('checked', $.inArray(p.permissionId, selectedIds) > -1),
+                        $('<label class="form-check-label">')
+                            .attr('for', containerId + '_' + p.permissionId)
+                            .text(p.permissionDesc)
+                    );
+                }));
+            }
+
+            // Fills the default-page dropdown with only the checked permissions (disabled when none)
+            function renderDefaultPermissionOptions(selectId, selectedId, checkedIds) {
                 var $select = $('#' + selectId).empty();
 
-                // If no permissions are checked, keep the dropdown disabled with a placeholder
-                if (!Array.isArray(checkedPermissionIds) || checkedPermissionIds.length === 0) {
-                    $select.append($('<option></option>').val('').text('Select a default page'));
-                    $select.prop('disabled', true);
-                    return;
+                if (!$.isArray(checkedIds) || checkedIds.length === 0) {
+                    return $select.append($('<option>').val('').text('Select a default page')).prop('disabled', true);
                 }
 
-                // Only offer permissions that are currently checked
-                var allowedPermissions = permissions.filter(function (p) {
-                    return checkedPermissionIds.indexOf(p.permissionId) > -1;
-                });
-
-                // Check if current selectedId is in allowed permissions; if not, fallback to Dashboard or first allowed
-                var effectiveSelectedId = selectedId;
-                var isCurrentlyAllowed = allowedPermissions.some(function (p) { return p.permissionId === effectiveSelectedId; });
-
-                if (!isCurrentlyAllowed) {
-                    var dashPermission = allowedPermissions.find(function (p) {
-                        return p.permissionDesc.toLowerCase() === 'dashboard';
-                    });
-                    effectiveSelectedId = dashPermission ? dashPermission.permissionId : (allowedPermissions[0] ? allowedPermissions[0].permissionId : null);
+                var allowed = $.grep(permissions, function (p) { return $.inArray(p.permissionId, checkedIds) > -1; });
+                if (!$.grep(allowed, function (p) { return p.permissionId === selectedId; }).length) {
+                    var dash = $.grep(allowed, function (p) { return p.permissionDesc.toLowerCase() === 'dashboard'; })[0];
+                    selectedId = (dash || allowed[0]).permissionId;
                 }
 
-                $.each(allowedPermissions, function (index, permission) {
-                    var isSelected = permission.permissionId === effectiveSelectedId;
-                    $select.append(
-                        $('<option></option>')
-                            .val(permission.permissionId)
-                            .text(permission.permissionDesc)
-                            .prop('selected', isSelected)
-                    );
-                });
-
-                $select.prop('disabled', false);
+                $select.append($.map(allowed, function (p) {
+                    return $('<option>').val(p.permissionId).text(p.permissionDesc).prop('selected', p.permissionId === selectedId);
+                })).prop('disabled', false);
             }
 
-            // Syncs the default page combo box with the currently checked permissions in a modal form
-            function syncDefaultPageDropdown(formId, selectId, preferredSelectedId) {
-                var checkedIds = $('#' + formId + ' .permission-check:checked')
-                    .map(function () { return +this.value; })
-                    .get();
-
-                var currentVal = +$('#' + selectId).val();
-                var targetSelectedId = currentVal || preferredSelectedId || null;
-
-                renderDefaultPermissionOptions(selectId, targetSelectedId, checkedIds);
+            // Syncs the default-page dropdown to the currently checked permissions
+            function syncDefaultPageDropdown($form, selectId, preferredId) {
+                var checkedIds = $form.find('.permission-check:checked').map(function () { return +this.value; }).get();
+                renderDefaultPermissionOptions(selectId, +$('#' + selectId).val() || preferredId || null, checkedIds);
             }
 
-            // Renders the permission checkbox group for a modal.
-            function renderPermissionList(containerId, selectedIds) {
-                var $container = $('#' + containerId).empty();
-                $.each(permissions, function (index, permission) {
-                    var checked = selectedIds.indexOf(permission.permissionId) > -1;
-                    $container.append(
-                        '<div class="form-check">' +
-                            '<input class="form-check-input permission-check" type="checkbox" ' +
-                                   'id="' + containerId + '_' + permission.permissionId + '" ' +
-                                   'name="permissionIds" value="' + permission.permissionId + '" ' +
-                                   (checked ? 'checked' : '') + ' />' +
-                            '<label class="form-check-label" for="' + containerId + '_' + permission.permissionId + '">' +
-                                permission.permissionDesc +
-                            '</label>' +
-                        '</div>'
-                    );
-                });
-            }
-
-            // Collects the form's named fields into a JSON-ready object.
-            function getFormPayload(formId) {
-                var $form = $('#' + formId);
-
+            /* =================================================================
+               SECTION 3 — FORM PAYLOAD BUILDER
+               ================================================================= */
+            function getFormPayload($form) {
                 var payload = {};
-                $.each($form.serializeArray(), function (index, field) {
-                    payload[field.name] = field.value;
-                });
-
+                $.each($form.serializeArray(), function (i, f) { payload[f.name] = f.value; });
                 payload.roleId = +payload.roleId || 0;
                 payload.defaultPermissionId = payload.defaultPermissionId ? +payload.defaultPermissionId : null;
-                payload.permissionIds = $form.find('.permission-check:checked')
-                    .map(function () { return +this.value; })
-                    .get();
-
+                payload.permissionIds = $form.find('.permission-check:checked').map(function () { return +this.value; }).get();
                 return payload;
             }
 
-            // The single AJAX call used by both Add and Edit forms.
+            /* =================================================================
+               SECTION 4 — VALIDATION
+               ================================================================= */
+            function validateRolePayload(payload) {
+                // Rule 1 — role name is required
+                if (!$.trim(payload.roleDesc)) { Toast.fire({ icon: 'error', title: 'Role name is required.' }); return false; }
+                // Rule 2 — at least one permission must be assigned
+                if (!payload.permissionIds.length) { Toast.fire({ icon: 'error', title: 'At least one permission is required.' }); return false; }
+                // Rule 3 — default page must be one of the assigned permissions
+                if (payload.defaultPermissionId && $.inArray(payload.defaultPermissionId, payload.permissionIds) === -1) { Toast.fire({ icon: 'error', title: 'The default page must be one of the assigned permissions.' }); return false; }
+                return true;
+            }
+
+            /* =================================================================
+               SECTION 5 — CONTROLLER CALLS (AJAX) — the ONLY server touchpoint
+               ================================================================= */
             function submitRole(payload, $form) {
                 $.ajax({
                     url: saveUrl,
@@ -240,132 +210,59 @@
                     success: function (res) {
                         if (res.success) {
                             $form.closest('.modal').modal('hide');
-                            Swal.fire({
-                                icon: 'success',
-                                title: res.message || 'Role saved successfully.'
-                            }).then(function () {
-                                location.reload();
-                            });
+                            roleTable.ajax.reload(null, false);
+                            Toast.fire({ icon: 'success', title: res.message || 'Role saved successfully.' });
                         } else {
-                            Swal.fire({ icon: 'error', title: res.message || 'Unable to save role.' });
+                            Toast.fire({ icon: 'error', title: res.message || 'Unable to save role.' });
                         }
                     },
-                    error: function () {
-                        Swal.fire({ icon: 'error', title: 'An error occurred. Please try again.' });
-                    }
+                    error: function () { Toast.fire({ icon: 'error', title: 'An error occurred. Please try again.' }); }
                 });
             }
 
-            /* ================================================================
-               Validation & Form Binding
-               ================================================================ */
-            function validateRolePayload(payload) {
-                if (!payload.roleDesc || !payload.roleDesc.trim()) {
-                    Toast.fire({ icon: 'error', title: 'Role name is required.' });
-                    return false;
-                }
-
-                if (payload.permissionIds.length === 0) {
-                    Toast.fire({ icon: 'error', title: 'At least one permission is required.' });
-                    return false;
-                }
-
-                if (payload.defaultPermissionId && payload.permissionIds.indexOf(payload.defaultPermissionId) === -1) {
-                    Toast.fire({ icon: 'error', title: 'The default page must be one of the assigned permissions.' });
-                    return false;
-                }
-
-                var duplicate = roles.some(function (r) {
-                    return r.roleDesc.toLowerCase() === payload.roleDesc.trim().toLowerCase()
-                        && r.roleId !== payload.roleId;
-                });
-                if (duplicate) {
-                    Toast.fire({ icon: 'error', title: 'A role with this name already exists.' });
-                    return false;
-                }
-
-                return true;
-            }
-
-            function bindRoleForm(formId) {
-                $('#' + formId).on('submit', function (e) {
-                    e.preventDefault();
-
-                    var payload = getFormPayload(formId);
-
-                    if (!validateRolePayload(payload)) {
-                        return;
-                    }
-
-                    submitRole(payload, $(this));
-                });
-            }
-
-            /* ================================================================
-               Grid (DataTables)
-               ================================================================ */
+            /* =================================================================
+               SECTION 6 — DATA GRID (DataTables)
+               ================================================================= */
             var roleTable = $('#roleTable').DataTable({
-                data: roles,
+                ajax: { url: gridUrl, dataSrc: 'data' },
                 columns: [
                     { data: 'roleId' },
                     { data: 'roleDesc' },
-                    {
-                        data: 'defaultPermissionDesc',
-                        render: function (data) {
-                            var pageName = data || 'Dashboard';
-                            return '<span class="status-pill status-active"><i class="fas fa-house me-1"></i>' + pageName + '</span>';
-                        }
-                    },
-                    {
-                        data: 'permissionDescs',
-                        orderable: false,
-                        searchable: false,
-                        render: function (data) {
-                            var badges = (data || []).map(function (desc) {
-                                return '<span class="status-pill">' + desc + '</span>';
-                            });
-                            return badges.length ? badges.join(' ') : '<span class="text-muted">None</span>';
-                        }
-                    },
-                    {
-                        data: null,
-                        orderable: false,
-                        searchable: false,
-                        className: 'text-end',
-                        render: function (data, type, row) {
-                            return '<button type="button" class="btn-stasis-secondary edit-role-btn">' +
-                                   '<i class="fas fa-pen-to-square"></i> Edit</button>';
-                        }
-                    }
+                    { data: 'defaultPermissionDesc', render: function (d) {
+                        return '<span class="status-pill status-active"><i class="fas fa-house me-1"></i>' + (d || 'Dashboard') + '</span>';
+                    } },
+                    { data: 'permissionDescs', orderable: false, searchable: false, render: function (d) {
+                        var badges = (d || []).map(function (desc) { return '<span class="status-pill">' + desc + '</span>'; });
+                        return badges.length ? badges.join(' ') : '<span class="text-muted">None</span>';
+                    } },
+                    { data: null, orderable: false, searchable: false, className: 'text-end', render: function () {
+                        return '<button type="button" class="btn-stasis-secondary edit-role-btn"><i class="fas fa-pen-to-square"></i> Edit</button>';
+                    } }
                 ],
                 pageLength: 10,
                 lengthMenu: [10, 25, 50],
                 order: [[0, 'asc']]
             });
 
-            /* ================================================================
-               Modal & Live Sync Event Listeners
-               ================================================================ */
-
-            // Live sync Default Landing Page dropdown options when permission checkboxes change
-            $('#addRoleForm').on('change', '.permission-check', function () {
-                syncDefaultPageDropdown('addRoleForm', 'addDefaultPermissionId');
+            /* =================================================================
+               SECTION 7 — EVENT WIRING & INIT
+               ================================================================= */
+            // Rebuild the default-page dropdown when permissions change
+            $('#addRoleForm, #editRoleForm').on('change', '.permission-check', function () {
+                var $form = $(this).closest('form');
+                syncDefaultPageDropdown($form, $form.data('default-select'));
             });
 
-            $('#editRoleForm').on('change', '.permission-check', function () {
-                syncDefaultPageDropdown('editRoleForm', 'editDefaultPermissionId');
-            });
-
-            // Reset the Add form every time the modal opens.
+            // Reset the Add form each time its modal opens
             $('#addRoleModal').on('shown.bs.modal', function () {
                 $('#addRoleDesc').val('').trigger('focus');
                 renderPermissionList('addPermissionList', []);
-                syncDefaultPageDropdown('addRoleForm', 'addDefaultPermissionId');
+                syncDefaultPageDropdown($('#addRoleForm'), $('#addRoleForm').data('default-select'));
             });
 
-            // Edit button: load the row's values into the Edit modal, then open it.
+            // Load a role's values into the Edit modal
             $('#roleTable tbody').on('click', '.edit-role-btn', function () {
-                var row = roleTable.row($(this).closest('tr')).data();
+                var row = $('#roleTable').DataTable().row($(this).closest('tr')).data();
                 $('#editRoleId').val(row.roleId);
                 $('#editRoleDesc').val(row.roleDesc);
                 renderPermissionList('editPermissionList', row.permissionIds || []);
@@ -373,11 +270,12 @@
                 $('#editRoleModal').modal('show');
             });
 
-            /* ================================================================
-               Form submissions
-               ================================================================ */
-            bindRoleForm('addRoleForm');
-            bindRoleForm('editRoleForm');
+            // Bind submit for both Add and Edit forms
+            $('#addRoleForm, #editRoleForm').on('submit', function (e) {
+                e.preventDefault();
+                var payload = getFormPayload($(this));
+                if (validateRolePayload(payload)) submitRole(payload, $(this));
+            });
         })(jQuery);
     </script>
 }

@@ -2,6 +2,10 @@
 @{
     Layout = null;
     ViewData["Title"] = "Error";
+    var isAuthenticated = User.Identity?.IsAuthenticated == true;
+    var (returnController, returnAction) = isAuthenticated
+        ? PermissionPageMapper.GetRouteForPermission(User.FindFirst("DefaultPage")?.Value)
+        : ("Login", "Index");
 }
 
 <!DOCTYPE html>
@@ -141,11 +145,16 @@
             </div>
         }
 
-        <!-- Recovery Action -->
-        <a href="@Url.Action("Index", "Dashboard")"
-           class="btn-stasis-primary w-100 d-inline-flex justify-content-center">
-            Return to Dashboard
-        </a>
+        <div class="d-flex flex-column gap-2 w-100">
+            <a href="@Url.Action(returnAction, returnController)"
+               class="btn-stasis-primary w-100 d-inline-flex justify-content-center">
+                Return to Home
+            </a>
+            <a asp-controller="Login" asp-action="Logout"
+               class="btn-stasis-secondary w-100 d-inline-flex justify-content-center">
+                Logout
+            </a>
+        </div>
 
     </main>
 

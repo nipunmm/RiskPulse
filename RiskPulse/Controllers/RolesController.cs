@@ -1,11 +1,12 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using RiskPulse.Models.AppModel;
 using RiskPulse.Models.ViewModel;
 using RiskPulse.Services.AccessControlService;
 
 namespace RiskPulse.Controllers;
 
-[Authorize(Policy = "Permission:Roles")]
+[Authorize(Policy = $"Permission:{PermissionCatalog.Roles}")]
 public class RolesController : Controller
 {
     private readonly RolesService _rolesService;
@@ -28,17 +29,37 @@ public class RolesController : Controller
         });
     }
 
+    [HttpGet]
+    public async Task<IActionResult> Grid()
+    {
+        var rows = (await _rolesService.GetAllRolesAsync()).Select(r => new RoleGridRow
+        {
+            RoleId = r.RoleId,
+            RoleDesc = r.RoleDesc,
+            DefaultPermissionId = r.DefaultPermissionId,
+            DefaultPermissionDesc = r.DefaultPermission?.PermissionDesc ?? PermissionCatalog.Dashboard,
+            PermissionIds = r.RolePermissions.Select(rp => rp.PermissionId).ToList(),
+            PermissionDescs = r.RolePermissions.Select(rp => rp.Permission?.PermissionDesc).ToList()
+        });
+        return Json(ApiResponse.Ok(rows));
+    }
+
     [HttpPost]
     public async Task<IActionResult> Save([FromBody] RoleSaveModel model)
     {
-        if (string.IsNullOrWhiteSpace(model.RoleDesc))
+        if (model == null || !ModelState.IsValid)
         {
-            return Json(new { success = false, message = "Role name is required." });
+            var message = ModelState.Values
+                .SelectMany(v => v.Errors)
+                .Select(e => e.ErrorMessage)
+                .FirstOrDefault() ?? "Please correct the form errors and try again.";
+
+            return Json(ApiResponse.Fail<object>(message));
         }
 
-        if (model.PermissionIds == null || model.PermissionIds.Count == 0)
+        if (model.DefaultPermissionId.HasValue && !model.PermissionIds.Contains(model.DefaultPermissionId.Value))
         {
-            return Json(new { success = false, message = "At least one permission is required." });
+            return Json(ApiResponse.Fail<object>("The default page must be one of the assigned permissions."));
         }
 
         try
@@ -48,11 +69,15 @@ public class RolesController : Controller
                 ? await _rolesService.CreateRoleAsync(model.RoleDesc, model.PermissionIds, model.DefaultPermissionId)
                 : await _rolesService.UpdateRoleAsync(model.RoleId, model.RoleDesc, model.PermissionIds, model.DefaultPermissionId);
 
-            return Json(new { success = true, message = isNew ? "Role created successfully." : "Role updated successfully.", id = saved.RoleId });
+            return Json(ApiResponse.Ok(new { id = saved.RoleId }, isNew ? "Role created successfully." : "Role updated successfully."));
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
         {
-            return Json(new { success = false, message = ex.Message });
+            return Json(ApiResponse.Fail<object>(ex.Message));
+        }
+        catch (Exception)
+        {
+            return Json(ApiResponse.Fail<object>("An error occurred while saving. Please try again."));
         }
     }
 }

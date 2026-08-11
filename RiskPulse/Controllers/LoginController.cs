@@ -1,9 +1,9 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using RiskPulse.Models.DbModel.AccessControl;
+using RiskPulse.Models.AppModel;
+using RiskPulse.Models.ViewModel;
 using RiskPulse.Services.AccessControlService;
 using RiskPulse.Services.LoginService;
 
@@ -11,13 +11,11 @@ namespace RiskPulse.Controllers
 {
     public class LoginController : Controller
     {
-        private readonly AdAuthenticationService _authService;
-        private readonly DbAuthorizationService _authorizationService;
+        private readonly LoginOrchestratorService _loginService;
 
-        public LoginController(AdAuthenticationService authService, DbAuthorizationService authorizationService)
+        public LoginController(LoginOrchestratorService loginService)
         {
-            _authService = authService;
-            _authorizationService = authorizationService;
+            _loginService = loginService;
         }
 
         [HttpGet]
@@ -36,61 +34,28 @@ namespace RiskPulse.Controllers
 
         [HttpPost]
         [AllowAnonymous]
-        public async Task<IActionResult> Login(string username, string password)
+        public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
-            if (!await _authService.ValidateCredentialsAsync(username, password))
+            if (request == null || !ModelState.IsValid)
             {
-                return Json(new { success = false, message = "Authentication failed." });
+                var message = ModelState.Values
+                    .SelectMany(v => v.Errors)
+                    .Select(e => e.ErrorMessage)
+                    .FirstOrDefault() ?? "Please correct the form errors and try again.";
+
+                return Json(ApiResponse.Fail<object>(message));
             }
 
-            var user = await _authorizationService.GetUserDetailsAsync(username);
-            if (user == null)
+            var result = await _loginService.AuthenticateAsync(request.Username, request.Password);
+            if (!result.Success)
             {
-                return Json(new { success = false, message = "User not found in the system." });
+                return Json(ApiResponse.Fail<object>(result.Message ?? "Authentication failed."));
             }
 
-            if (!user.IsActive)
-            {
-                return Json(new { success = false, message = "User account is inactive." });
-            }
+            await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, result.Principal!);
 
-            var defaultPageDesc = user.Role?.DefaultPermission?.PermissionDesc ?? "Dashboard";
-
-            var claims = new List<Claim>
-            {
-                new Claim(ClaimTypes.Name, user.Username),
-                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new Claim(ClaimTypes.Role, user.Role?.RoleDesc ?? string.Empty),
-                new Claim("DefaultPage", defaultPageDesc)
-            };
-
-            if (user.Unit != null)
-            {
-                claims.Add(new Claim("Unit", user.Unit.UnitDesc));
-            }
-
-            foreach (var rolePermission in user.Role?.RolePermissions ?? Enumerable.Empty<RolePermission>())
-            {
-                if (rolePermission.Permission != null)
-                {
-                    claims.Add(new Claim("Permission", rolePermission.Permission.PermissionDesc));
-                }
-            }
-
-            var identity = new ClaimsIdentity(
-                claims,
-                CookieAuthenticationDefaults.AuthenticationScheme);
-
-            var principal = new ClaimsPrincipal(identity);
-
-            await HttpContext.SignInAsync(
-                CookieAuthenticationDefaults.AuthenticationScheme,
-                principal);
-
-            var (targetController, targetAction) = PermissionPageMapper.GetRouteForPermission(defaultPageDesc);
-            var redirectUrl = Url.Action(targetAction, targetController) ?? Url.Action("Index", "Dashboard");
-
-            return Json(new { success = true, redirectUrl });
+            var redirectUrl = Url.Action(result.RedirectAction, result.RedirectController) ?? Url.Action("Index", "Dashboard");
+            return Json(ApiResponse.Ok(new { redirectUrl }));
         }
 
         [AllowAnonymous]

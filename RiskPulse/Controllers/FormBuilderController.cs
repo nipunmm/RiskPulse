@@ -1,12 +1,11 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using RiskPulse.Data;
-using RiskPulse.Services;
+using RiskPulse.Services.AccessControlService;
 
 namespace RiskPulse.Controllers
 {
 
-    [Authorize(Policy = "Permission:Form Builder")]
+    [Authorize(Policy = $"Permission:{PermissionCatalog.FormBuilder}")]
     public class FormBuilderController : Controller
     {
         public IActionResult Index()

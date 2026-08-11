@@ -1,13 +1,13 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using RiskPulse.Models.DbModel.AccessControl;
+using RiskPulse.Models.AppModel;
 using RiskPulse.Models.ViewModel;
 using RiskPulse.Services.AccessControlService;
 
 namespace RiskPulse.Controllers;
 
-[Authorize(Policy = "Permission:Users")]
+[Authorize(Policy = $"Permission:{PermissionCatalog.Users}")]
 public class UsersController : Controller
 {
     private readonly UsersService _userService;
@@ -33,36 +33,51 @@ public class UsersController : Controller
         });
     }
 
-    [HttpPost]
-    public async Task<IActionResult> Save([FromBody] User user)
+    [HttpGet]
+    public async Task<IActionResult> Grid()
     {
-        if (!ModelState.IsValid)
+        var rows = (await _userService.GetAllAsync()).Select(u => new UserGridRow
         {
-            return Json(new { success = false, message = "Please correct the form errors and try again." });
+            Id = u.Id,
+            Username = u.Username,
+            UnitId = u.UnitId,
+            RoleId = u.RoleId,
+            IsActive = u.IsActive
+        });
+        return Json(ApiResponse.Ok(rows));
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> Save([FromBody] UserSaveModel user)
+    {
+        if (user == null || !ModelState.IsValid)
+        {
+            var message = ModelState.Values
+                .SelectMany(v => v.Errors)
+                .Select(e => e.ErrorMessage)
+                .FirstOrDefault() ?? "Please correct the form errors and try again.";
+
+            return Json(ApiResponse.Fail<object>(message));
         }
 
         try
         {
             var isNew = user.Id == 0;
-
-            if (!isNew)
-            {
-                var currentUserId = Convert.ToInt32(User.FindFirstValue(ClaimTypes.NameIdentifier));
-                if (currentUserId == user.Id)
-                {
-                    return Json(new { success = false, message = "You cannot edit your own user record." });
-                }
-            }
+            var currentUserId = Convert.ToInt32(User.FindFirstValue(ClaimTypes.NameIdentifier));
 
             var saved = isNew
                 ? await _userService.CreateUserAsync(user)
-                : await _userService.UpdateUserAsync(user);
+                : await _userService.UpdateUserAsync(user, currentUserId);
 
-            return Json(new { success = true, message = isNew ? "User created successfully." : "User updated successfully.", id = saved.Id });
+            return Json(ApiResponse.Ok(new { id = saved.Id }, isNew ? "User created successfully." : "User updated successfully."));
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
         {
-            return Json(new { success = false, message = ex.Message });
+            return Json(ApiResponse.Fail<object>(ex.Message));
+        }
+        catch (Exception)
+        {
+            return Json(ApiResponse.Fail<object>("An error occurred while saving. Please try again."));
         }
     }
 }

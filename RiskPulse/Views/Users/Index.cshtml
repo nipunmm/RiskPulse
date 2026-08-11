@@ -2,7 +2,6 @@
 @{
     ViewData["Title"] = "User Management";
 
-    var usersJson = Json.Serialize(Model.Users.Select(u => new { id = u.Id, username = u.Username, unitId = u.UnitId, roleId = u.RoleId, isActive = u.IsActive }));
     var unitsJson = Json.Serialize(Model.Units.Select(u => new { unitId = u.UnitId, unitCode = u.UnitCode, unitDesc = u.UnitDesc }));
     var rolesJson = Json.Serialize(Model.Roles.Select(r => new { roleId = r.RoleId, roleDesc = r.RoleDesc }));
     var currentUserId = Model.CurrentUserId;
@@ -122,66 +121,71 @@
     <script src="~/lib/datatables/dataTables.bootstrap5.min.js"></script>
     <script>
         (function ($) {
-            /* ================================================================
-               Page data & endpoints
-               ================================================================ */
-            var users = @Html.Raw(usersJson);
+
+            /* =================================================================
+               SECTION 1 — PAGE DATA & ENDPOINTS
+               ================================================================= */
             var units = @Html.Raw(unitsJson);
             var roles = @Html.Raw(rolesJson);
             var currentUserId = @currentUserId;
+            var gridUrl = '@Url.Action("Grid", "Users")';
             var saveUrl = '@Url.Action("Save", "Users")';
 
-            /* ================================================================
-               Helpers
-               ================================================================ */
-
-            // Populates a select with options from a data array.
-            // label for each option is derived by a labelFn(option) callback.
-            function populateSelect($select, data, labelFn) {
-                $select.empty();
-                $.each(data, function (index, item) {
-                    $select.append('<option value="' + item.value + '">' + labelFn(item) + '</option>');
-                });
+            /* =================================================================
+               SECTION 2 — UI RENDERERS (Unit/Role dropdowns)
+               ================================================================= */
+            // Populates a select with options from a value/label array
+            function populateSelect($select, data) {
+                $select.empty().append($.map(data, function (o) {
+                    return $('<option>').val(o.value).text(o.label);
+                }));
             }
 
-            // Builds value/label objects for the Unit dropdown.
             function unitOptions() {
-                return $.map(units, function (unit) {
-                    return { value: unit.unitId, label: unit.unitDesc };
-                });
+                return $.map(units, function (u) { return { value: u.unitId, label: u.unitDesc }; });
             }
 
-            // Builds value/label objects for the Role dropdown.
             function roleOptions() {
-                return $.map(roles, function (role) {
-                    return { value: role.roleId, label: role.roleDesc };
-                });
+                return $.map(roles, function (r) { return { value: r.roleId, label: r.roleDesc }; });
             }
 
-            // Collects the form's named fields into a JSON-ready object.
-            // The checkbox is synced first so serializeArray() always includes it.
-            function getFormPayload(formId) {
-                var $form = $('#' + formId);
-
+            /* =================================================================
+               SECTION 3 — FORM PAYLOAD BUILDER
+               ================================================================= */
+            function getFormPayload($form) {
                 var payload = {};
-                $.each($form.serializeArray(), function (index, field) {
-                    payload[field.name] = field.value;
-                });
+                $.each($form.serializeArray(), function (i, f) { payload[f.name] = f.value; });
 
+                // The checkbox is synced first so isActive is always included
                 var $active = $form.find('[name="isActive"]');
-                if ($active.length) {
-                    payload.isActive = $active.is(':checked');
-                }
+                if ($active.length) payload.isActive = $active.is(':checked');
 
-                // Coerce numeric fields so the JSON body sends numbers, not strings.
-                payload.id     = +payload.id     || 0;
+                // Coerce numeric fields so the JSON body sends numbers, not strings
+                payload.id = +payload.id || 0;
                 payload.unitId = +payload.unitId || 0;
                 payload.roleId = +payload.roleId || 0;
-
                 return payload;
             }
 
-            // The single AJAX call used by both Add and Edit forms.
+            /* =================================================================
+               SECTION 4 — VALIDATION
+               ================================================================= */
+            function validateUserPayload(payload) {
+                // Rule 1 — username is required
+                var username = $.trim(payload.username);
+                if (!username) { Toast.fire({ icon: 'error', title: 'Username is required.' }); return false; }
+                // Rule 2 — username must be lowercase a-z only (Add only)
+                if (!/^[a-z]+$/.test(username)) { Toast.fire({ icon: 'error', title: 'Username must be lowercase letters only (a-z), no numbers, spaces, or special characters.' }); return false; }
+                // Rule 3 — unit must be selected
+                if (!payload.unitId || payload.unitId === 0) { Toast.fire({ icon: 'error', title: 'Please select a unit.' }); return false; }
+                // Rule 4 — role must be selected
+                if (!payload.roleId || payload.roleId === 0) { Toast.fire({ icon: 'error', title: 'Please select a role.' }); return false; }
+                return true;
+            }
+
+            /* =================================================================
+               SECTION 5 — CONTROLLER CALLS (AJAX) — the ONLY server touchpoint
+               ================================================================= */
             function submitUser(payload, $form) {
                 $.ajax({
                     url: saveUrl,
@@ -191,119 +195,52 @@
                     success: function (res) {
                         if (res.success) {
                             $form.closest('.modal').modal('hide');
-                            Swal.fire({
-                                icon: 'success',
-                                title: res.message || 'User saved successfully.'
-                            }).then(function () {
-                                location.reload();
-                            });
+                            userTable.ajax.reload(null, false);
+                            Toast.fire({ icon: 'success', title: res.message || 'User saved successfully.' });
                         } else {
-                            Swal.fire({ icon: 'error', title: res.message || 'Unable to save user.' });
+                            Toast.fire({ icon: 'error', title: res.message || 'Unable to save user.' });
                         }
                     },
-                    error: function () {
-                        Swal.fire({ icon: 'error', title: 'An error occurred. Please try again.' });
-                    }
+                    error: function () { Toast.fire({ icon: 'error', title: 'An error occurred. Please try again.' }); }
                 });
             }
 
-            /* ================================================================
-               Validation & Form Binding (Add + Edit share this pattern)
-               Checks required fields and reports via the shared toast.
-               Username rule (Add only): lowercase letters (a-z), no numbers,
-               spaces, special characters, or capitals.
-               ================================================================ */
-            function validateUserPayload(payload) {
-                var username = (payload.username || '').trim();
-
-                if (!username) {
-                    Toast.fire({ icon: 'error', title: 'Username is required.' });
-                    return false;
-                }
-
-                if (!/^[a-z]+$/.test(username)) {
-                    Toast.fire({ icon: 'error', title: 'Username must be lowercase letters only (a-z), no numbers, spaces, or special characters.' });
-                    return false;
-                }
-
-                if (!payload.unitId || payload.unitId === 0) {
-                    Toast.fire({ icon: 'error', title: 'Please select a unit.' });
-                    return false;
-                }
-
-                if (!payload.roleId || payload.roleId === 0) {
-                    Toast.fire({ icon: 'error', title: 'Please select a role.' });
-                    return false;
-                }
-
-                return true;
-            }
-
-            // Wires a form to the shared save flow. Add and Edit share this.
-            function bindUserForm(formId) {
-                $('#' + formId).on('submit', function (e) {
-                    e.preventDefault();
-
-                    var payload = getFormPayload(formId);
-
-                    if (!validateUserPayload(payload)) {
-                        return;
-                    }
-
-                    submitUser(payload, $(this));
-                });
-            }
-
-            /* ================================================================
-               Grid (DataTables) - client-side search, pagination, sorting
-               ================================================================ */
+            /* =================================================================
+               SECTION 6 — DATA GRID (DataTables)
+               ================================================================= */
             var userTable = $('#userTable').DataTable({
-                data: users,
+                ajax: { url: gridUrl, dataSrc: 'data' },
                 columns: [
                     { data: 'id' },
                     { data: 'username' },
-                    {
-                        data: 'isActive',
-                        render: function (data) {
-                            return data
-                                ? '<span class="status-pill rag-green">Active</span>'
-                                : '<span class="status-pill rag-red">Inactive</span>';
+                    { data: 'isActive', render: function (d) {
+                        return d ? '<span class="status-pill rag-green">Active</span>' : '<span class="status-pill rag-red">Inactive</span>';
+                    } },
+                    { data: null, orderable: false, searchable: false, className: 'text-end', render: function (data, type, row) {
+                        if (row.id === currentUserId) {
+                            return '<button type="button" class="btn-stasis-secondary" disabled title="You cannot edit your own record"><i class="fas fa-pen-to-square"></i> Edit</button>';
                         }
-                    },
-                    {
-                        data: null,
-                        orderable: false,
-                        searchable: false,
-                        className: 'text-end',
-                        render: function (data, type, row) {
-                            if (row.id === currentUserId) {
-                                return '<button type="button" class="btn-stasis-secondary" disabled title="You cannot edit your own record">' +
-                                       '<i class="fas fa-pen-to-square"></i> Edit</button>';
-                            }
-                            return '<button type="button" class="btn-stasis-secondary edit-user-btn">' +
-                                   '<i class="fas fa-pen-to-square"></i> Edit</button>';
-                        }
-                    }
+                        return '<button type="button" class="btn-stasis-secondary edit-user-btn"><i class="fas fa-pen-to-square"></i> Edit</button>';
+                    } }
                 ],
                 pageLength: 10,
                 lengthMenu: [10, 25, 50],
                 order: [[0, 'asc']]
             });
 
-            /* ================================================================
-               Modal events
-               ================================================================ */
-
-            // Reset the Add form every time the modal opens.
+            /* =================================================================
+               SECTION 7 — EVENT WIRING & INIT
+               ================================================================= */
+            // Reset the Add form each time its modal opens
             $('#addUserModal').on('shown.bs.modal', function () {
                 $('#addUsername').val('').trigger('focus');
                 $('#addUnitId').val(unitOptions()[0].value).trigger('change');
                 $('#addRoleId').val(roleOptions()[0].value).trigger('change');
             });
 
-            // Edit button: load the row's values into the Edit modal, then open it.
+            // Load a user's values into the Edit modal
             $('#userTable tbody').on('click', '.edit-user-btn', function () {
-                var row = userTable.row($(this).closest('tr')).data();
+                var row = $('#userTable').DataTable().row($(this).closest('tr')).data();
                 $('#editUserId').val(row.id);
                 $('#editUsername').val(row.username);
                 $('#editUnitId').val(row.unitId).trigger('change');
@@ -312,41 +249,18 @@
                 $('#editUserModal').modal('show');
             });
 
-            /* ================================================================
-               Dropdown population (Add + Edit share the Unit/Role options)
-               ================================================================ */
-            populateSelect($('#addUnitId'), unitOptions(), function (o) { return o.label; });
-            populateSelect($('#addRoleId'), roleOptions(), function (o) { return o.label; });
-            populateSelect($('#editUnitId'), unitOptions(), function (o) { return o.label; });
-            populateSelect($('#editRoleId'), roleOptions(), function (o) { return o.label; });
-
-            // Searchable Unit/Role dropdowns (Select2), kept inside their modal.
-            $('#addUnitId').select2({
-                width: '100%',
-                theme: 'bootstrap-5',
-                dropdownParent: $('#addUnitId').closest('.modal')
-            });
-            $('#editUnitId').select2({
-                width: '100%',
-                theme: 'bootstrap-5',
-                dropdownParent: $('#editUnitId').closest('.modal')
-            });
-            $('#addRoleId').select2({
-                width: '100%',
-                theme: 'bootstrap-5',
-                dropdownParent: $('#addRoleId').closest('.modal')
-            });
-            $('#editRoleId').select2({
-                width: '100%',
-                theme: 'bootstrap-5',
-                dropdownParent: $('#editRoleId').closest('.modal')
+            // Populate and initialize the Unit/Role dropdowns with Select2 (kept inside their modal)
+            $.each({ addUnitId: unitOptions, editUnitId: unitOptions, addRoleId: roleOptions, editRoleId: roleOptions }, function (id, optionsFn) {
+                populateSelect($('#' + id), optionsFn());
+                $('#' + id).select2({ width: '100%', theme: 'bootstrap-5', dropdownParent: $('#' + id).closest('.modal') });
             });
 
-            /* ================================================================
-               Form submissions (shared pattern for Add and Edit)
-               ================================================================ */
-            bindUserForm('addUserForm');
-            bindUserForm('editUserForm');
+            // Bind submit for both Add and Edit forms
+            $('#addUserForm, #editUserForm').on('submit', function (e) {
+                e.preventDefault();
+                var payload = getFormPayload($(this));
+                if (validateUserPayload(payload)) submitUser(payload, $(this));
+            });
         })(jQuery);
     </script>
 }

@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using RiskPulse.Data;
 using RiskPulse.Models.DbModel.AccessControl;
+using RiskPulse.Models.ViewModel;
 
 namespace RiskPulse.Services.AccessControlService;
 
@@ -39,13 +40,21 @@ public class UsersService
             .ToListAsync();
     }
 
-    public async Task<User> CreateUserAsync(User user)
+    public async Task<User> CreateUserAsync(UserSaveModel model)
     {
-        var exists = await _db.Users.AnyAsync(u => u.Username == user.Username);
+        var exists = await _db.Users.AnyAsync(u => u.Username == model.Username);
         if (exists)
         {
-            throw new InvalidOperationException($"Username '{user.Username}' already exists.");
+            throw new InvalidOperationException($"Username '{model.Username}' already exists.");
         }
+
+        var user = new User
+        {
+            Username = model.Username,
+            IsActive = model.IsActive,
+            UnitId = model.UnitId,
+            RoleId = model.RoleId
+        };
 
         if (user.UnitId == 0)
         {
@@ -62,14 +71,19 @@ public class UsersService
         return user;
     }
 
-    public async Task<User> UpdateUserAsync(User user)
+    public async Task<User> UpdateUserAsync(UserSaveModel model, int actingUserId)
     {
-        var existing = await _db.Users.FindAsync(user.Id)
-            ?? throw new InvalidOperationException($"User with Id {user.Id} was not found.");
+        if (model.Id == actingUserId)
+        {
+            throw new InvalidOperationException("You cannot edit your own user record.");
+        }
 
-        existing.IsActive = user.IsActive;
-        existing.UnitId = user.UnitId;
-        existing.RoleId = user.RoleId;
+        var existing = await _db.Users.FindAsync(model.Id)
+            ?? throw new InvalidOperationException($"User with Id {model.Id} was not found.");
+
+        existing.IsActive = model.IsActive;
+        existing.UnitId = model.UnitId;
+        existing.RoleId = model.RoleId;
 
         await _db.SaveChangesAsync();
         return existing;

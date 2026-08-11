@@ -214,6 +214,9 @@
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/sweetalert2/sweetalert2.min.js"></script>
     <script>
+        /* =================================================================
+           SECTION 1 — PAGE SETUP (shared toast)
+           ================================================================= */
         const Toast = Swal.mixin({
             toast: true,
             position: 'top-end',
@@ -222,34 +225,32 @@
             timerProgressBar: true
         });
 
+        /* =================================================================
+           SECTION 2 — VALIDATION (client-side rules)
+           ================================================================= */
         function resetBtn() {
             $('#loginBtn').prop('disabled', false)
                 .find('.btn-text').text('Authenticate');
         }
 
-        /* ================================================================
-           Validation — client-side checks before the AJAX call.
-           Uses the shared SweetAlert2 toast for consistent messaging.
-           Username rule: lowercase letters only (a-z), no numbers, no
-           spaces, no special characters, no capitals.
-           ================================================================ */
         function validateLoginForm() {
-            var username = $('#username').val().trim();
-            var password = $('#password').val();
-
+            // Rule 1 — username is required
+            var username = $.trim($('#username').val());
             if (!username) {
                 Toast.fire({ icon: 'error', title: 'Username is required.' });
                 $('#username').focus();
                 return false;
             }
 
+            // Rule 2 — username must be lowercase a-z only
             if (!/^[a-z]+$/.test(username)) {
                 Toast.fire({ icon: 'error', title: 'Username must be lowercase letters only (a-z), no numbers, spaces, or special characters.' });
                 $('#username').focus();
                 return false;
             }
 
-            if (!password) {
+            // Rule 3 — password is required
+            if (!$('#password').val()) {
                 Toast.fire({ icon: 'error', title: 'Password is required.' });
                 $('#password').focus();
                 return false;
@@ -258,29 +259,21 @@
             return true;
         }
 
-        /* ================================================================
-           Authentication
-           ================================================================ */
-        $('#loginForm').on('submit', function (e) {
-            e.preventDefault();
-
-            if (!validateLoginForm()) {
-                return;
-            }
-
+        /* =================================================================
+           SECTION 3 — CONTROLLER CALLS (AJAX) — the ONLY server touchpoint
+           ================================================================= */
+        function submitLogin(username, password) {
             $('#loginBtn').prop('disabled', true)
                 .find('.btn-text').html('<i class="fas fa-spinner"></i> Authenticating...');
 
             $.ajax({
                 url: '@Url.Action("Login", "Login")',
                 type: 'POST',
-                data: {
-                    username: $('#username').val(),
-                    password: $('#password').val()
-                },
+                contentType: 'application/json',
+                data: JSON.stringify({ username: username, password: password }),
                 success: function (response) {
                     if (response.success) {
-                        window.location.href = response.redirectUrl;
+                        window.location.href = response.data.redirectUrl;
                     } else {
                         Toast.fire({ icon: 'error', title: response.message || 'Login failed.' });
                         resetBtn();
@@ -291,6 +284,16 @@
                     resetBtn();
                 }
             });
+        }
+
+        /* =================================================================
+           SECTION 4 — EVENT WIRING
+           ================================================================= */
+        $('#loginForm').on('submit', function (e) {
+            e.preventDefault();
+            if (validateLoginForm()) {
+                submitLogin($.trim($('#username').val()), $('#password').val());
+            }
         });
     </script>
 

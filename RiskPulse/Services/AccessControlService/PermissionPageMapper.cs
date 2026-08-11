@@ -5,12 +5,12 @@ namespace RiskPulse.Services.AccessControlService
         private static readonly Dictionary<string, (string Controller, string Action)> PermissionRouteMap =
             new(StringComparer.OrdinalIgnoreCase)
             {
-                { "Dashboard", ("Dashboard", "Index") },
-                { "Submissions", ("Submissions", "Index") },
-                { "Assessment Control", ("AssessmentControl", "Index") },
-                { "Form Builder", ("FormBuilder", "Index") },
-                { "Users", ("Users", "Index") },
-                { "Roles", ("Roles", "Index") }
+                { PermissionCatalog.Dashboard, ("Dashboard", "Index") },
+                { PermissionCatalog.Submissions, ("Submissions", "Index") },
+                { PermissionCatalog.AssessmentControl, ("AssessmentControl", "Index") },
+                { PermissionCatalog.FormBuilder, ("FormBuilder", "Index") },
+                { PermissionCatalog.Users, ("Users", "Index") },
+                { PermissionCatalog.Roles, ("Roles", "Index") }
             };
 
         public static (string Controller, string Action) GetRouteForPermission(string? permissionDesc)

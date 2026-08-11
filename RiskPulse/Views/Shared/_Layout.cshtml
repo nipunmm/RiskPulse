@@ -53,7 +53,7 @@
 
         <!-- Navigation Links Container -->
         <div class="sidebar-nav d-flex flex-column gap-1 px-2 py-3">
-            @if (User.HasClaim("Permission", "Dashboard"))
+            @if (User.HasClaim("Permission", PermissionCatalog.Dashboard))
             {
                 <a asp-controller="Dashboard" asp-action="Index"
                    class="nav-link d-flex align-items-center gap-3 px-3 py-2 rounded @(ViewContext.RouteData.Values["controller"]?.ToString() == "Dashboard" ? "active" : "")">
@@ -62,7 +62,7 @@
                 </a>
             }
 
-            @if (User.HasClaim("Permission", "Submissions"))
+            @if (User.HasClaim("Permission", PermissionCatalog.Submissions))
             {
                 <a asp-controller="Submissions" asp-action="Index"
                    class="nav-link d-flex align-items-center gap-3 px-3 py-2 rounded @(ViewContext.RouteData.Values["controller"]?.ToString() == "Submissions" ? "active" : "")">
@@ -71,7 +71,7 @@
                 </a>
             }
 
-            @if (User.HasClaim("Permission", "Assessment Control"))
+            @if (User.HasClaim("Permission", PermissionCatalog.AssessmentControl))
             {
                 <a asp-controller="AssessmentControl" asp-action="Index"
                    class="nav-link d-flex align-items-center gap-3 px-3 py-2 rounded @(ViewContext.RouteData.Values["controller"]?.ToString() == "AssessmentControl" ? "active" : "")">
@@ -80,7 +80,7 @@
                 </a>
             }
 
-            @if (User.HasClaim("Permission", "Form Builder"))
+            @if (User.HasClaim("Permission", PermissionCatalog.FormBuilder))
             {
                 <a asp-controller="FormBuilder" asp-action="Index"
                    class="nav-link d-flex align-items-center gap-3 px-3 py-2 rounded @(ViewContext.RouteData.Values["controller"]?.ToString() == "FormBuilder" ? "active" : "")">
@@ -91,8 +91,8 @@
 
             @{
                 var currentCtrl = ViewContext.RouteData.Values["controller"]?.ToString();
-                var canViewUsers = User.HasClaim("Permission", "Users");
-                var canViewRoles = User.HasClaim("Permission", "Roles");
+                var canViewUsers = User.HasClaim("Permission", PermissionCatalog.Users);
+                var canViewRoles = User.HasClaim("Permission", PermissionCatalog.Roles);
                 var canViewEntityMgmt = canViewUsers || canViewRoles;
                 var isEntityMgmtActive = currentCtrl == "Roles" || currentCtrl == "Users";
             }
