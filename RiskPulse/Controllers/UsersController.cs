@@ -38,12 +38,7 @@ public class UsersController : Controller
     {
         if (!ModelState.IsValid)
         {
-            return Json(new
-            {
-                success = false,
-                message = "Please correct the errors below.",
-                modelState = GetModelStateErrors()
-            });
+            return Json(new { success = false, message = "Please correct the form errors and try again." });
         }
 
         try
@@ -69,14 +64,5 @@ public class UsersController : Controller
         {
             return Json(new { success = false, message = ex.Message });
         }
-    }
-
-    private Dictionary<string, string[]> GetModelStateErrors()
-    {
-        return ModelState
-            .Where(kvp => (kvp.Value?.Errors.Count ?? 0) > 0)
-            .ToDictionary(
-                kvp => kvp.Key,
-                kvp => kvp.Value!.Errors.Select(e => e.ErrorMessage).ToArray());
     }
 }

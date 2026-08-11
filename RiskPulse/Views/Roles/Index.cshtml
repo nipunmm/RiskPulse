@@ -53,11 +53,9 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="validation-summary d-none" id="addRoleError" role="alert"></div>
-
                     <div class="mb-3">
                         <label class="input-label" for="addRoleDesc">Role Name</label>
-                        <input type="text" id="addRoleDesc" name="roleDesc" class="input-stasis" required data-msg-required="Role name is required." autocomplete="off" />
+                        <input type="text" id="addRoleDesc" name="roleDesc" class="input-stasis" required autocomplete="off" />
                     </div>
 
                     <div class="mb-3">
@@ -87,11 +85,9 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="validation-summary d-none" id="editRoleError" role="alert"></div>
-
                     <div class="mb-3">
                         <label class="input-label" for="editRoleDesc">Role Name</label>
-                        <input type="text" id="editRoleDesc" name="roleDesc" class="input-stasis" required data-msg-required="Role name is required." autocomplete="off" />
+                        <input type="text" id="editRoleDesc" name="roleDesc" class="input-stasis" required autocomplete="off" />
                     </div>
 
                     <div class="mb-3">
@@ -124,8 +120,7 @@
                Helpers
                ================================================================ */
 
-            // Renders the permission checkbox group for a modal and wires the
-            // group-level "at least one" rule onto each rendered checkbox.
+            // Renders the permission checkbox group for a modal.
             function renderPermissionList(containerId, selectedIds) {
                 var $container = $('#' + containerId).empty();
                 $.each(permissions, function (index, permission) {
@@ -141,11 +136,6 @@
                             '</label>' +
                         '</div>'
                     );
-                });
-
-                $container.find('.permission-check').rules('add', {
-                    requireOnePermission: true,
-                    messages: { requireOnePermission: 'At least one permission is required.' }
                 });
             }
 
@@ -168,8 +158,6 @@
 
             // The single AJAX call used by both Add and Edit forms.
             function submitRole(payload, $form) {
-                var validator = $form.data('validator');
-
                 $.ajax({
                     url: saveUrl,
                     type: 'POST',
@@ -184,39 +172,56 @@
                             }).then(function () {
                                 location.reload();
                             });
-                        } else if (res.modelState) {
-                            // Server-side field errors -> inline + summary
-                            applyServerErrors(validator, res);
                         } else {
-                            showValidationToast(res.message || 'Unable to save role.');
+                            Swal.fire({ icon: 'error', title: res.message || 'Unable to save role.' });
                         }
                     },
                     error: function () {
-                        showValidationToast('An error occurred. Please try again.');
+                        Swal.fire({ icon: 'error', title: 'An error occurred. Please try again.' });
                     }
                 });
             }
 
-            // Wires a form to the shared save flow via the unified validator.
-            // Add and Edit share this.
-            function bindRoleForm(formId, errorId) {
-                initValidatedForm(formId, {
-                    summarySelector: '#' + errorId,
-                    onSubmit: function ($form) {
-                        var payload = getFormPayload(formId);
-                        var validator = $form.data('validator');
+            /* ================================================================
+               Validation & Form Binding (Add + Edit share this pattern)
+               Checks required fields + duplicates and reports via the shared
+               toast.
+               ================================================================ */
+            function validateRolePayload(payload) {
+                if (!payload.roleDesc || !payload.roleDesc.trim()) {
+                    Toast.fire({ icon: 'error', title: 'Role name is required.' });
+                    return false;
+                }
 
-                        var duplicate = roles.some(function (r) {
-                            return r.roleDesc.toLowerCase() === payload.roleDesc.trim().toLowerCase()
-                                && r.roleId !== payload.roleId;
-                        });
-                        if (duplicate) {
-                            validator.showErrors({ roleDesc: 'A role with this name already exists.' });
-                            return;
-                        }
+                if (payload.permissionIds.length === 0) {
+                    Toast.fire({ icon: 'error', title: 'At least one permission is required.' });
+                    return false;
+                }
 
-                        submitRole(payload, $form);
+                var duplicate = roles.some(function (r) {
+                    return r.roleDesc.toLowerCase() === payload.roleDesc.trim().toLowerCase()
+                        && r.roleId !== payload.roleId;
+                });
+                if (duplicate) {
+                    Toast.fire({ icon: 'error', title: 'A role with this name already exists.' });
+                    return false;
+                }
+
+                return true;
+            }
+
+            // Wires a form to the shared save flow. Add and Edit share this.
+            function bindRoleForm(formId) {
+                $('#' + formId).on('submit', function (e) {
+                    e.preventDefault();
+
+                    var payload = getFormPayload(formId);
+
+                    if (!validateRolePayload(payload)) {
+                        return;
                     }
+
+                    submitRole(payload, $(this));
                 });
             }
 
@@ -261,18 +266,8 @@
 
             // Reset the Add form every time the modal opens.
             $('#addRoleModal').on('shown.bs.modal', function () {
-                var validator = $('#addRoleForm').data('validator');
-                if (validator) validator.resetForm();
                 $('#addRoleDesc').val('').trigger('focus');
                 renderPermissionList('addPermissionList', []);
-                $('#addRoleError').addClass('d-none');
-            });
-
-            // Clear stale errors whenever the Edit modal opens.
-            $('#editRoleModal').on('shown.bs.modal', function () {
-                var validator = $('#editRoleForm').data('validator');
-                if (validator) validator.resetForm();
-                $('#editRoleError').addClass('d-none');
             });
 
             // Edit button: load the row's values into the Edit modal, then open it.
@@ -287,8 +282,8 @@
             /* ================================================================
                Form submissions (shared pattern for Add and Edit)
                ================================================================ */
-            bindRoleForm('addRoleForm', 'addRoleError');
-            bindRoleForm('editRoleForm', 'editRoleError');
+            bindRoleForm('addRoleForm');
+            bindRoleForm('editRoleForm');
         })(jQuery);
     </script>
 }

@@ -31,9 +31,14 @@ public class RolesController : Controller
     [HttpPost]
     public async Task<IActionResult> Save([FromBody] RoleSaveModel model)
     {
-        if (!ModelState.IsValid)
+        if (string.IsNullOrWhiteSpace(model.RoleDesc))
         {
-            return Json(new { success = false, message = "Please correct the errors below.", modelState = GetModelStateErrors() });
+            return Json(new { success = false, message = "Role name is required." });
+        }
+
+        if (model.PermissionIds == null || model.PermissionIds.Count == 0)
+        {
+            return Json(new { success = false, message = "At least one permission is required." });
         }
 
         try
@@ -49,14 +54,5 @@ public class RolesController : Controller
         {
             return Json(new { success = false, message = ex.Message });
         }
-    }
-
-    private Dictionary<string, string[]> GetModelStateErrors()
-    {
-        return ModelState
-            .Where(kvp => (kvp.Value?.Errors.Count ?? 0) > 0)
-            .ToDictionary(
-                kvp => kvp.Key,
-                kvp => kvp.Value!.Errors.Select(e => e.ErrorMessage).ToArray());
     }
 }

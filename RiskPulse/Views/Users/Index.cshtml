@@ -49,21 +49,19 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="validation-summary d-none" id="addUserError" role="alert"></div>
-
                     <div class="mb-3">
                         <label class="input-label" for="addUsername">Username</label>
-                        <input type="text" id="addUsername" name="username" class="input-stasis" required data-msg-required="Username is required." autocomplete="off" />
+                        <input type="text" id="addUsername" name="username" class="input-stasis" required autocomplete="off" />
                     </div>
 
                     <div class="mb-3">
                         <label class="input-label" for="addUnitId">Unit</label>
-                        <select id="addUnitId" name="unitId" class="input-stasis" required data-msg-required="Please select a unit."></select>
+                        <select id="addUnitId" name="unitId" class="input-stasis" required></select>
                     </div>
 
                     <div class="mb-3">
                         <label class="input-label" for="addRoleId">Role</label>
-                        <select id="addRoleId" name="roleId" class="input-stasis" required data-msg-required="Please select a role."></select>
+                        <select id="addRoleId" name="roleId" class="input-stasis" required></select>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -90,8 +88,6 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="validation-summary d-none" id="editUserError" role="alert"></div>
-
                     <div class="mb-3">
                         <label class="input-label" for="editUsername">Username</label>
                         <input type="text" id="editUsername" name="username" class="input-stasis" readonly autocomplete="off" />
@@ -99,12 +95,12 @@
 
                     <div class="mb-3">
                         <label class="input-label" for="editUnitId">Unit</label>
-                        <select id="editUnitId" name="unitId" class="input-stasis" required data-msg-required="Please select a unit."></select>
+                        <select id="editUnitId" name="unitId" class="input-stasis" required></select>
                     </div>
 
                     <div class="mb-3">
                         <label class="input-label" for="editRoleId">Role</label>
-                        <select id="editRoleId" name="roleId" class="input-stasis" required data-msg-required="Please select a role."></select>
+                        <select id="editRoleId" name="roleId" class="input-stasis" required></select>
                     </div>
 
                     <div class="form-check">
@@ -187,8 +183,6 @@
 
             // The single AJAX call used by both Add and Edit forms.
             function submitUser(payload, $form) {
-                var validator = $form.data('validator');
-
                 $.ajax({
                     url: saveUrl,
                     type: 'POST',
@@ -203,32 +197,60 @@
                             }).then(function () {
                                 location.reload();
                             });
-                        } else if (res.modelState) {
-                            // Server-side field errors -> inline + summary
-                            applyServerErrors(validator, res);
                         } else {
-                            showValidationToast(res.message || 'Unable to save user.');
+                            Swal.fire({ icon: 'error', title: res.message || 'Unable to save user.' });
                         }
                     },
                     error: function () {
-                        showValidationToast('An error occurred. Please try again.');
+                        Swal.fire({ icon: 'error', title: 'An error occurred. Please try again.' });
                     }
                 });
             }
 
-            // Wires a form to the shared save flow via the unified validator.
-            // Add and Edit share this.
-            function bindUserForm(formId, errorId) {
-                initValidatedForm(formId, {
-                    summarySelector: '#' + errorId,
-                    customMessages: {
-                        username: { required: 'Username is required.' },
-                        unitId: { required: 'Please select a unit.' },
-                        roleId: { required: 'Please select a role.' }
-                    },
-                    onSubmit: function ($form) {
-                        submitUser(getFormPayload(formId), $form);
+            /* ================================================================
+               Validation & Form Binding (Add + Edit share this pattern)
+               Checks required fields and reports via the shared toast.
+               Username rule (Add only): lowercase letters (a-z), no numbers,
+               spaces, special characters, or capitals.
+               ================================================================ */
+            function validateUserPayload(payload) {
+                var username = (payload.username || '').trim();
+
+                if (!username) {
+                    Toast.fire({ icon: 'error', title: 'Username is required.' });
+                    return false;
+                }
+
+                if (!/^[a-z]+$/.test(username)) {
+                    Toast.fire({ icon: 'error', title: 'Username must be lowercase letters only (a-z), no numbers, spaces, or special characters.' });
+                    return false;
+                }
+
+                if (!payload.unitId || payload.unitId === 0) {
+                    Toast.fire({ icon: 'error', title: 'Please select a unit.' });
+                    return false;
+                }
+
+                if (!payload.roleId || payload.roleId === 0) {
+                    Toast.fire({ icon: 'error', title: 'Please select a role.' });
+                    return false;
+                }
+
+                return true;
+            }
+
+            // Wires a form to the shared save flow. Add and Edit share this.
+            function bindUserForm(formId) {
+                $('#' + formId).on('submit', function (e) {
+                    e.preventDefault();
+
+                    var payload = getFormPayload(formId);
+
+                    if (!validateUserPayload(payload)) {
+                        return;
                     }
+
+                    submitUser(payload, $(this));
                 });
             }
 
@@ -274,19 +296,9 @@
 
             // Reset the Add form every time the modal opens.
             $('#addUserModal').on('shown.bs.modal', function () {
-                var validator = $('#addUserForm').data('validator');
-                if (validator) validator.resetForm();
                 $('#addUsername').val('').trigger('focus');
                 $('#addUnitId').val(unitOptions()[0].value).trigger('change');
                 $('#addRoleId').val(roleOptions()[0].value).trigger('change');
-                $('#addUserError').addClass('d-none');
-            });
-
-            // Clear stale errors whenever the Edit modal opens.
-            $('#editUserModal').on('shown.bs.modal', function () {
-                var validator = $('#editUserForm').data('validator');
-                if (validator) validator.resetForm();
-                $('#editUserError').addClass('d-none');
             });
 
             // Edit button: load the row's values into the Edit modal, then open it.
@@ -333,8 +345,8 @@
             /* ================================================================
                Form submissions (shared pattern for Add and Edit)
                ================================================================ */
-            bindUserForm('addUserForm', 'addUserError');
-            bindUserForm('editUserForm', 'editUserError');
+            bindUserForm('addUserForm');
+            bindUserForm('editUserForm');
         })(jQuery);
     </script>
 }
