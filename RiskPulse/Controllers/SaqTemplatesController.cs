@@ -71,9 +71,14 @@ public class SaqTemplatesController : Controller
     [HttpPost]
     public async Task<IActionResult> Delete([FromBody] SaqDeleteRequest request)
     {
-        if (request == null)
+        if (request == null || !ModelState.IsValid)
         {
-            return Json(ApiResponse.Fail<object>("Invalid request."));
+            var message = ModelState.Values
+                .SelectMany(v => v.Errors)
+                .Select(e => e.ErrorMessage)
+                .FirstOrDefault() ?? "Please correct the form errors and try again.";
+
+            return Json(ApiResponse.Fail<object>(message));
         }
 
         try
@@ -149,9 +154,14 @@ public class SaqTemplatesController : Controller
     [HttpPost]
     public async Task<IActionResult> DeleteQuestion([FromBody] SaqDeleteRequest request)
     {
-        if (request == null)
+        if (request == null || !ModelState.IsValid)
         {
-            return Json(ApiResponse.Fail<object>("Invalid request."));
+            var message = ModelState.Values
+                .SelectMany(v => v.Errors)
+                .Select(e => e.ErrorMessage)
+                .FirstOrDefault() ?? "Please correct the form errors and try again.";
+
+            return Json(ApiResponse.Fail<object>(message));
         }
 
         try

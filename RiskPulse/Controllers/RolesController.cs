@@ -19,12 +19,10 @@ public class RolesController : Controller
     [HttpGet]
     public async Task<IActionResult> Index()
     {
-        var roles = await _rolesService.GetAllRolesAsync();
         var permissions = await _rolesService.GetAllPermissionsAsync();
 
         return View(new RolesIndexViewModel
         {
-            Roles = roles,
             Permissions = permissions
         });
     }
@@ -55,11 +53,6 @@ public class RolesController : Controller
                 .FirstOrDefault() ?? "Please correct the form errors and try again.";
 
             return Json(ApiResponse.Fail<object>(message));
-        }
-
-        if (model.DefaultPermissionId.HasValue && !model.PermissionIds.Contains(model.DefaultPermissionId.Value))
-        {
-            return Json(ApiResponse.Fail<object>("The default page must be one of the assigned permissions."));
         }
 
         try

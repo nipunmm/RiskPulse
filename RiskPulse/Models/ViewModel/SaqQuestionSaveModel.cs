@@ -6,6 +6,7 @@ namespace RiskPulse.Models.ViewModel
     {
         public int QuestionId { get; set; }
 
+        [Range(1, int.MaxValue, ErrorMessage = "Please select a valid template.")]
         public int SaqHeaderId { get; set; }
 
         [Required(ErrorMessage = "Question text is required.")]

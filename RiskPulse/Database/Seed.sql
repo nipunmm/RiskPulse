@@ -1,5 +1,4 @@
 --Run this SQL script against your PostgreSQL database (sit database, riskpulse schema) to populate initial permissions, roles, unit, and user assignment.
--- 1. Insert Base Permissions matching sidebar and modules
 INSERT INTO "riskpulse"."Permissions" ("PermissionDesc") VALUES ('Dashboard');
 INSERT INTO "riskpulse"."Permissions" ("PermissionDesc") VALUES ('Submissions') ;
 INSERT INTO "riskpulse"."Permissions" ("PermissionDesc") VALUES ('Assessment Control') ;
@@ -9,6 +8,8 @@ INSERT INTO "riskpulse"."Permissions" ("PermissionDesc") VALUES ('Roles') ;
 INSERT INTO "riskpulse"."Permissions" ("PermissionDesc") VALUES ('SAQ');
 INSERT INTO "riskpulse"."Permissions" ("PermissionDesc") VALUES ('KRI');
 INSERT INTO "riskpulse"."Permissions" ("PermissionDesc") VALUES ('Risk Register') ;
+INSERT INTO "riskpulse"."Permissions" ("PermissionDesc") VALUES ('KRI Config') ;
+
 
 -- 2. Insert Roles
 INSERT INTO "riskpulse"."Roles" ("RoleDesc") VALUES ('IT Admin');
@@ -33,6 +34,7 @@ VALUES (
     (SELECT "UnitId" FROM "riskpulse"."Units" WHERE "UnitCode" = '001'),
     (SELECT "RoleId" FROM "riskpulse"."Roles" WHERE "RoleDesc" = 'IT Admin')
 );
+
 
 
 --------------------------------------------------------Do not run this manully (needs to create clss and run via the ef core)

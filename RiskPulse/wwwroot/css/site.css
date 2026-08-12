@@ -666,6 +666,38 @@ body {
   gap: 0.25rem;
 }
 
+/* === Tabs === */
+.nav-tabs {
+  border-bottom: 1px solid var(--outline-variant);
+}
+
+.nav-tabs .nav-link {
+  color: var(--on-surface-variant);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-size: 0.8125rem;
+  line-height: 1.0625rem;
+  border: 1px solid transparent;
+}
+
+.nav-tabs .nav-link:hover,
+.nav-tabs .nav-link:focus {
+  color: var(--primary-container);
+  border-color: var(--outline-variant);
+}
+
+.nav-tabs .nav-link.active,
+.nav-tabs .nav-link.active:focus,
+.nav-tabs .nav-link.active:hover {
+  color: var(--primary);
+  background-color: var(--surface);
+  border-color: var(--outline-variant);
+  border-bottom-color: var(--surface);
+}
+
+.nav-tabs .nav-link:focus-visible {
+  box-shadow: 0 0 0 2px rgba(27, 54, 93, 0.1);
+}
+
 /* === Data Table Enhancements === */
 .table-stasis th {
   position: sticky;

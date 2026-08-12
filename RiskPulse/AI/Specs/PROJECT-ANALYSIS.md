@@ -8,7 +8,7 @@
 
 **RiskPulse** (branded as **RiskIntel MIS**) is an enterprise risk management application built with **ASP.NET Core MVC**. The domain targets KRI (Key Risk Indicators), SAQ (Self-Assessment Questionnaires), branch-level risk submissions, and RAG (Red/Amber/Green) status tracking for high-stakes financial environments.
 
-**Current Phase:** Access-control scaffolding complete — authentication (cookie + claims), user/role/permission management (working CRUD + DataTables grids). SAQ Templates implemented (template + question/option designer); remaining domain pages (Dashboard, Submissions, Assessment Control, Form Builder, KRI/Risk Register templates) are **stubs**. PostgreSQL persistence is live via EF Core; a separate legacy SQL Server schema draft exists in `Database/Seed.sql`.
+**Current Phase:** Access-control scaffolding complete — authentication (cookie + claims), user/role/permission management (working CRUD + DataTables grids). SAQ Templates and KRI Templates (with KRI Config) implemented — headers, item designers, and Locked-immutability rules. Remaining domain pages (Dashboard, Submissions, Assessment Control, Form Builder, Risk Register templates) are **stubs**. PostgreSQL persistence is live via EF Core; a separate legacy SQL Server schema draft exists in `Database/Seed.sql`.
 
 ---
 
@@ -56,7 +56,8 @@ RiskPulse/
 │   ├── AssessmentControlController.cs # Stub, [Authorize(Policy="Permission:Assessment Control")]
 │   ├── FormBuilderController.cs     # Stub, [Authorize(Policy="Permission:Form Builder")]
 │   ├── SaqTemplatesController.cs    # Grid/Save/Delete headers + QuestionsGrid/SaveQuestion/DeleteQuestion (JSON)
-│   ├── KriTemplatesController.cs    # Stub, [Authorize(Policy="Permission:KRI")]
+│   ├── KriTemplatesController.cs    # Grid/Save/Delete headers + KrisGrid/SaveKri/DeleteKri (JSON)
+│   ├── KriConfigController.cs       # Colors + groups + bands CRUD (JSON)
 │   ├── RiskRegisterTemplatesController.cs # Stub, [Authorize(Policy="Permission:Risk Register")]
 │   ├── UsersController.cs           # Index (View), Grid (JSON), Save (JSON [FromBody])
 │   ├── RolesController.cs           # Index (View), Grid (JSON), Save (JSON [FromBody])
@@ -72,9 +73,13 @@ RiskPulse/
 │   │   ├── User.cs  Role.cs  Permission.cs  RolePermission.cs  Unit.cs  UnitType.cs (enum)
 │   ├── DbModel/Saq/                 # EF entities (mirror DB tables)
 │   │   └── SaqHeader.cs  SaqQuestion.cs  SaqQuestionOption.cs  SaqStatus.cs (enum)  QuestionType.cs (enum)
+│   ├── DbModel/Kri/                 # EF entities (mirror DB tables)
+│   │   └── KriHeader.cs  Kri.cs  KriThresholdGroup.cs  KriThresholdColor.cs  KriThreshold.cs  KriStatus.cs (enum)
 │   └── ViewModel/                   # View + form models
 │       ├── UsersIndexViewModel.cs  RolesIndexViewModel.cs  RoleSaveModel.cs  ErrorViewModel.cs
 │       ├── Saq*.cs                  # SaqTemplatesIndexViewModel, SaqGridRow, SaqHeaderSaveModel, SaqQuestionSaveModel, SaqOptionSaveModel, SaqQuestionGridRow, SaqOptionGridRow, SaqDeleteRequest
+│       ├── Kri*.cs                  # KriTemplatesIndexViewModel, KriGridRow, KriHeaderSaveModel, KriItemGridRow, KriSaveModel, KriDeleteRequest
+│       └── KriConfig*.cs            # KriConfigIndexViewModel, KriColorSaveModel, KriThresholdGroupSaveModel, KriGroupGridRow, KriBandSaveModel, KriBandsSaveModel, KriBandGridRow
 │
 ├── Services/
 │   ├── LoginService/
@@ -89,10 +94,16 @@ RiskPulse/
 │   └── SaqService/
 │       └── SaqService.cs                   # SAQ template CRUD: headers, questions, options + lock/duplicate rules
 │
+│   └── KriService/
+│       └── KriService.cs                   # KRI template CRUD: headers + KRIs (value/comment/group) + lock/duplicate rules
+│
+│   └── KriConfigService/
+│       └── KriConfigService.cs             # Colors, groups, and threshold bands CRUD
+│
 ├── Database/
 │   └── Seed.sql                       # Manual permission/role/unit/user inserts + legacy dbo schema draft
 │
-├── Migrations/                        # 20260811135557_UserPermissionControl (+ Designer, Snapshot)
+├── Migrations/                        # 20260812202536_UserPermissionControl (+ Designer, Snapshot)
 │
 ├── Views/
 │   ├── _ViewImports.cshtml  _ViewStart.cshtml
@@ -103,10 +114,9 @@ RiskPulse/
 │   ├── Roles/Index.cshtml             # DataTables grid + Add/Edit modals (permission checkboxes)
 │   ├── Error/Index.cshtml             # Standalone (Layout=null), RequestId
 │   ├── SaqTemplates/Index.cshtml    # DataTables grid + Add/Edit modals + Design modal (question cards + option editor)
-│   └── Dashboard|Submissions|AssessmentControl|FormBuilder|KriTemplates|RiskRegisterTemplates/Index.cshtml  # Stubs
-│
-├── Infrastructure/                    # EMPTY (contains empty Middleware/ folder)
-├── Validation/                        # EMPTY
+│   ├── KriTemplates/Index.cshtml    # DataTables grid + Add/Edit modals + Design modal (split-pane KRI builder)
+│   ├── KriConfig/Index.cshtml       # Tabs (Threshold Colors | KRI Groups) + color/group grids + Bands modal
+│   └── Dashboard|Submissions|AssessmentControl|FormBuilder|RiskRegisterTemplates/Index.cshtml  # Stubs
 │
 ├── AI/
 │   ├── Skills/ui-ux-pro-max.md        # AI UI generation prompt
@@ -115,6 +125,7 @@ RiskPulse/
 └── wwwroot/
     ├── css/site.css                   # Stasis Enterprise design system
     ├── js/site.js                     # Sidebar/collapse/flyout/keyboard logic
+    ├── js/modules/riskpulse.js        # Shared RiskPulse.* helpers (toast, postJson/getJson, serializeForm, populateSelect, showModal/hideModal, confirmDelete, initGrid)
     └── lib/                           # bootstrap, datatables, font-awesome, jquery, jquery-validation(-unobtrusive), select2, sweetalert2
 ```
 
@@ -135,6 +146,8 @@ RiskPulse/
 | 7 | **ViewModel pattern** for page rendering | `UsersIndexViewModel`, `RolesIndexViewModel` |
 | 8 | **DTO/result model** for service → controller | `LoginResult` (`Models/AppModel`) |
 | 9 | **Orchestrator service** composing lower services | `LoginOrchestratorService` |
+| 10 | **Bootstrap 5 modal API** — programmatic open/close via `bootstrap.Modal.getOrCreateInstance(el).show()/.hide()`; the vendored bundle has no jQuery `$.fn.modal` | All interactive view script sections |
+| 11 | **Shared JS module (`RiskPulse.*`)** — `wwwroot/js/modules/riskpulse.js` (loaded from `_Layout`) is the single home for cross-page helpers: `toastSuccess`/`toastError`/`toastGenericError`, `postJson`/`getJson`, `serializeForm`, `populateSelect`, `showModal`/`hideModal`, `confirmDelete`, `initGrid`. Views call the namespace and keep only validation/columns/wiring. | Users/Roles/SAQ/KRI/KRI-Config view script sections |
 
 ### 4.2 Request Pipeline (in order)
 
@@ -154,7 +167,7 @@ Default entry route is **Login/Index**. The sidebar (`_Layout.cshtml`) gates eac
 
 ### 4.3 Authorization Model
 
-- **9 permissions** are declared once in code as constants in `Services/AccessControlService/PermissionCatalog.cs` (`PermissionCatalog.Dashboard | Submissions | AssessmentControl | FormBuilder | Users | Roles | Saq | Kri | RiskRegister`) and referenced by:
+- **10 permissions** are declared once in code as constants in `Services/AccessControlService/PermissionCatalog.cs` (`PermissionCatalog.Dashboard | Submissions | AssessmentControl | FormBuilder | Users | Roles | Saq | Kri | RiskRegister | KriConfig`) and referenced by:
   1. `Program.cs:31-39` — `AddPolicy($"Permission:{PermissionCatalog.X}")` … `RequireClaim("Permission", PermissionCatalog.X)`
   2. Controllers — `[Authorize(Policy = $"Permission:{PermissionCatalog.X}")]`
   3. `Views/Shared/_Layout.cshtml` — `User.HasClaim("Permission", PermissionCatalog.X)`
@@ -278,7 +291,7 @@ All AJAX responses use the shared **`ApiResponse<T>`** envelope (`Models/AppMode
 | **Model — service result/DTO** | `Models/AppModel/LoginResult`, `ApiResponse<T>` |
 | **Business logic** | `Services/*Service` | no repository layer; each service uses `AppDbContext` directly |
 | **Data access** | `Data/AppDbContext` via services | `Include`/`AsNoTracking`/`SaveChanges` in services |
-| **DB schema/DDL** | EF Migrations (`Migrations/`) | `HasDefaultSchema("riskpulse")`, migration `20260811135557_UserPermissionControl` |
+| **DB schema/DDL** | EF Migrations (`Migrations/`) | `HasDefaultSchema("riskpulse")`, migration `20260812202536_UserPermissionControl` |
 | **Seed data** | `Database/Seed.sql` (manual) | NOT an EF `HasData` seed — see mismatch #6 |
 | **Client validation** | `validateUserPayload`/`validateRolePayload`/`validateLoginForm` in views | hand-rolled, not DataAnnotations-driven |
 | **Auth policies** | `PermissionCatalog` (single source) → `Program.cs` + `[Authorize]` + sidebar `HasClaim` + `PermissionPageMapper` | constant values must match `LoginOrchestratorService` claims + DB `Permissions` rows |
@@ -304,7 +317,7 @@ Users       (Id PK, Username, IsActive, UnitId FK→Units, RoleId FK→Roles)
 
 ### 7.2 `Database/Seed.sql` — legacy content & risk
 
-Seed.sql inserts the 9 permissions, 2 roles, 1 unit, and 1 test user. **However** lines 35–324 contain an entire **legacy SQL Server schema** (`dbo.tblAssessmentModuleType`, `tblAssessmentHeader`, `tblSAQ*`, `tblKRI*`, `tblRiskRegister*` — `IDENTITY(1,1)`, `NVARCHAR`, `GETDATE()`) inside a "Do not run this manually" comment. This is not PostgreSQL-compatible and is a copy of a different-era design. It should be extracted to a separate reference document (see mismatch #6).
+Seed.sql inserts the 10 permissions, 2 roles, 1 unit, and 1 test user. **However** lines 35–324 contain an entire **legacy SQL Server schema** (`dbo.tblAssessmentModuleType`, `tblAssessmentHeader`, `tblSAQ*`, `tblKRI*`, `tblRiskRegister*` — `IDENTITY(1,1)`, `NVARCHAR`, `GETDATE()`) inside a "Do not run this manually" comment. This is not PostgreSQL-compatible and is a copy of a different-era design. It should be extracted to a separate reference document (see mismatch #6).
 
 ---
 
@@ -318,7 +331,8 @@ Seed.sql inserts the 9 permissions, 2 roles, 1 unit, and 1 test user. **However*
 |---|---|---|---|
 | 1 | **No repository / unit-of-work; no interface abstractions** — every service talks to `AppDbContext` directly and exposes concrete methods returning entities. The data layer is untestable and services can't be swapped or faked. | `Services/AccessControlService/UsersService.cs:17-24`, `Services/AccessControlService/RolesService.cs:16-25`, `Services/LoginService/DbAuthorizationService.cs:18-29` | Introduce `IUsersService`, `IRolesService`, `ILoginOrchestratorService`, `IAdAuthenticationService`, `IDbAuthorizationService` (optionally `IRepository<T>`/`IUnitOfWork`) and have services return DTOs, not entities. |
 | 2 | **Concrete-class-only DI** — every service is registered as `AddScoped<Concrete>()`, so nothing can be mocked or swapped. | `Program.cs:16-20` | Register `AddScoped<IXxx, Xxx>()` against the interfaces from #1. |
-| 3 | **DataTables runs client-side processing** — the full row set ships to the browser in one response; paging/search/sort run in JS, not SQL. Latent scale problem once Submissions hold real data. | `Views/Users/Index.cshtml:211-229`, `Views/Roles/Index.cshtml:226-243` | For large tables use `serverSide:true` and handle `start`/`length`/`search` at the Grid endpoints. |
+| 3 | **DataTables runs client-side processing** — the full row set ships to the browser in one response; paging/search/sort run in JS, not SQL. Latent scale problem once Submissions hold real data. | `Views/Users/Index.cshtml:191-216`, `Views/Roles/Index.cshtml:220-243` | For large tables use `serverSide:true` and handle `start`/`length`/`search` at the Grid endpoints. |
+| 4 | **Global/inline JS, no modules, no bundling** — page logic lives in `@section Scripts` with hand-rolled `$.ajax` calls; only vendored libs are static. | `wwwroot/js/modules/riskpulse.js` | ~Resolved — shared helpers extracted into the module; page scripts now call `RiskPulse.*` and hold only validation, column configs, and wiring (dedup was the fix; no bundling, no build step). |
 | 4 | **Global/inline JS, no modules, no bundling** — page logic lives in `@section Scripts` with hand-rolled `$.ajax` calls; only vendored libs are static. | Users/Roles/Login view script sections | Extract shared AJAX/grid/toast helpers into `wwwroot/js/modules/*.js` (folder already scaffolded). |
 | 5 | **`AdAuthenticationService` is a stub that always returns `true`** — any username/password is "valid" as long as the user exists in DB. | `Services/LoginService/AdAuthenticationService.cs:7-9` | Implement a real directory/identity-provider lookup (or explicitly dev-gate the stub). |
 
@@ -341,9 +355,7 @@ Seed.sql inserts the 9 permissions, 2 roles, 1 unit, and 1 test user. **However*
 
 | # | Mismatch | Evidence | Recommended fix |
 |---|---|---|---|
-| 11 | **Dead fallback code now unreachable** — because `UserSaveModel` makes `UnitId`/`RoleId` required (`[Range(1,…)]`) and the controller validates, the `Id == 0 → default` fallbacks and `GetDefaultUnitIdAsync`/`GetDefaultRoleIdAsync` can never run via the UI. | `Services/AccessControlService/UsersService.cs:59-67, 87-105` | Remove the dead fallbacks (or keep them only if a non-validated path is intended). |
-| 12 | **Unused validation scaffolding** — `Views/Shared/_ValidationScriptsPartial.cshtml` (jQuery Validate/unobtrusive) is never referenced (validation is hand-rolled JS), and `Infrastructure/`, `Validation/`, `Infrastructure/Middleware/` are empty. | `Views/Shared/_ValidationScriptsPartial.cshtml`; `Infrastructure/`, `Validation/` | Delete the unreferenced partial or wire it up; remove/populate the empty folders. |
-| 13 | **Brand naming inconsistency** — the shell uses "RiskIntel MIS" while the sidebar and standalone pages use "Risk Pulse"/"RiskPulse". | `Views/Shared/_Layout.cshtml:6,154` vs `Views/Login/*`, `Views/Error/*` | Choose one product name and apply it consistently. |
+| _(none open)_ | Hygiene items resolved — dead zero-FK fallbacks in `UsersService`, unused `UsersIndexViewModel.Users` / `RolesIndexViewModel.Roles`, dead `KriBandSaveModel.KriThresholdId`, unreferenced `_ValidationScriptsPartial`, empty `Infrastructure/` + `Validation/`, dead `Models\Auth\**` csproj exclusion, undefined `status-active`/`login-icon-circle` classes, and the tri-spelled brand name were all removed in the hygiene pass. | (removed) | (done) |
 
 ---
 
@@ -389,16 +401,21 @@ Key decisions for the target:
 | Core framework / layout / login | ✅ Complete |
 | Cookie auth + claims + permission policies | ✅ Complete |
 | User / Role / Permission CRUD (models, services, views) | ✅ Complete — incl. self-edit rule in `UsersService` (controller left thin) |
-| PostgreSQL + EF Core migrations | ✅ Live |
-| DataTables AJAX grids + JSON save flows | ✅ Working — grids return named DTOs (`UserGridRow`/`RoleGridRow`) |
+| PostgreSQL + EF Core migrations | ✅ Live — single migration `20260812202536_UserPermissionControl` |
+| DataTables AJAX grids + JSON save flows | ✅ Working — every grid returns a named DTO (`UserGridRow`, `RoleGridRow`, `SaqGridRow`, `KriGridRow`, `KriItemGridRow`, `KriColorGridRow`, `KriGroupGridRow`, `KriBandGridRow`) |
+| Bootstrap 5 modals (programmatic open/close) | ✅ Fixed — `bootstrap.Modal.getOrCreateInstance(el).show()/.hide()` everywhere; no jQuery `$.fn.modal` |
 | Design system (CSS) + AI specs | ✅ Complete |
-| Domain pages (Dashboard, Submissions, Assessment Control, Form Builder, KRI Templates, Risk Register Templates) | ⬜ Stubs |
+| Domain pages (Dashboard, Submissions, Assessment Control, Form Builder, Risk Register Templates) | ⬜ Stubs |
 | SAQ Templates (grid, header CRUD, question/option designer, Locked immutable rule) | ✅ Implemented |
+| KRI Templates (grid, header CRUD, split-pane KRI builder with value/comment/group, Locked immutable rule) | ✅ Implemented |
+| KRI Config (tabs, threshold colors, groups, value-band editor) | ✅ Implemented |
 | Repository / unit-of-work / interface services | ❌ Not started |
 | DTOs & uniform API envelope | ✅ Complete — `ApiResponse<T>` + `LoginRequest`/`UserSaveModel`/`RoleSaveModel`/`UserGridRow`/`RoleGridRow` |
-| Server-side validation (DataAnnotations on save models) | ✅ Added on `UserSaveModel`, `RoleSaveModel`, `LoginRequest` |
+| Server-side validation (DataAnnotations on save models) | ✅ On every save model (Users/Roles/Login/SAQ/KRI/KRI Config) — FK `[Range]`, `[Required]`, `[MinLength]`, `[RegularExpression]` |
 | Permission single source (`PermissionCatalog`) | ✅ Resolved — policies, `[Authorize]`, sidebar, `PermissionPageMapper` all reference the catalog |
-| Business rule placement | ✅ Service-side — self-edit, duplicate, and not-found rules all throw `InvalidOperationException` from `UsersService` |
+| Business rule placement | ✅ Service-side — self-edit, duplicate, not-found, locked-template, and default-permission rules all throw `InvalidOperationException` from services |
+| Code hygiene (dead code, unused scaffolding, brand name) | ✅ Cleaned — see §8.4 |
+| Shared JS module (`RiskPulse.*` in `wwwroot/js/modules/riskpulse.js`) | ✅ Dedup done — all 5 shell views use the helpers; generic-error toast single-sourced (§4.1 #11) |
 | CSRF protection | ❌ Not started (§8 #9) |
 | Secrets management | ❌ Credentials committed (§8 #10) |
 | Real AD / identity provider | ❌ Stub (always true) (§8 #5) |
@@ -415,11 +432,14 @@ Key decisions for the target:
 3. ✅ **Single permission source** (`PermissionCatalog`) for policies/layout/mapper (resolved).
 4. ✅ **Named grid DTOs** — `UserGridRow`, `RoleGridRow` replace anonymous grid projections (resolved).
 5. ✅ **Move self-edit rule into `UsersService`** — `UpdateUserAsync(model, actingUserId)`; controller left thin (resolved).
-6. **Add CSRF protection** — antiforgery tokens + `[ValidateAntiForgeryToken]` on `Save`/`Login` POSTs (§8 #9).
-7. **Move DB credentials out of source** — user-secrets / environment variables (§8 #10).
-8. **Extract interfaces + register DI** — `IUsersService`, `IRolesService`, `IAdAuthenticationService`, `IDbAuthorizationService` (§8 #1–#2).
-9. **Implement real AD** or dev-gate explicitly (§8 #5).
-10. **EF seed + clean `Seed.sql`** of legacy SQL Server DDL (§8 #6).
-11. **Add logging** at service boundaries (§8 #8).
-12. **Hygiene** — remove dead fallbacks, unused validation partial, empty folders; unify product name (§8 #11–#13).
-13. Then build domain: keep this file current for Dashboard/Submissions with the standardized flow (server-side grid for submissions volume, §8 #3).
+6. ✅ **Fix Bootstrap 5 modal API** — replaced all 15 `$('#x').modal('show'/'hide')` calls with `bootstrap.Modal.getOrCreateInstance(...)` across Users/Roles/SAQ/KRI/KRI-Config (resolved).
+7. ✅ **Close pattern deviations** — `ColorsGrid` now returns `KriColorGridRow`; default-permission rule moved into `RolesService`; `SaveBands` + all delete actions get the null-guard/ModelState block; DataAnnotations aligned (FK `[Range]` on `SaqHeaderId`/`KriHeaderId`, validation on `KriBands`/`KriBand`, redundant `[Required]` removed); `form-select` dropped from `input-stasis` selects (resolved).
+8. ✅ **Hygiene pass** — removed dead `UsersService` fallbacks, dead view-model props (`UsersIndexViewModel.Users`, `RolesIndexViewModel.Roles`), dead `KriBandSaveModel.KriThresholdId`, unreferenced `_ValidationScriptsPartial`, empty `Infrastructure/`/`Validation/` folders, dead `Models\Auth\**` csproj exclusion, undefined CSS classes; added KriConfig modal input resets; unified brand on "Risk Pulse" (resolved).
+9. ✅ **JS dedup / shared module** — created `wwwroot/js/modules/riskpulse.js` (`RiskPulse.*`: toast helpers, `postJson`/`getJson` with auto generic-error toast, `serializeForm`, `populateSelect`, `showModal`/`hideModal`, `confirmDelete`, `initGrid`); loaded from `_Layout`; refactored all 5 shell views to use it (~250 duplicated lines removed, generic-error message now single-sourced). Login page intentionally left standalone (resolved).
+10. **Add CSRF protection** — antiforgery tokens + `[ValidateAntiForgeryToken]` on `Save`/`Login` POSTs (§8 #9).
+11. **Move DB credentials out of source** — user-secrets / environment variables (§8 #10).
+12. **Extract interfaces + register DI** — `IUsersService`, `IRolesService`, `IAdAuthenticationService`, `IDbAuthorizationService` (§8 #1–#2).
+13. **Implement real AD** or dev-gate explicitly (§8 #5).
+14. **EF seed + clean `Seed.sql`** of legacy SQL Server DDL (§8 #6).
+15. **Add logging** at service boundaries (§8 #8).
+16. Then build domain: keep this file current for Dashboard/Submissions with the standardized flow (server-side grid for submissions volume, §8 #3).

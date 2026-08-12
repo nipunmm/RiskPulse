@@ -36,6 +36,8 @@ public class RolesService
     {
         roleDesc = roleDesc.Trim();
 
+        ValidateDefaultPermission(defaultPermissionId, permissionIds);
+
         var exists = await _db.Roles.AnyAsync(r => r.RoleDesc.ToLower() == roleDesc.ToLower());
         if (exists)
         {
@@ -61,6 +63,8 @@ public class RolesService
     {
         roleDesc = roleDesc.Trim();
 
+        ValidateDefaultPermission(defaultPermissionId, permissionIds);
+
         var exists = await _db.Roles.AnyAsync(r =>
             r.RoleDesc.ToLower() == roleDesc.ToLower() && r.RoleId != roleId);
         if (exists)
@@ -84,5 +88,13 @@ public class RolesService
 
         await _db.SaveChangesAsync();
         return existing;
+    }
+
+    private static void ValidateDefaultPermission(int? defaultPermissionId, List<int> permissionIds)
+    {
+        if (defaultPermissionId.HasValue && !permissionIds.Contains(defaultPermissionId.Value))
+        {
+            throw new InvalidOperationException("The default page must be one of the assigned permissions.");
+        }
     }
 }

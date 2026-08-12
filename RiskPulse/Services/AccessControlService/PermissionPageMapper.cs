@@ -13,7 +13,8 @@ namespace RiskPulse.Services.AccessControlService
                 { PermissionCatalog.Roles, ("Roles", "Index") },
                 { PermissionCatalog.Saq, ("SaqTemplates", "Index") },
                 { PermissionCatalog.Kri, ("KriTemplates", "Index") },
-                { PermissionCatalog.RiskRegister, ("RiskRegisterTemplates", "Index") }
+                { PermissionCatalog.RiskRegister, ("RiskRegisterTemplates", "Index") },
+                { PermissionCatalog.KriConfig, ("KriConfig", "Index") }
             };
 
         public static (string Controller, string Action) GetRouteForPermission(string? permissionDesc)

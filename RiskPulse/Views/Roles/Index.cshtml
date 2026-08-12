@@ -54,7 +54,7 @@
 
                     <div class="mb-3">
                         <label class="input-label" for="addDefaultPermissionId">Default Landing Page</label>
-                        <select id="addDefaultPermissionId" name="defaultPermissionId" class="input-stasis form-select">
+                        <select id="addDefaultPermissionId" name="defaultPermissionId" class="input-stasis">
                         </select>
                         <small class="text-muted font-body-xs mt-1 d-block">
                             Users with this role will be automatically redirected to this page after login. Enabled once at least one permission is assigned.
@@ -95,7 +95,7 @@
 
                     <div class="mb-3">
                         <label class="input-label" for="editDefaultPermissionId">Default Landing Page</label>
-                        <select id="editDefaultPermissionId" name="defaultPermissionId" class="input-stasis form-select">
+                        <select id="editDefaultPermissionId" name="defaultPermissionId" class="input-stasis">
                         </select>
                         <small class="text-muted font-body-xs mt-1 d-block">
                             Users with this role will be automatically redirected to this page after login. Enabled once at least one permission is assigned.
@@ -177,9 +177,9 @@
                SECTION 3 — FORM PAYLOAD BUILDER
                ================================================================= */
             function getFormPayload($form) {
-                var payload = {};
-                $.each($form.serializeArray(), function (i, f) { payload[f.name] = f.value; });
-                payload.roleId = +payload.roleId || 0;
+                var payload = RiskPulse.serializeForm($form, {
+                    numbers: ['roleId']
+                });
                 payload.defaultPermissionId = payload.defaultPermissionId ? +payload.defaultPermissionId : null;
                 payload.permissionIds = $form.find('.permission-check:checked').map(function () { return +this.value; }).get();
                 return payload;
@@ -190,11 +190,11 @@
                ================================================================= */
             function validateRolePayload(payload) {
                 // Rule 1 — role name is required
-                if (!$.trim(payload.roleDesc)) { Toast.fire({ icon: 'error', title: 'Role name is required.' }); return false; }
+                if (!$.trim(payload.roleDesc)) { RiskPulse.toastError('Role name is required.'); return false; }
                 // Rule 2 — at least one permission must be assigned
-                if (!payload.permissionIds.length) { Toast.fire({ icon: 'error', title: 'At least one permission is required.' }); return false; }
+                if (!payload.permissionIds.length) { RiskPulse.toastError('At least one permission is required.'); return false; }
                 // Rule 3 — default page must be one of the assigned permissions
-                if (payload.defaultPermissionId && $.inArray(payload.defaultPermissionId, payload.permissionIds) === -1) { Toast.fire({ icon: 'error', title: 'The default page must be one of the assigned permissions.' }); return false; }
+                if (payload.defaultPermissionId && $.inArray(payload.defaultPermissionId, payload.permissionIds) === -1) { RiskPulse.toastError('The default page must be one of the assigned permissions.'); return false; }
                 return true;
             }
 
@@ -202,34 +202,28 @@
                SECTION 5 — CONTROLLER CALLS (AJAX) — the ONLY server touchpoint
                ================================================================= */
             function submitRole(payload, $form) {
-                $.ajax({
-                    url: saveUrl,
-                    type: 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify(payload),
+                RiskPulse.postJson(saveUrl, payload, {
                     success: function (res) {
-                        if (res.success) {
-                            $form.closest('.modal').modal('hide');
-                            roleTable.ajax.reload(null, false);
-                            Toast.fire({ icon: 'success', title: res.message || 'Role saved successfully.' });
-                        } else {
-                            Toast.fire({ icon: 'error', title: res.message || 'Unable to save role.' });
-                        }
+                        RiskPulse.hideModal($form);
+                        roleTable.ajax.reload(null, false);
+                        RiskPulse.toastSuccess(res.message || 'Role saved successfully.');
                     },
-                    error: function () { Toast.fire({ icon: 'error', title: 'An error occurred. Please try again.' }); }
+                    fail: function (res) {
+                        RiskPulse.toastError(res.message || 'Unable to save role.');
+                    }
                 });
             }
 
             /* =================================================================
                SECTION 6 — DATA GRID (DataTables)
                ================================================================= */
-            var roleTable = $('#roleTable').DataTable({
-                ajax: { url: gridUrl, dataSrc: 'data' },
+            var roleTable = RiskPulse.initGrid($('#roleTable'), {
+                ajax: { url: gridUrl },
                 columns: [
                     { data: 'roleId' },
                     { data: 'roleDesc' },
                     { data: 'defaultPermissionDesc', render: function (d) {
-                        return '<span class="status-pill status-active"><i class="fas fa-house me-1"></i>' + (d || 'Dashboard') + '</span>';
+                        return '<span class="status-pill"><i class="fas fa-house me-1"></i>' + (d || 'Dashboard') + '</span>';
                     } },
                     { data: 'permissionDescs', orderable: false, searchable: false, render: function (d) {
                         var badges = (d || []).map(function (desc) { return '<span class="status-pill">' + desc + '</span>'; });
@@ -239,8 +233,6 @@
                         return '<button type="button" class="btn-stasis-secondary edit-role-btn"><i class="fas fa-pen-to-square"></i> Edit</button>';
                     } }
                 ],
-                pageLength: 10,
-                lengthMenu: [10, 25, 50],
                 order: [[0, 'asc']]
             });
 
@@ -267,7 +259,7 @@
                 $('#editRoleDesc').val(row.roleDesc);
                 renderPermissionList('editPermissionList', row.permissionIds || []);
                 renderDefaultPermissionOptions('editDefaultPermissionId', row.defaultPermissionId, row.permissionIds || []);
-                $('#editRoleModal').modal('show');
+                RiskPulse.showModal('editRoleModal');
             });
 
             // Bind submit for both Add and Edit forms

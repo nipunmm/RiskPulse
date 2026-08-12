@@ -17,8 +17,6 @@ public class UsersService
     public async Task<List<User>> GetAllAsync()
     {
         return await _db.Users
-            .Include(u => u.Unit)
-            .Include(u => u.Role)
             .AsNoTracking()
             .OrderBy(u => u.Id)
             .ToListAsync();
@@ -56,16 +54,6 @@ public class UsersService
             RoleId = model.RoleId
         };
 
-        if (user.UnitId == 0)
-        {
-            user.UnitId = await GetDefaultUnitIdAsync();
-        }
-
-        if (user.RoleId == 0)
-        {
-            user.RoleId = await GetDefaultRoleIdAsync();
-        }
-
         _db.Users.Add(user);
         await _db.SaveChangesAsync();
         return user;
@@ -87,25 +75,5 @@ public class UsersService
 
         await _db.SaveChangesAsync();
         return existing;
-    }
-
-    private async Task<int> GetDefaultUnitIdAsync()
-    {
-        var id = await _db.Units.Select(u => (int?)u.UnitId).FirstOrDefaultAsync() ?? 0;
-        if (id == 0)
-        {
-            throw new InvalidOperationException("No units exist. Create a unit before adding users.");
-        }
-        return id;
-    }
-
-    private async Task<int> GetDefaultRoleIdAsync()
-    {
-        var id = await _db.Roles.Select(r => (int?)r.RoleId).FirstOrDefaultAsync() ?? 0;
-        if (id == 0)
-        {
-            throw new InvalidOperationException("No roles exist. Create a role before adding users.");
-        }
-        return id;
     }
 }

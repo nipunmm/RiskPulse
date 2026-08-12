@@ -20,14 +20,12 @@ public class UsersController : Controller
     [HttpGet]
     public async Task<IActionResult> Index()
     {
-        var users = await _userService.GetAllAsync();
         var units = await _userService.GetAllUnitsAsync();
         var roles = await _userService.GetAllRolesAsync();
 
         return View(new UsersIndexViewModel
         {
             CurrentUserId = Convert.ToInt32(User.FindFirstValue(ClaimTypes.NameIdentifier)),
-            Users = users,
             Units = units,
             Roles = roles
         });

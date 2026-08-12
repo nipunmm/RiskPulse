@@ -67,7 +67,7 @@
                     </div>
                     <div class="mb-3">
                         <label class="input-label" for="addSaqStatus">Status</label>
-                        <select id="addSaqStatus" name="saqStatus" class="input-stasis form-select"></select>
+                        <select id="addSaqStatus" name="saqStatus" class="input-stasis"></select>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -98,7 +98,7 @@
                     </div>
                     <div class="mb-3">
                         <label class="input-label" for="editSaqStatus">Status</label>
-                        <select id="editSaqStatus" name="saqStatus" class="input-stasis form-select"></select>
+                        <select id="editSaqStatus" name="saqStatus" class="input-stasis"></select>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -223,12 +223,6 @@
             /* =================================================================
                SECTION 2 — UI RENDERERS
                ================================================================= */
-            function populateSelect($select, data) {
-                $select.empty().append($.map(data, function (o) {
-                    return $('<option>').val(o.value).text(o.label);
-                }));
-            }
-
             function statusPill(status) {
                 switch (status) {
                     case 'Active': return '<span class="status-pill rag-green">Active</span>';
@@ -337,9 +331,9 @@
                SECTION 3 — FORM PAYLOAD BUILDERS
                ================================================================= */
             function getHeaderPayload($form) {
-                var payload = {};
-                $.each($form.serializeArray(), function (i, f) { payload[f.name] = f.value; });
-                payload.saqHeaderId = +payload.saqHeaderId || 0;
+                var payload = RiskPulse.serializeForm($form, {
+                    numbers: ['saqHeaderId']
+                });
                 return payload;
             }
 
@@ -367,14 +361,14 @@
                SECTION 4 — VALIDATION
                ================================================================= */
             function validateHeaderPayload(payload) {
-                if (!$.trim(payload.saqDesc)) { Toast.fire({ icon: 'error', title: 'Template description is required.' }); return false; }
-                if (!payload.saqStatus) { Toast.fire({ icon: 'error', title: 'Please select a status.' }); return false; }
+                if (!$.trim(payload.saqDesc)) { RiskPulse.toastError('Template description is required.'); return false; }
+                if (!payload.saqStatus) { RiskPulse.toastError('Please select a status.'); return false; }
                 return true;
             }
 
             function validateQuestionPayload(payload) {
-                if (!payload.questionText) { Toast.fire({ icon: 'error', title: 'Question text is required.' }); return false; }
-                if (!payload.options.length) { Toast.fire({ icon: 'error', title: 'At least one option is required.' }); return false; }
+                if (!payload.questionText) { RiskPulse.toastError('Question text is required.'); return false; }
+                if (!payload.options.length) { RiskPulse.toastError('At least one option is required.'); return false; }
                 return true;
             }
 
@@ -382,123 +376,84 @@
                SECTION 5 — CONTROLLER CALLS (AJAX)
                ================================================================= */
             function submitHeader(payload, $form) {
-                $.ajax({
-                    url: saveUrl,
-                    type: 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify(payload),
+                RiskPulse.postJson(saveUrl, payload, {
                     success: function (res) {
-                        if (res.success) {
-                            $form.closest('.modal').modal('hide');
-                            saqTable.ajax.reload(null, false);
-                            Toast.fire({ icon: 'success', title: res.message || 'Template saved successfully.' });
-                        } else {
-                            Toast.fire({ icon: 'error', title: res.message || 'Unable to save template.' });
-                        }
+                        RiskPulse.hideModal($form);
+                        saqTable.ajax.reload(null, false);
+                        RiskPulse.toastSuccess(res.message || 'Template saved successfully.');
                     },
-                    error: function () { Toast.fire({ icon: 'error', title: 'An error occurred. Please try again.' }); }
+                    fail: function (res) {
+                        RiskPulse.toastError(res.message || 'Unable to save template.');
+                    }
                 });
             }
 
             function deleteHeader(saqHeaderId, desc) {
-                Swal.fire({
-                    title: 'Delete template?',
-                    text: 'This will permanently delete "' + desc + '" and all of its questions.',
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#ef4444',
-                    confirmButtonText: 'Delete',
-                    cancelButtonText: 'Cancel'
-                }).then(function (result) {
-                    if (!result.isConfirmed) return;
-                    $.ajax({
-                        url: deleteUrl,
-                        type: 'POST',
-                        contentType: 'application/json',
-                        data: JSON.stringify({ id: saqHeaderId }),
-                        success: function (res) {
-                            if (res.success) {
+                RiskPulse.confirmDelete(
+                    'Delete template?',
+                    'This will permanently delete "' + desc + '" and all of its questions.',
+                    function () {
+                        RiskPulse.postJson(deleteUrl, { id: saqHeaderId }, {
+                            success: function (res) {
                                 saqTable.ajax.reload(null, false);
-                                Toast.fire({ icon: 'success', title: res.message || 'Template deleted successfully.' });
-                            } else {
-                                Toast.fire({ icon: 'error', title: res.message || 'Unable to delete template.' });
+                                RiskPulse.toastSuccess(res.message || 'Template deleted successfully.');
+                            },
+                            fail: function (res) {
+                                RiskPulse.toastError(res.message || 'Unable to delete template.');
                             }
-                        },
-                        error: function () { Toast.fire({ icon: 'error', title: 'An error occurred. Please try again.' }); }
-                    });
-                });
+                        });
+                    }
+                );
             }
 
             function loadQuestions() {
-                $.ajax({
-                    url: questionsGridUrl,
-                    type: 'GET',
-                    data: { saqHeaderId: currentSaqId },
+                RiskPulse.getJson(questionsGridUrl, { saqHeaderId: currentSaqId }, {
                     success: function (res) {
-                        if (res.success) {
-                            renderQuestionList(res.data);
-                        } else {
-                            Toast.fire({ icon: 'error', title: res.message || 'Unable to load questions.' });
-                        }
+                        renderQuestionList(res.data);
                     },
-                    error: function () { Toast.fire({ icon: 'error', title: 'An error occurred. Please try again.' }); }
+                    fail: function (res) {
+                        RiskPulse.toastError(res.message || 'Unable to load questions.');
+                    }
                 });
             }
 
             function submitQuestion(payload) {
-                $.ajax({
-                    url: saveQuestionUrl,
-                    type: 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify(payload),
+                RiskPulse.postJson(saveQuestionUrl, payload, {
                     success: function (res) {
-                        if (res.success) {
-                            hideEditor();
-                            loadQuestions();
-                            Toast.fire({ icon: 'success', title: res.message || 'Question saved successfully.' });
-                        } else {
-                            Toast.fire({ icon: 'error', title: res.message || 'Unable to save question.' });
-                        }
+                        hideEditor();
+                        loadQuestions();
+                        RiskPulse.toastSuccess(res.message || 'Question saved successfully.');
                     },
-                    error: function () { Toast.fire({ icon: 'error', title: 'An error occurred. Please try again.' }); }
+                    fail: function (res) {
+                        RiskPulse.toastError(res.message || 'Unable to save question.');
+                    }
                 });
             }
 
             function deleteQuestion(question) {
-                Swal.fire({
-                    title: 'Delete question?',
-                    text: 'This will permanently delete "' + question.questionText + '" and its options.',
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#ef4444',
-                    confirmButtonText: 'Delete',
-                    cancelButtonText: 'Cancel'
-                }).then(function (result) {
-                    if (!result.isConfirmed) return;
-                    $.ajax({
-                        url: deleteQuestionUrl,
-                        type: 'POST',
-                        contentType: 'application/json',
-                        data: JSON.stringify({ id: question.questionId }),
-                        success: function (res) {
-                            if (res.success) {
+                RiskPulse.confirmDelete(
+                    'Delete question?',
+                    'This will permanently delete "' + question.questionText + '" and its options.',
+                    function () {
+                        RiskPulse.postJson(deleteQuestionUrl, { id: question.questionId }, {
+                            success: function (res) {
                                 if (selectedQuestionId === question.questionId) hideEditor();
                                 loadQuestions();
-                                Toast.fire({ icon: 'success', title: res.message || 'Question deleted successfully.' });
-                            } else {
-                                Toast.fire({ icon: 'error', title: res.message || 'Unable to delete question.' });
+                                RiskPulse.toastSuccess(res.message || 'Question deleted successfully.');
+                            },
+                            fail: function (res) {
+                                RiskPulse.toastError(res.message || 'Unable to delete question.');
                             }
-                        },
-                        error: function () { Toast.fire({ icon: 'error', title: 'An error occurred. Please try again.' }); }
-                    });
-                });
+                        });
+                    }
+                );
             }
 
             /* =================================================================
                SECTION 6 — DATA GRID (DataTables)
                ================================================================= */
-            var saqTable = $('#saqTable').DataTable({
-                ajax: { url: gridUrl, dataSrc: 'data' },
+            var saqTable = RiskPulse.initGrid($('#saqTable'), {
+                ajax: { url: gridUrl },
                 columns: [
                     { data: 'saqHeaderId' },
                     { data: 'saqDesc' },
@@ -517,16 +472,14 @@
                         ].join(' ');
                     } }
                 ],
-                pageLength: 10,
-                lengthMenu: [10, 25, 50],
                 order: [[0, 'asc']]
             });
 
             /* =================================================================
                SECTION 7 — EVENT WIRING & INIT
                ================================================================= */
-            populateSelect($('#addSaqStatus'), statuses);
-            populateSelect($('#editSaqStatus'), statuses);
+            RiskPulse.populateSelect($('#addSaqStatus'), statuses);
+            RiskPulse.populateSelect($('#editSaqStatus'), statuses);
 
             $('#addSaqModal').on('shown.bs.modal', function () {
                 $('#addSaqDesc').val('').trigger('focus');
@@ -538,7 +491,7 @@
                 $('#editSaqHeaderId').val(row.saqHeaderId);
                 $('#editSaqDesc').val(row.saqDesc);
                 $('#editSaqStatus').val(row.saqStatus).trigger('change');
-                $('#editSaqModal').modal('show');
+                RiskPulse.showModal('editSaqModal');
             });
 
             $('#saqTable tbody').on('click', '.delete-saq-btn', function () {
@@ -565,7 +518,7 @@
 
                 hideEditor();
                 loadQuestions();
-                $('#designModal').modal('show');
+                RiskPulse.showModal('designModal');
             });
 
             // Reload the grid when the designer closes so question counts stay fresh

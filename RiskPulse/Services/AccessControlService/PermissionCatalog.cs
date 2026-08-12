@@ -11,4 +11,5 @@ public static class PermissionCatalog
     public const string Saq = "SAQ";
     public const string Kri = "KRI";
     public const string RiskRegister = "Risk Register";
+    public const string KriConfig = "KRI Config";
 }

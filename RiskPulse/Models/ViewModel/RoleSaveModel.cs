@@ -10,7 +10,6 @@ namespace RiskPulse.Models.ViewModel
         [StringLength(100, ErrorMessage = "Role name cannot exceed 100 characters.")]
         public string RoleDesc { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "At least one permission is required.")]
         [MinLength(1, ErrorMessage = "At least one permission is required.")]
         public List<int> PermissionIds { get; set; } = new List<int>();
 
