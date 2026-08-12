@@ -8,7 +8,7 @@
 
 **RiskPulse** (branded as **RiskIntel MIS**) is an enterprise risk management application built with **ASP.NET Core MVC**. The domain targets KRI (Key Risk Indicators), SAQ (Self-Assessment Questionnaires), branch-level risk submissions, and RAG (Red/Amber/Green) status tracking for high-stakes financial environments.
 
-**Current Phase:** Access-control scaffolding complete — authentication (cookie + claims), user/role/permission management (working CRUD + DataTables grids). All domain pages (Dashboard, Submissions, Assessment Control, Form Builder) remain **stubs**. PostgreSQL persistence is live via EF Core; a separate legacy SQL Server schema draft exists in `Database/Seed.sql`.
+**Current Phase:** Access-control scaffolding complete — authentication (cookie + claims), user/role/permission management (working CRUD + DataTables grids). SAQ Templates implemented (template + question/option designer); remaining domain pages (Dashboard, Submissions, Assessment Control, Form Builder, KRI/Risk Register templates) are **stubs**. PostgreSQL persistence is live via EF Core; a separate legacy SQL Server schema draft exists in `Database/Seed.sql`.
 
 ---
 
@@ -55,6 +55,9 @@ RiskPulse/
 │   ├── SubmissionsController.cs     # Stub, [Authorize(Policy="Permission:Submissions")]
 │   ├── AssessmentControlController.cs # Stub, [Authorize(Policy="Permission:Assessment Control")]
 │   ├── FormBuilderController.cs     # Stub, [Authorize(Policy="Permission:Form Builder")]
+│   ├── SaqTemplatesController.cs    # Grid/Save/Delete headers + QuestionsGrid/SaveQuestion/DeleteQuestion (JSON)
+│   ├── KriTemplatesController.cs    # Stub, [Authorize(Policy="Permission:KRI")]
+│   ├── RiskRegisterTemplatesController.cs # Stub, [Authorize(Policy="Permission:Risk Register")]
 │   ├── UsersController.cs           # Index (View), Grid (JSON), Save (JSON [FromBody])
 │   ├── RolesController.cs           # Index (View), Grid (JSON), Save (JSON [FromBody])
 │   └── ErrorController.cs           # GET /Error/Index
@@ -67,18 +70,24 @@ RiskPulse/
 │   │   └── LoginResult.cs           # Service result DTO (Success/Message/Principal/Redirect)
 │   ├── DbModel/AccessControl/       # EF entities (mirror DB tables)
 │   │   ├── User.cs  Role.cs  Permission.cs  RolePermission.cs  Unit.cs  UnitType.cs (enum)
+│   ├── DbModel/Saq/                 # EF entities (mirror DB tables)
+│   │   └── SaqHeader.cs  SaqQuestion.cs  SaqQuestionOption.cs  SaqStatus.cs (enum)  QuestionType.cs (enum)
 │   └── ViewModel/                   # View + form models
 │       ├── UsersIndexViewModel.cs  RolesIndexViewModel.cs  RoleSaveModel.cs  ErrorViewModel.cs
+│       ├── Saq*.cs                  # SaqTemplatesIndexViewModel, SaqGridRow, SaqHeaderSaveModel, SaqQuestionSaveModel, SaqOptionSaveModel, SaqQuestionGridRow, SaqOptionGridRow, SaqDeleteRequest
 │
 ├── Services/
 │   ├── LoginService/
 │   │   ├── AdAuthenticationService.cs     # STUB — ValidateCredentialsAsync always returns true
 │   │   ├── DbAuthorizationService.cs       # Loads user+role+permissions+unit, builds nothing itself
 │   │   └── LoginOrchestratorService.cs     # Orchestrates: AD check → DB lookup → claims principal
-│   └── AccessControlService/
+│   ├── AccessControlService/
 │       ├── UsersService.cs                 # CRUD for users + defaults (direct AppDbContext)
 │       ├── RolesService.cs                 # CRUD for roles + permission mapping (direct AppDbContext)
 │       └── PermissionPageMapper.cs         # Static: PermissionDesc → (Controller, Action)
+│
+│   └── SaqService/
+│       └── SaqService.cs                   # SAQ template CRUD: headers, questions, options + lock/duplicate rules
 │
 ├── Database/
 │   └── Seed.sql                       # Manual permission/role/unit/user inserts + legacy dbo schema draft
@@ -93,7 +102,8 @@ RiskPulse/
 │   ├── Users/Index.cshtml             # DataTables grid + Add/Edit modals (Select2 + SweetAlert)
 │   ├── Roles/Index.cshtml             # DataTables grid + Add/Edit modals (permission checkboxes)
 │   ├── Error/Index.cshtml             # Standalone (Layout=null), RequestId
-│   └── Dashboard|Submissions|AssessmentControl|FormBuilder/Index.cshtml  # Stubs
+│   ├── SaqTemplates/Index.cshtml    # DataTables grid + Add/Edit modals + Design modal (question cards + option editor)
+│   └── Dashboard|Submissions|AssessmentControl|FormBuilder|KriTemplates|RiskRegisterTemplates/Index.cshtml  # Stubs
 │
 ├── Infrastructure/                    # EMPTY (contains empty Middleware/ folder)
 ├── Validation/                        # EMPTY
@@ -144,7 +154,7 @@ Default entry route is **Login/Index**. The sidebar (`_Layout.cshtml`) gates eac
 
 ### 4.3 Authorization Model
 
-- **6 permissions** are declared once in code as constants in `Services/AccessControlService/PermissionCatalog.cs` (`PermissionCatalog.Dashboard | Submissions | AssessmentControl | FormBuilder | Users | Roles`) and referenced by:
+- **9 permissions** are declared once in code as constants in `Services/AccessControlService/PermissionCatalog.cs` (`PermissionCatalog.Dashboard | Submissions | AssessmentControl | FormBuilder | Users | Roles | Saq | Kri | RiskRegister`) and referenced by:
   1. `Program.cs:31-39` — `AddPolicy($"Permission:{PermissionCatalog.X}")` … `RequireClaim("Permission", PermissionCatalog.X)`
   2. Controllers — `[Authorize(Policy = $"Permission:{PermissionCatalog.X}")]`
   3. `Views/Shared/_Layout.cshtml` — `User.HasClaim("Permission", PermissionCatalog.X)`
@@ -294,7 +304,7 @@ Users       (Id PK, Username, IsActive, UnitId FK→Units, RoleId FK→Roles)
 
 ### 7.2 `Database/Seed.sql` — legacy content & risk
 
-Seed.sql inserts the 6 permissions, 2 roles, 1 unit, and 1 test user. **However** lines 35–324 contain an entire **legacy SQL Server schema** (`dbo.tblAssessmentModuleType`, `tblAssessmentHeader`, `tblSAQ*`, `tblKRI*`, `tblRiskRegister*` — `IDENTITY(1,1)`, `NVARCHAR`, `GETDATE()`) inside a "Do not run this manually" comment. This is not PostgreSQL-compatible and is a copy of a different-era design. It should be extracted to a separate reference document (see mismatch #6).
+Seed.sql inserts the 9 permissions, 2 roles, 1 unit, and 1 test user. **However** lines 35–324 contain an entire **legacy SQL Server schema** (`dbo.tblAssessmentModuleType`, `tblAssessmentHeader`, `tblSAQ*`, `tblKRI*`, `tblRiskRegister*` — `IDENTITY(1,1)`, `NVARCHAR`, `GETDATE()`) inside a "Do not run this manually" comment. This is not PostgreSQL-compatible and is a copy of a different-era design. It should be extracted to a separate reference document (see mismatch #6).
 
 ---
 
@@ -382,7 +392,8 @@ Key decisions for the target:
 | PostgreSQL + EF Core migrations | ✅ Live |
 | DataTables AJAX grids + JSON save flows | ✅ Working — grids return named DTOs (`UserGridRow`/`RoleGridRow`) |
 | Design system (CSS) + AI specs | ✅ Complete |
-| Domain pages (Dashboard, Submissions, Assessment Control, Form Builder) | ⬜ Stubs |
+| Domain pages (Dashboard, Submissions, Assessment Control, Form Builder, KRI Templates, Risk Register Templates) | ⬜ Stubs |
+| SAQ Templates (grid, header CRUD, question/option designer, Locked immutable rule) | ✅ Implemented |
 | Repository / unit-of-work / interface services | ❌ Not started |
 | DTOs & uniform API envelope | ✅ Complete — `ApiResponse<T>` + `LoginRequest`/`UserSaveModel`/`RoleSaveModel`/`UserGridRow`/`RoleGridRow` |
 | Server-side validation (DataAnnotations on save models) | ✅ Added on `UserSaveModel`, `RoleSaveModel`, `LoginRequest` |

@@ -1,0 +1,206 @@
+using Microsoft.EntityFrameworkCore;
+using RiskPulse.Data;
+using RiskPulse.Models.DbModel.Saq;
+using RiskPulse.Models.ViewModel;
+
+namespace RiskPulse.Services.SaqService;
+
+public class SaqService
+{
+    private readonly AppDbContext _db;
+
+    public SaqService(AppDbContext db)
+    {
+        _db = db;
+    }
+
+    public async Task<List<SaqGridRow>> GetHeaderRowsAsync()
+    {
+        return await _db.SaqHeaders
+            .AsNoTracking()
+            .OrderBy(h => h.SaqHeaderId)
+            .Select(h => new SaqGridRow
+            {
+                SaqHeaderId = h.SaqHeaderId,
+                SaqDesc = h.SaqDesc,
+                SaqStatus = h.SaqStatus.ToString(),
+                QuestionCount = h.SaqQuestions.Count
+            })
+            .ToListAsync();
+    }
+
+    public async Task<List<SaqQuestion>> GetQuestionsAsync(int saqHeaderId)
+    {
+        return await _db.SaqQuestions
+            .Include(q => q.SaqQuestionOptions)
+            .AsNoTracking()
+            .Where(q => q.SaqHeaderId == saqHeaderId)
+            .OrderBy(q => q.DisplayOrder)
+            .ThenBy(q => q.QuestionId)
+            .ToListAsync();
+    }
+
+    public async Task<SaqHeader> SaveHeaderAsync(SaqHeaderSaveModel model)
+    {
+        var desc = model.SaqDesc.Trim();
+
+        var exists = await _db.SaqHeaders.AnyAsync(h =>
+            h.SaqDesc.ToLower() == desc.ToLower() && h.SaqHeaderId != model.SaqHeaderId);
+        if (exists)
+        {
+            throw new InvalidOperationException($"Template '{desc}' already exists.");
+        }
+
+        if (model.SaqHeaderId == 0)
+        {
+            var header = new SaqHeader
+            {
+                SaqDesc = desc,
+                SaqStatus = model.SaqStatus
+            };
+
+            _db.SaqHeaders.Add(header);
+            await _db.SaveChangesAsync();
+            return header;
+        }
+
+        var existing = await _db.SaqHeaders.FindAsync(model.SaqHeaderId)
+            ?? throw new InvalidOperationException($"Template with Id {model.SaqHeaderId} was not found.");
+
+        if (existing.SaqStatus == SaqStatus.Locked)
+        {
+            throw new InvalidOperationException("Cannot modify a locked template.");
+        }
+
+        existing.SaqDesc = desc;
+        existing.SaqStatus = model.SaqStatus;
+
+        await _db.SaveChangesAsync();
+        return existing;
+    }
+
+    public async Task DeleteHeaderAsync(int saqHeaderId)
+    {
+        var header = await _db.SaqHeaders.FindAsync(saqHeaderId)
+            ?? throw new InvalidOperationException($"Template with Id {saqHeaderId} was not found.");
+
+        if (header.SaqStatus == SaqStatus.Locked)
+        {
+            throw new InvalidOperationException("Cannot delete a locked template.");
+        }
+
+        var questionIds = await _db.SaqQuestions
+            .Where(q => q.SaqHeaderId == saqHeaderId)
+            .Select(q => q.QuestionId)
+            .ToListAsync();
+
+        if (questionIds.Count > 0)
+        {
+            await _db.SaqQuestionOptions
+                .Where(o => questionIds.Contains(o.QuestionId))
+                .ExecuteDeleteAsync();
+
+            await _db.SaqQuestions
+                .Where(q => q.SaqHeaderId == saqHeaderId)
+                .ExecuteDeleteAsync();
+        }
+
+        _db.SaqHeaders.Remove(header);
+        await _db.SaveChangesAsync();
+    }
+
+    public async Task<SaqQuestion> SaveQuestionAsync(SaqQuestionSaveModel model)
+    {
+        var header = await _db.SaqHeaders.FindAsync(model.SaqHeaderId)
+            ?? throw new InvalidOperationException($"Template with Id {model.SaqHeaderId} was not found.");
+
+        if (header.SaqStatus == SaqStatus.Locked)
+        {
+            throw new InvalidOperationException("Cannot modify a locked template.");
+        }
+
+        var text = model.QuestionText.Trim();
+
+        var options = model.Options
+            .Where(o => !string.IsNullOrWhiteSpace(o.OptionText))
+            .Select((o, index) => new
+            {
+                OptionText = o.OptionText.Trim(),
+                OptionValue = string.IsNullOrWhiteSpace(o.OptionValue) ? null : o.OptionValue.Trim(),
+                DisplayOrder = o.DisplayOrder ?? index + 1
+            })
+            .ToList();
+
+        if (options.Count == 0)
+        {
+            throw new InvalidOperationException("At least one option is required.");
+        }
+
+        if (model.QuestionId == 0)
+        {
+            var question = new SaqQuestion
+            {
+                SaqHeaderId = model.SaqHeaderId,
+                QuestionText = text,
+                QuestionType = QuestionType.Dropdown,
+                IsRequired = model.IsRequired,
+                DisplayOrder = model.DisplayOrder,
+                SaqQuestionOptions = options
+                    .Select(o => new SaqQuestionOption
+                    {
+                        OptionText = o.OptionText,
+                        OptionValue = o.OptionValue,
+                        DisplayOrder = o.DisplayOrder
+                    })
+                    .ToList()
+            };
+
+            _db.SaqQuestions.Add(question);
+            await _db.SaveChangesAsync();
+            return question;
+        }
+
+        var existing = await _db.SaqQuestions
+            .Include(q => q.SaqQuestionOptions)
+            .FirstOrDefaultAsync(q => q.QuestionId == model.QuestionId)
+            ?? throw new InvalidOperationException($"Question with Id {model.QuestionId} was not found.");
+
+        existing.QuestionText = text;
+        existing.QuestionType = QuestionType.Dropdown;
+        existing.IsRequired = model.IsRequired;
+        existing.DisplayOrder = model.DisplayOrder;
+        existing.SaqQuestionOptions.Clear();
+
+        foreach (var option in options)
+        {
+            existing.SaqQuestionOptions.Add(new SaqQuestionOption
+            {
+                OptionText = option.OptionText,
+                OptionValue = option.OptionValue,
+                DisplayOrder = option.DisplayOrder
+            });
+        }
+
+        await _db.SaveChangesAsync();
+        return existing;
+    }
+
+    public async Task DeleteQuestionAsync(int questionId)
+    {
+        var question = await _db.SaqQuestions.FindAsync(questionId)
+            ?? throw new InvalidOperationException($"Question with Id {questionId} was not found.");
+
+        var header = await _db.SaqHeaders.FindAsync(question.SaqHeaderId);
+        if (header?.SaqStatus == SaqStatus.Locked)
+        {
+            throw new InvalidOperationException("Cannot modify a locked template.");
+        }
+
+        await _db.SaqQuestionOptions
+            .Where(o => o.QuestionId == questionId)
+            .ExecuteDeleteAsync();
+
+        _db.SaqQuestions.Remove(question);
+        await _db.SaveChangesAsync();
+    }
+}

@@ -6,6 +6,9 @@ INSERT INTO "riskpulse"."Permissions" ("PermissionDesc") VALUES ('Assessment Con
 INSERT INTO "riskpulse"."Permissions" ("PermissionDesc") VALUES ('Form Builder') ;
 INSERT INTO "riskpulse"."Permissions" ("PermissionDesc") VALUES ('Users');
 INSERT INTO "riskpulse"."Permissions" ("PermissionDesc") VALUES ('Roles') ;
+INSERT INTO "riskpulse"."Permissions" ("PermissionDesc") VALUES ('SAQ');
+INSERT INTO "riskpulse"."Permissions" ("PermissionDesc") VALUES ('KRI');
+INSERT INTO "riskpulse"."Permissions" ("PermissionDesc") VALUES ('Risk Register') ;
 
 -- 2. Insert Roles
 INSERT INTO "riskpulse"."Roles" ("RoleDesc") VALUES ('IT Admin');

@@ -1,0 +1,572 @@
+@model RiskPulse.Models.ViewModel.SaqTemplatesIndexViewModel
+@{
+    ViewData["Title"] = "SAQ Templates";
+
+    var statusesJson = Json.Serialize(Model.SaqStatuses);
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/lib/datatables/dataTables.bootstrap5.min.css" />
+}
+
+<div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-end gap-2 mb-2">
+    <div>
+        <h2 class="font-display-lg" style="color: var(--on-background);">SAQ Templates</h2>
+        <p class="font-body-md mt-1 mb-0" style="color: var(--on-surface-variant);">
+            Manage Self Assessment Questionnaire templates — build questions and their dropdown answers.
+        </p>
+    </div>
+    <button type="button" class="btn-stasis-primary" data-bs-toggle="modal" data-bs-target="#addSaqModal">
+        <i class="fas fa-plus"></i> Add Template
+    </button>
+</div>
+
+<div class="card-stasis p-2">
+    <table id="saqTable" class="table table-stasis table-sm w-100 align-middle">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Description</th>
+                <th>Status</th>
+                <th>Questions</th>
+                <th class="text-end">Actions</th>
+            </tr>
+        </thead>
+    </table>
+</div>
+
+<!-- ============================================================
+     ADD TEMPLATE MODAL
+     ============================================================ -->
+<div class="modal fade" id="addSaqModal" tabindex="-1" aria-labelledby="addSaqModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="addSaqForm" novalidate>
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addSaqModalLabel">Add Template</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="input-label" for="addSaqDesc">Description</label>
+                        <input type="text" id="addSaqDesc" name="saqDesc" class="input-stasis" required autocomplete="off" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="input-label" for="addSaqStatus">Status</label>
+                        <select id="addSaqStatus" name="saqStatus" class="input-stasis form-select"></select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-stasis-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn-stasis-primary"><i class="fas fa-check"></i> Create</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================
+     EDIT TEMPLATE MODAL
+     ============================================================ -->
+<div class="modal fade" id="editSaqModal" tabindex="-1" aria-labelledby="editSaqModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="editSaqForm" novalidate>
+                <input type="hidden" id="editSaqHeaderId" name="saqHeaderId" value="0" />
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editSaqModalLabel">Edit Template</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="input-label" for="editSaqDesc">Description</label>
+                        <input type="text" id="editSaqDesc" name="saqDesc" class="input-stasis" required autocomplete="off" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="input-label" for="editSaqStatus">Status</label>
+                        <select id="editSaqStatus" name="saqStatus" class="input-stasis form-select"></select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-stasis-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn-stasis-primary"><i class="fas fa-check"></i> Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================
+     DESIGN MODAL (questions + options)
+     ============================================================ -->
+<div class="modal fade" id="designModal" tabindex="-1" aria-labelledby="designModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title" id="designModalLabel">Design Template</h5>
+                    <div id="designStatusPill" class="mt-1"></div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="text-muted font-body-sm" id="lockedNotice" style="display:none;">
+                        <i class="fas fa-lock me-1"></i> This template is locked and cannot be modified.
+                    </span>
+                    <button type="button" class="btn-stasis-primary" id="addQuestionBtn">
+                        <i class="fas fa-plus"></i> Add Question
+                    </button>
+                </div>
+
+                <!-- Inline Question Editor -->
+                <div id="questionEditor" class="card-stasis p-3 mb-3 d-none">
+                    <h6 class="mb-2">Question</h6>
+                    <input type="hidden" id="editorQuestionId" value="0" />
+                    <div class="mb-2">
+                        <label class="input-label" for="editorQuestionText">Question Text</label>
+                        <textarea id="editorQuestionText" class="input-stasis w-100" rows="2" autocomplete="off"></textarea>
+                    </div>
+                    <div class="row g-2 mb-2">
+                        <div class="col-sm-4">
+                            <label class="input-label" for="editorDisplayOrder">Display Order</label>
+                            <input type="number" id="editorDisplayOrder" class="input-stasis w-100" min="1" />
+                        </div>
+                        <div class="col-sm-8 d-flex align-items-end pb-1">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="editorIsRequired" />
+                                <label class="form-check-label" for="editorIsRequired">Required</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-2 d-flex justify-content-between align-items-center">
+                        <label class="input-label mb-0">Options (Dropdown Answers)</label>
+                        <button type="button" class="btn-stasis-secondary" id="addOptionBtn">
+                            <i class="fas fa-plus"></i> Add Option
+                        </button>
+                    </div>
+                    <div id="optionRows"></div>
+                    <div class="mt-2 d-flex gap-2">
+                        <button type="button" class="btn-stasis-primary" id="saveQuestionBtn">
+                            <i class="fas fa-check"></i> Save Question
+                        </button>
+                        <button type="button" class="btn-stasis-secondary" id="cancelQuestionBtn">Cancel</button>
+                    </div>
+                </div>
+
+                <div id="questionList"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-stasis-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/lib/datatables/jquery.dataTables.min.js"></script>
+    <script src="~/lib/datatables/dataTables.bootstrap5.min.js"></script>
+    <script>
+        (function ($) {
+
+            /* =================================================================
+               SECTION 1 — PAGE DATA & ENDPOINTS
+               ================================================================= */
+            var statuses = @Html.Raw(statusesJson);
+            var gridUrl = '@Url.Action("Grid", "SaqTemplates")';
+            var saveUrl = '@Url.Action("Save", "SaqTemplates")';
+            var deleteUrl = '@Url.Action("Delete", "SaqTemplates")';
+            var questionsGridUrl = '@Url.Action("QuestionsGrid", "SaqTemplates")';
+            var saveQuestionUrl = '@Url.Action("SaveQuestion", "SaqTemplates")';
+            var deleteQuestionUrl = '@Url.Action("DeleteQuestion", "SaqTemplates")';
+
+            var currentSaqId = 0;
+            var currentSaqLocked = false;
+            var loadedQuestions = [];
+
+            /* =================================================================
+               SECTION 2 — UI RENDERERS
+               ================================================================= */
+            // Populates a select with options from a value/label array
+            function populateSelect($select, data) {
+                $select.empty().append($.map(data, function (o) {
+                    return $('<option>').val(o.value).text(o.label);
+                }));
+            }
+
+            function statusPill(status) {
+                switch (status) {
+                    case 'Active': return '<span class="status-pill rag-green">Active</span>';
+                    case 'Locked': return '<span class="status-pill rag-amber">Locked</span>';
+                    default: return '<span class="status-pill rag-red">Inactive</span>';
+                }
+            }
+
+            // Builds a single editable option row
+            function optionRowHtml(option) {
+                option = option || {};
+                return $('<div class="option-row d-flex gap-2 mb-2 align-items-center">').append(
+                    $('<input type="hidden" class="option-id">').val(option.optionId || 0),
+                    $('<input type="text" class="input-stasis flex-fill option-text" placeholder="Option text" autocomplete="off">').val(option.optionText || ''),
+                    $('<input type="text" class="input-stasis option-value" style="max-width:220px;" placeholder="Value (optional)" autocomplete="off">').val(option.optionValue || ''),
+                    $('<button type="button" class="btn-stasis-secondary remove-option-btn" title="Remove option"><i class="fas fa-xmark"></i></button>')
+                );
+            }
+
+            // Renders the question cards for the currently open template
+            function renderQuestionCards(questions) {
+                loadedQuestions = questions || [];
+                var $container = $('#questionList').empty();
+
+                if (!loadedQuestions.length) {
+                    $container.append('<div class="text-center text-muted py-4">No questions yet. Click "Add Question" to create one.</div>');
+                    return;
+                }
+
+                $.each(loadedQuestions, function (i, q) {
+                    var $card = $('<div class="card-stasis p-2 mb-1">');
+                    var $header = $('<div class="d-flex justify-content-between align-items-center gap-2">');
+
+                    var $title = $('<div class="font-body-md fw-semibold">');
+                    $title.append($('<span class="text-muted me-2">').text('Q' + q.displayOrder + '.'));
+                    $title.append($('<span>').text(q.questionText));
+                    if (q.isRequired) {
+                        $title.append(' <span class="status-pill rag-red">Required</span>');
+                    }
+                    $header.append($title);
+
+                    if (!currentSaqLocked) {
+                        var $actions = $('<div class="text-nowrap">');
+                        $actions.append(
+                            $('<button type="button" class="btn-stasis-secondary edit-q-btn me-1" title="Edit question"><i class="fas fa-pen-to-square"></i></button>').data('question', q),
+                            $('<button type="button" class="btn-stasis-secondary delete-q-btn" title="Delete question"><i class="fas fa-trash-can"></i></button>').data('question', q)
+                        );
+                        $header.append($actions);
+                    }
+
+                    $card.append($header);
+
+                    if (q.options && q.options.length) {
+                        var $optionsLine = $('<div class="font-body-xs text-muted mt-1">');
+                        $optionsLine.append($('<span>').text('Options: '));
+                        $.each(q.options, function (j, o) {
+                            if (j > 0) {
+                                $optionsLine.append(' • ');
+                            }
+                            var $label = $('<span>').text(o.optionText);
+                            if (o.optionValue) {
+                                $label.append($('<span>').text(' (' + o.optionValue + ')'));
+                            }
+                            $optionsLine.append($label);
+                        });
+                        $card.append($optionsLine);
+                    }
+
+                    $container.append($card);
+                });
+            }
+
+            // Shows the inline question editor (question = null for a new question)
+            function showQuestionEditor(question) {
+                $('#editorQuestionId').val(question ? question.questionId : 0);
+                $('#editorQuestionText').val(question ? question.questionText : '');
+                $('#editorIsRequired').prop('checked', question ? question.isRequired : false);
+                $('#editorDisplayOrder').val(question ? question.displayOrder : (loadedQuestions.length + 1));
+
+                $('#optionRows').empty();
+                var options = (question && question.options && question.options.length) ? question.options : [null];
+                $.each(options, function (i, o) { $('#optionRows').append(optionRowHtml(o)); });
+
+                $('#questionEditor').removeClass('d-none');
+                $('#addQuestionBtn').prop('disabled', true);
+                $('#designModal').animate({ scrollTop: 0 }, 200);
+                $('#editorQuestionText').trigger('focus');
+            }
+
+            function hideQuestionEditor() {
+                $('#questionEditor').addClass('d-none');
+                $('#addQuestionBtn').prop('disabled', false);
+            }
+
+            /* =================================================================
+               SECTION 3 — FORM PAYLOAD BUILDERS
+               ================================================================= */
+            function getHeaderPayload($form) {
+                var payload = {};
+                $.each($form.serializeArray(), function (i, f) { payload[f.name] = f.value; });
+                payload.saqHeaderId = +payload.saqHeaderId || 0;
+                return payload;
+            }
+
+            function getQuestionPayload() {
+                var payload = {};
+                payload.questionId = +$('#editorQuestionId').val() || 0;
+                payload.saqHeaderId = currentSaqId;
+                payload.questionText = $.trim($('#editorQuestionText').val());
+                payload.isRequired = $('#editorIsRequired').is(':checked');
+                payload.displayOrder = +$('#editorDisplayOrder').val() || 0;
+
+                payload.options = [];
+                $('#optionRows .option-row').each(function (index) {
+                    var $row = $(this);
+                    var text = $.trim($row.find('.option-text').val());
+                    if (!text) return;
+                    payload.options.push({
+                        optionId: +$row.find('.option-id').val() || 0,
+                        optionText: text,
+                        optionValue: $.trim($row.find('.option-value').val()) || null,
+                        displayOrder: index + 1
+                    });
+                });
+                return payload;
+            }
+
+            /* =================================================================
+               SECTION 4 — VALIDATION
+               ================================================================= */
+            function validateHeaderPayload(payload) {
+                if (!$.trim(payload.saqDesc)) { Toast.fire({ icon: 'error', title: 'Template description is required.' }); return false; }
+                if (!payload.saqStatus) { Toast.fire({ icon: 'error', title: 'Please select a status.' }); return false; }
+                return true;
+            }
+
+            function validateQuestionPayload(payload) {
+                if (!payload.questionText) { Toast.fire({ icon: 'error', title: 'Question text is required.' }); return false; }
+                if (!payload.options.length) { Toast.fire({ icon: 'error', title: 'At least one option is required.' }); return false; }
+                return true;
+            }
+
+            /* =================================================================
+               SECTION 5 — CONTROLLER CALLS (AJAX) — the ONLY server touchpoint
+               ================================================================= */
+            function submitHeader(payload, $form) {
+                $.ajax({
+                    url: saveUrl,
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(payload),
+                    success: function (res) {
+                        if (res.success) {
+                            $form.closest('.modal').modal('hide');
+                            saqTable.ajax.reload(null, false);
+                            Toast.fire({ icon: 'success', title: res.message || 'Template saved successfully.' });
+                        } else {
+                            Toast.fire({ icon: 'error', title: res.message || 'Unable to save template.' });
+                        }
+                    },
+                    error: function () { Toast.fire({ icon: 'error', title: 'An error occurred. Please try again.' }); }
+                });
+            }
+
+            function deleteHeader(saqHeaderId, desc) {
+                Swal.fire({
+                    title: 'Delete template?',
+                    text: 'This will permanently delete "' + desc + '" and all of its questions.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#ef4444',
+                    confirmButtonText: 'Delete',
+                    cancelButtonText: 'Cancel'
+                }).then(function (result) {
+                    if (!result.isConfirmed) return;
+                    $.ajax({
+                        url: deleteUrl,
+                        type: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify({ id: saqHeaderId }),
+                        success: function (res) {
+                            if (res.success) {
+                                saqTable.ajax.reload(null, false);
+                                Toast.fire({ icon: 'success', title: res.message || 'Template deleted successfully.' });
+                            } else {
+                                Toast.fire({ icon: 'error', title: res.message || 'Unable to delete template.' });
+                            }
+                        },
+                        error: function () { Toast.fire({ icon: 'error', title: 'An error occurred. Please try again.' }); }
+                    });
+                });
+            }
+
+            function loadQuestions() {
+                $.ajax({
+                    url: questionsGridUrl,
+                    type: 'GET',
+                    data: { saqHeaderId: currentSaqId },
+                    success: function (res) {
+                        if (res.success) {
+                            renderQuestionCards(res.data);
+                        } else {
+                            Toast.fire({ icon: 'error', title: res.message || 'Unable to load questions.' });
+                        }
+                    },
+                    error: function () { Toast.fire({ icon: 'error', title: 'An error occurred. Please try again.' }); }
+                });
+            }
+
+            function submitQuestion(payload) {
+                $.ajax({
+                    url: saveQuestionUrl,
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(payload),
+                    success: function (res) {
+                        if (res.success) {
+                            hideQuestionEditor();
+                            loadQuestions();
+                            Toast.fire({ icon: 'success', title: res.message || 'Question saved successfully.' });
+                        } else {
+                            Toast.fire({ icon: 'error', title: res.message || 'Unable to save question.' });
+                        }
+                    },
+                    error: function () { Toast.fire({ icon: 'error', title: 'An error occurred. Please try again.' }); }
+                });
+            }
+
+            function deleteQuestion(question) {
+                Swal.fire({
+                    title: 'Delete question?',
+                    text: 'This will permanently delete "' + question.questionText + '" and its options.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#ef4444',
+                    confirmButtonText: 'Delete',
+                    cancelButtonText: 'Cancel'
+                }).then(function (result) {
+                    if (!result.isConfirmed) return;
+                    $.ajax({
+                        url: deleteQuestionUrl,
+                        type: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify({ id: question.questionId }),
+                        success: function (res) {
+                            if (res.success) {
+                                loadQuestions();
+                                Toast.fire({ icon: 'success', title: res.message || 'Question deleted successfully.' });
+                            } else {
+                                Toast.fire({ icon: 'error', title: res.message || 'Unable to delete question.' });
+                            }
+                        },
+                        error: function () { Toast.fire({ icon: 'error', title: 'An error occurred. Please try again.' }); }
+                    });
+                });
+            }
+
+            /* =================================================================
+               SECTION 6 — DATA GRID (DataTables)
+               ================================================================= */
+            var saqTable = $('#saqTable').DataTable({
+                ajax: { url: gridUrl, dataSrc: 'data' },
+                columns: [
+                    { data: 'saqHeaderId' },
+                    { data: 'saqDesc' },
+                    { data: 'saqStatus', render: function (d) { return statusPill(d); } },
+                    { data: 'questionCount', render: function (d) { return '<span class="status-pill">' + (d || 0) + '</span>'; } },
+                    { data: null, orderable: false, searchable: false, className: 'text-end', render: function (data, type, row) {
+                        var locked = row.saqStatus === 'Locked';
+                        return [
+                            '<button type="button" class="btn-stasis-secondary design-saq-btn"><i class="fas fa-pen-ruler"></i> Design</button>',
+                            locked
+                                ? '<button type="button" class="btn-stasis-secondary" disabled title="Locked templates cannot be edited"><i class="fas fa-pen-to-square"></i> Edit</button>'
+                                : '<button type="button" class="btn-stasis-secondary edit-saq-btn"><i class="fas fa-pen-to-square"></i> Edit</button>',
+                            locked
+                                ? '<button type="button" class="btn-stasis-secondary" disabled title="Locked templates cannot be deleted"><i class="fas fa-trash-can"></i> Delete</button>'
+                                : '<button type="button" class="btn-stasis-secondary delete-saq-btn"><i class="fas fa-trash-can"></i> Delete</button>'
+                        ].join(' ');
+                    } }
+                ],
+                pageLength: 10,
+                lengthMenu: [10, 25, 50],
+                order: [[0, 'asc']]
+            });
+
+            /* =================================================================
+               SECTION 7 — EVENT WIRING & INIT
+               ================================================================= */
+            // Populate the status dropdowns
+            populateSelect($('#addSaqStatus'), statuses);
+            populateSelect($('#editSaqStatus'), statuses);
+
+            // Reset the Add form each time its modal opens
+            $('#addSaqModal').on('shown.bs.modal', function () {
+                $('#addSaqDesc').val('').trigger('focus');
+                $('#addSaqStatus').val('Active').trigger('change');
+            });
+
+            // Load a template's values into the Edit modal
+            $('#saqTable tbody').on('click', '.edit-saq-btn', function () {
+                var row = saqTable.row($(this).closest('tr')).data();
+                $('#editSaqHeaderId').val(row.saqHeaderId);
+                $('#editSaqDesc').val(row.saqDesc);
+                $('#editSaqStatus').val(row.saqStatus).trigger('change');
+                $('#editSaqModal').modal('show');
+            });
+
+            // Delete template (with confirmation)
+            $('#saqTable tbody').on('click', '.delete-saq-btn', function () {
+                var row = saqTable.row($(this).closest('tr')).data();
+                deleteHeader(row.saqHeaderId, row.saqDesc);
+            });
+
+            // Open the Design modal for a template
+            $('#saqTable tbody').on('click', '.design-saq-btn', function () {
+                var row = saqTable.row($(this).closest('tr')).data();
+                currentSaqId = row.saqHeaderId;
+                currentSaqLocked = row.saqStatus === 'Locked';
+
+                $('#designModalLabel').text('Design: ' + row.saqDesc);
+                $('#designStatusPill').html(statusPill(row.saqStatus));
+
+                if (currentSaqLocked) {
+                    $('#lockedNotice').show();
+                    $('#addQuestionBtn').hide();
+                } else {
+                    $('#lockedNotice').hide();
+                    $('#addQuestionBtn').show();
+                }
+
+                hideQuestionEditor();
+                loadQuestions();
+                $('#designModal').modal('show');
+            });
+
+            // Add Question button
+            $('#addQuestionBtn').on('click', function () {
+                if (!currentSaqLocked) showQuestionEditor(null);
+            });
+
+            // Edit / Delete question cards
+            $('#questionList').on('click', '.edit-q-btn', function () {
+                showQuestionEditor($(this).data('question'));
+            });
+
+            $('#questionList').on('click', '.delete-q-btn', function () {
+                deleteQuestion($(this).data('question'));
+            });
+
+            // Inline question editor controls
+            $('#addOptionBtn').on('click', function () {
+                $('#optionRows').append(optionRowHtml(null));
+            });
+
+            $('#optionRows').on('click', '.remove-option-btn', function () {
+                $(this).closest('.option-row').remove();
+            });
+
+            $('#cancelQuestionBtn').on('click', function () {
+                hideQuestionEditor();
+            });
+
+            $('#saveQuestionBtn').on('click', function () {
+                var payload = getQuestionPayload();
+                if (validateQuestionPayload(payload)) submitQuestion(payload);
+            });
+
+            // Bind submit for Add and Edit forms
+            $('#addSaqForm, #editSaqForm').on('submit', function (e) {
+                e.preventDefault();
+                var payload = getHeaderPayload($(this));
+                if (validateHeaderPayload(payload)) submitHeader(payload, $(this));
+            });
+        })(jQuery);
+    </script>
+}

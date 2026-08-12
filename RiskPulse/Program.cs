@@ -4,6 +4,7 @@ using RiskPulse.Data;
 using RiskPulse.Services;
 using RiskPulse.Services.AccessControlService;
 using RiskPulse.Services.LoginService;
+using RiskPulse.Services.SaqService;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,12 +13,18 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Add services to the container.
-builder.Services.AddControllersWithViews();
+builder.Services.AddControllersWithViews()
+    .AddJsonOptions(options =>
+    {
+        // Persist/parse enums (e.g. SaqStatus "Active") as strings in JSON bodies.
+        options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+    });
 builder.Services.AddScoped<AdAuthenticationService>();
 builder.Services.AddScoped<DbAuthorizationService>();
 builder.Services.AddScoped<LoginOrchestratorService>();
 builder.Services.AddScoped<UsersService>();
 builder.Services.AddScoped<RolesService>();
+builder.Services.AddScoped<SaqService>();
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
@@ -36,6 +43,9 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy($"Permission:{PermissionCatalog.FormBuilder}", policy => policy.RequireClaim("Permission", PermissionCatalog.FormBuilder));
     options.AddPolicy($"Permission:{PermissionCatalog.Roles}", policy => policy.RequireClaim("Permission", PermissionCatalog.Roles));
     options.AddPolicy($"Permission:{PermissionCatalog.Users}", policy => policy.RequireClaim("Permission", PermissionCatalog.Users));
+    options.AddPolicy($"Permission:{PermissionCatalog.Saq}", policy => policy.RequireClaim("Permission", PermissionCatalog.Saq));
+    options.AddPolicy($"Permission:{PermissionCatalog.Kri}", policy => policy.RequireClaim("Permission", PermissionCatalog.Kri));
+    options.AddPolicy($"Permission:{PermissionCatalog.RiskRegister}", policy => policy.RequireClaim("Permission", PermissionCatalog.RiskRegister));
 });
 
 var app = builder.Build();

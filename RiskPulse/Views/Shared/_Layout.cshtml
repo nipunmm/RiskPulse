@@ -97,6 +97,54 @@
                 var isEntityMgmtActive = currentCtrl == "Roles" || currentCtrl == "Users";
             }
 
+            @{
+                var canViewTemplates = User.HasClaim("Permission", PermissionCatalog.Saq)
+                    || User.HasClaim("Permission", PermissionCatalog.Kri)
+                    || User.HasClaim("Permission", PermissionCatalog.RiskRegister);
+                var isTemplatesActive = currentCtrl == "SaqTemplates" || currentCtrl == "KriTemplates" || currentCtrl == "RiskRegisterTemplates";
+            }
+
+            @if (canViewTemplates)
+            {
+                <!-- Parent Item: Template Management -->
+                <div class="sidebar-group w-100">
+                    <button type="button"
+                            class="sidebar-parent nav-link d-flex align-items-center gap-3 px-3 py-2 rounded @(isTemplatesActive ? "expanded" : "")"
+                            onclick="toggleSubmenu(this)"
+                            aria-expanded="@(isTemplatesActive ? "true" : "false")">
+                        <i class="fas fa-copy"></i>
+                        <span class="text-truncate me-auto">Templates</span>
+                        <i class="fas fa-chevron-down toggle-icon ms-auto"></i>
+                    </button>
+                    <div class="sidebar-submenu @(isTemplatesActive ? "open" : "")">
+                        @if (User.HasClaim("Permission", PermissionCatalog.Saq))
+                        {
+                            <a asp-controller="SaqTemplates" asp-action="Index"
+                               class="sidebar-child nav-link d-flex align-items-center gap-2 py-2 @(currentCtrl == "SaqTemplates" ? "active" : "")">
+                                <i class="fas fa-clipboard-question"></i>
+                                <span class="text-truncate">SAQ</span>
+                            </a>
+                        }
+                        @if (User.HasClaim("Permission", PermissionCatalog.Kri))
+                        {
+                            <a asp-controller="KriTemplates" asp-action="Index"
+                               class="sidebar-child nav-link d-flex align-items-center gap-2 py-2 @(currentCtrl == "KriTemplates" ? "active" : "")">
+                                <i class="fas fa-gauge-high"></i>
+                                <span class="text-truncate">KRI</span>
+                            </a>
+                        }
+                        @if (User.HasClaim("Permission", PermissionCatalog.RiskRegister))
+                        {
+                            <a asp-controller="RiskRegisterTemplates" asp-action="Index"
+                               class="sidebar-child nav-link d-flex align-items-center gap-2 py-2 @(currentCtrl == "RiskRegisterTemplates" ? "active" : "")">
+                                <i class="fas fa-triangle-exclamation"></i>
+                                <span class="text-truncate">Risk Register</span>
+                            </a>
+                        }
+                    </div>
+                </div>
+            }
+
             @if (canViewEntityMgmt)
             {
                 <!-- Parent Item: Entity Management -->

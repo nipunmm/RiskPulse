@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using RiskPulse.Models.DbModel.AccessControl;
+using RiskPulse.Models.DbModel.Saq;
 
 namespace RiskPulse.Data
 {
@@ -21,6 +22,22 @@ namespace RiskPulse.Data
                     .HasConversion<string>()
                     .HasMaxLength(32);
             });
+
+            //SaqStatus enum to string conversion
+            modelBuilder.Entity<SaqHeader>(entity =>
+            {
+                entity.Property(s => s.SaqStatus)
+                    .HasConversion<string>()
+                    .HasMaxLength(32);
+            });
+
+            //QuestionType enum to string conversion
+            modelBuilder.Entity<SaqQuestion>(entity =>
+            {
+                entity.Property(q => q.QuestionType)
+                    .HasConversion<string>()
+                    .HasMaxLength(32);
+            });
         }
 
         public DbSet<User> Users { get; set; }
@@ -32,6 +49,12 @@ namespace RiskPulse.Data
         public DbSet<Permission> Permissions { get; set; }
 
         public DbSet<RolePermission> RolePermissions { get; set; }
+
+        public DbSet<SaqHeader> SaqHeaders { get; set; }
+
+        public DbSet<SaqQuestion> SaqQuestions { get; set; }
+
+        public DbSet<SaqQuestionOption> SaqQuestionOptions { get; set; }
 
     }
 }
