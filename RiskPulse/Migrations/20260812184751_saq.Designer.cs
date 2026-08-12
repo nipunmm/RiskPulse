@@ -11,7 +11,7 @@ using RiskPulse.Data;
 namespace RiskPulse.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260811183521_saq")]
+    [Migration("20260812184751_saq")]
     partial class saq
     {
         /// <inheritdoc />
@@ -173,11 +173,13 @@ namespace RiskPulse.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("QuestionId"));
 
+                    b.Property<bool>("AllowComment")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
                     b.Property<int>("DisplayOrder")
                         .HasColumnType("integer");
-
-                    b.Property<bool>("IsRequired")
-                        .HasColumnType("boolean");
 
                     b.Property<string>("QuestionText")
                         .IsRequired()
@@ -206,25 +208,19 @@ namespace RiskPulse.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("OptionId"));
 
-                    b.Property<int?>("DisplayOrder")
+                    b.Property<int>("DisplayOrder")
                         .HasColumnType("integer");
 
                     b.Property<string>("OptionText")
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("OptionValue")
-                        .HasColumnType("text");
-
                     b.Property<int>("QuestionId")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("SaqQuestionQuestionId")
                         .HasColumnType("integer");
 
                     b.HasKey("OptionId");
 
-                    b.HasIndex("SaqQuestionQuestionId");
+                    b.HasIndex("QuestionId");
 
                     b.ToTable("SaqQuestionOptions", "riskpulse");
                 });
@@ -291,7 +287,9 @@ namespace RiskPulse.Migrations
                 {
                     b.HasOne("RiskPulse.Models.DbModel.Saq.SaqQuestion", "SaqQuestion")
                         .WithMany("SaqQuestionOptions")
-                        .HasForeignKey("SaqQuestionQuestionId");
+                        .HasForeignKey("QuestionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("SaqQuestion");
                 });

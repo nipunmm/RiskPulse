@@ -13,8 +13,6 @@ namespace RiskPulse.Models.DbModel.Saq
 
         public string OptionText { get; set; } = string.Empty;
 
-        public string? OptionValue { get; set; }
-
-        public int? DisplayOrder { get; set; }
+        public int DisplayOrder { get; set; }
     }
 }

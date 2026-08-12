@@ -37,6 +37,15 @@ namespace RiskPulse.Data
                 entity.Property(q => q.QuestionType)
                     .HasConversion<string>()
                     .HasMaxLength(32);
+
+                entity.Property(q => q.AllowComment)
+                    .HasDefaultValue(true);
+
+                //QuestionId is the real FK to SaqHeader's questions (replaces shadow SaqQuestionQuestionId)
+                entity.HasMany(q => q.SaqQuestionOptions)
+                    .WithOne(o => o.SaqQuestion)
+                    .HasForeignKey(o => o.QuestionId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
         }
 

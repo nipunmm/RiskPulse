@@ -15,7 +15,7 @@ namespace RiskPulse.Models.DbModel.Saq
 
         public QuestionType QuestionType { get; set; }
 
-        public bool IsRequired { get; set; }
+        public bool AllowComment { get; set; } = true;
 
         public int DisplayOrder { get; set; }
 

@@ -11,9 +11,7 @@ namespace RiskPulse.Models.ViewModel
         [Required(ErrorMessage = "Question text is required.")]
         public string QuestionText { get; set; } = string.Empty;
 
-        public bool IsRequired { get; set; }
-
-        public int DisplayOrder { get; set; }
+        public bool AllowComment { get; set; } = true;
 
         [MinLength(1, ErrorMessage = "At least one option is required.")]
         public List<SaqOptionSaveModel> Options { get; set; } = new List<SaqOptionSaveModel>();

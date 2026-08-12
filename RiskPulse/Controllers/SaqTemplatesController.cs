@@ -100,7 +100,7 @@ public class SaqTemplatesController : Controller
         {
             QuestionId = q.QuestionId,
             QuestionText = q.QuestionText,
-            IsRequired = q.IsRequired,
+            AllowComment = q.AllowComment,
             DisplayOrder = q.DisplayOrder,
             Options = q.SaqQuestionOptions
                 .OrderBy(o => o.DisplayOrder)
@@ -108,9 +108,7 @@ public class SaqTemplatesController : Controller
                 .Select(o => new SaqOptionGridRow
                 {
                     OptionId = o.OptionId,
-                    OptionText = o.OptionText,
-                    OptionValue = o.OptionValue,
-                    DisplayOrder = o.DisplayOrder
+                    OptionText = o.OptionText
                 })
                 .ToList()
         }).ToList();

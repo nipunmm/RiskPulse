@@ -7,6 +7,20 @@
 
 @section Styles {
     <link rel="stylesheet" href="~/lib/datatables/dataTables.bootstrap5.min.css" />
+    <style>
+        .design-split { display: flex; min-height: 440px; max-height: 68vh; }
+        .design-left { width: 310px; min-width: 260px; border-right: 1px solid var(--outline-variant); display: flex; flex-direction: column; }
+        .design-left-list { flex: 1; overflow-y: auto; padding: 0.5rem; }
+        .design-right { flex: 1; overflow-y: auto; }
+        .q-item { cursor: pointer; border-left: 3px solid transparent; transition: border-color 0.15s, background 0.15s; }
+        .q-item:hover { background: rgba(27, 54, 93, 0.03); }
+        .q-item.selected { border-left-color: var(--primary-container); background: rgba(27, 54, 93, 0.05); }
+        .q-item .q-delete-btn { opacity: 0; transition: opacity 0.15s; }
+        .q-item:hover .q-delete-btn { opacity: 1; }
+        .preset-btn { font-size: 0.625rem; padding: 0.2rem 0.5rem; }
+        .option-row { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem; }
+        .option-row .option-num { min-width: 1.25rem; font-size: 0.75rem; color: var(--on-surface-variant); font-weight: 600; }
+    </style>
 }
 
 <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-end gap-2 mb-2">
@@ -97,66 +111,80 @@
 </div>
 
 <!-- ============================================================
-     DESIGN MODAL (questions + options)
+     DESIGN MODAL — Split-Pane Question Builder
      ============================================================ -->
 <div class="modal fade" id="designModal" tabindex="-1" aria-labelledby="designModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-xl">
         <div class="modal-content">
-            <div class="modal-header">
+            <div class="modal-header py-2">
                 <div>
                     <h5 class="modal-title" id="designModalLabel">Design Template</h5>
                     <div id="designStatusPill" class="mt-1"></div>
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <span class="text-muted font-body-sm" id="lockedNotice" style="display:none;">
-                        <i class="fas fa-lock me-1"></i> This template is locked and cannot be modified.
-                    </span>
-                    <button type="button" class="btn-stasis-primary" id="addQuestionBtn">
-                        <i class="fas fa-plus"></i> Add Question
-                    </button>
-                </div>
-
-                <!-- Inline Question Editor -->
-                <div id="questionEditor" class="card-stasis p-3 mb-3 d-none">
-                    <h6 class="mb-2">Question</h6>
-                    <input type="hidden" id="editorQuestionId" value="0" />
-                    <div class="mb-2">
-                        <label class="input-label" for="editorQuestionText">Question Text</label>
-                        <textarea id="editorQuestionText" class="input-stasis w-100" rows="2" autocomplete="off"></textarea>
-                    </div>
-                    <div class="row g-2 mb-2">
-                        <div class="col-sm-4">
-                            <label class="input-label" for="editorDisplayOrder">Display Order</label>
-                            <input type="number" id="editorDisplayOrder" class="input-stasis w-100" min="1" />
+            <div class="modal-body p-0">
+                <div class="design-split">
+                    <!-- LEFT PANEL: Question List -->
+                    <div class="design-left">
+                        <div class="p-2 border-bottom d-flex justify-content-between align-items-center">
+                            <span class="font-label-md" style="color: var(--on-surface-variant);">Questions (<span id="questionCount">0</span>)</span>
+                            <button type="button" class="btn-stasis-primary" id="addQuestionBtn">
+                                <i class="fas fa-plus"></i> Add
+                            </button>
                         </div>
-                        <div class="col-sm-8 d-flex align-items-end pb-1">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="editorIsRequired" />
-                                <label class="form-check-label" for="editorIsRequired">Required</label>
+                        <div class="design-left-list" id="questionList"></div>
+                    </div>
+                    <!-- RIGHT PANEL: Editor -->
+                    <div class="design-right">
+                        <div id="editorEmptyState" class="d-flex flex-column align-items-center justify-content-center h-100 text-muted py-5">
+                            <i class="fas fa-clipboard-question fa-2x mb-3" style="opacity:0.4;"></i>
+                            <p class="font-body-md mb-0">Select a question on the left, or click <strong>Add</strong> to create one.</p>
+                        </div>
+                        <div id="questionEditor" class="p-3 d-none">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h6 class="mb-0" id="editorTitle">New Question</h6>
+                                <input type="hidden" id="editorQuestionId" value="0" />
+                            </div>
+                            <div class="mb-2">
+                                <label class="input-label" for="editorQuestionText">Question Text</label>
+                                <textarea id="editorQuestionText" class="input-stasis w-100" rows="2" autocomplete="off" placeholder="e.g. Are cash drawer limits strictly observed?"></textarea>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="editorAllowComment" checked />
+                                <label class="form-check-label font-body-md" for="editorAllowComment">Allow comments for this question</label>
+                            </div>
+                            <div class="mb-2 d-flex justify-content-between align-items-center">
+                                <label class="input-label mb-0">Answer Options</label>
+                                <div class="d-flex gap-1">
+                                    <button type="button" class="btn-stasis-secondary" id="resetOptionsBtn" title="Clear all options">
+                                        <i class="fas fa-rotate-left"></i> Reset
+                                    </button>
+                                    <button type="button" class="btn-stasis-secondary" id="addOptionBtn">
+                                        <i class="fas fa-plus"></i> Add Option
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="mb-2">
+                                <div class="d-flex gap-1 flex-wrap">
+                                    <button type="button" class="btn-stasis-secondary preset-btn" data-preset="yesno"><i class="fas fa-bolt me-1"></i>Yes / No</button>
+                                </div>
+                            </div>
+                            <div id="optionRows"></div>
+                            <div class="mt-3 d-flex gap-2">
+                                <button type="button" class="btn-stasis-primary" id="saveQuestionBtn">
+                                    <i class="fas fa-check"></i> Save Question
+                                </button>
+                                <button type="button" class="btn-stasis-secondary" id="cancelQuestionBtn">Cancel</button>
                             </div>
                         </div>
                     </div>
-                    <div class="mb-2 d-flex justify-content-between align-items-center">
-                        <label class="input-label mb-0">Options (Dropdown Answers)</label>
-                        <button type="button" class="btn-stasis-secondary" id="addOptionBtn">
-                            <i class="fas fa-plus"></i> Add Option
-                        </button>
-                    </div>
-                    <div id="optionRows"></div>
-                    <div class="mt-2 d-flex gap-2">
-                        <button type="button" class="btn-stasis-primary" id="saveQuestionBtn">
-                            <i class="fas fa-check"></i> Save Question
-                        </button>
-                        <button type="button" class="btn-stasis-secondary" id="cancelQuestionBtn">Cancel</button>
-                    </div>
                 </div>
-
-                <div id="questionList"></div>
             </div>
-            <div class="modal-footer">
+            <div class="modal-footer py-2">
+                <span class="text-muted font-body-sm me-auto" id="lockedNotice" style="display:none;">
+                    <i class="fas fa-lock me-1"></i> This template is locked and cannot be modified.
+                </span>
                 <button type="button" class="btn-stasis-secondary" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
@@ -183,11 +211,18 @@
             var currentSaqId = 0;
             var currentSaqLocked = false;
             var loadedQuestions = [];
+            var selectedQuestionId = null;
+
+            var PRESETS = {
+                yesno: [
+                    { optionText: 'Yes' },
+                    { optionText: 'No' }
+                ]
+            };
 
             /* =================================================================
                SECTION 2 — UI RENDERERS
                ================================================================= */
-            // Populates a select with options from a value/label array
             function populateSelect($select, data) {
                 $select.empty().append($.map(data, function (o) {
                     return $('<option>').val(o.value).text(o.label);
@@ -202,90 +237,100 @@
                 }
             }
 
-            // Builds a single editable option row
-            function optionRowHtml(option) {
+            function optionRowHtml(option, index) {
                 option = option || {};
-                return $('<div class="option-row d-flex gap-2 mb-2 align-items-center">').append(
+                return $('<div class="option-row">').append(
+                    $('<span class="option-num">').text((index + 1) + '.'),
                     $('<input type="hidden" class="option-id">').val(option.optionId || 0),
                     $('<input type="text" class="input-stasis flex-fill option-text" placeholder="Option text" autocomplete="off">').val(option.optionText || ''),
-                    $('<input type="text" class="input-stasis option-value" style="max-width:220px;" placeholder="Value (optional)" autocomplete="off">').val(option.optionValue || ''),
-                    $('<button type="button" class="btn-stasis-secondary remove-option-btn" title="Remove option"><i class="fas fa-xmark"></i></button>')
+                    $('<button type="button" class="btn-stasis-secondary remove-option-btn" title="Remove"><i class="fas fa-xmark"></i></button>')
                 );
             }
 
-            // Renders the question cards for the currently open template
-            function renderQuestionCards(questions) {
+            function renderQuestionList(questions) {
                 loadedQuestions = questions || [];
                 var $container = $('#questionList').empty();
+                $('#questionCount').text(loadedQuestions.length);
 
                 if (!loadedQuestions.length) {
-                    $container.append('<div class="text-center text-muted py-4">No questions yet. Click "Add Question" to create one.</div>');
+                    $container.append('<div class="text-center text-muted font-body-sm py-4">No questions yet.</div>');
                     return;
                 }
 
                 $.each(loadedQuestions, function (i, q) {
-                    var $card = $('<div class="card-stasis p-2 mb-1">');
-                    var $header = $('<div class="d-flex justify-content-between align-items-center gap-2">');
+                    var $item = $('<div class="q-item card-stasis p-2 mb-1">').data('question', q);
+                    if (q.questionId === selectedQuestionId) $item.addClass('selected');
 
-                    var $title = $('<div class="font-body-md fw-semibold">');
-                    $title.append($('<span class="text-muted me-2">').text('Q' + q.displayOrder + '.'));
-                    $title.append($('<span>').text(q.questionText));
-                    if (q.isRequired) {
-                        $title.append(' <span class="status-pill rag-red">Required</span>');
-                    }
-                    $header.append($title);
+                    var $top = $('<div class="d-flex justify-content-between align-items-center gap-1">');
+                    var $label = $('<div class="font-body-md fw-semibold" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">');
+                    $label.append($('<span class="text-muted me-1">').text('Q' + q.displayOrder + '.'));
+                    $label.append($('<span>').text(q.questionText));
+                    $top.append($label);
 
                     if (!currentSaqLocked) {
-                        var $actions = $('<div class="text-nowrap">');
-                        $actions.append(
-                            $('<button type="button" class="btn-stasis-secondary edit-q-btn me-1" title="Edit question"><i class="fas fa-pen-to-square"></i></button>').data('question', q),
-                            $('<button type="button" class="btn-stasis-secondary delete-q-btn" title="Delete question"><i class="fas fa-trash-can"></i></button>').data('question', q)
+                        $top.append(
+                            $('<button type="button" class="btn-stasis-secondary q-delete-btn" title="Delete" style="padding:0.15rem 0.4rem;">')
+                                .append('<i class="fas fa-trash-can"></i>')
+                                .data('question', q)
                         );
-                        $header.append($actions);
                     }
+                    $item.append($top);
 
-                    $card.append($header);
+                    var $meta = $('<div class="font-body-sm text-muted mt-1">');
+                    $meta.text('Dropdown \u2022 ' + (q.options ? q.options.length : 0) + ' options');
+                    if (q.allowComment) $meta.append(' \u2022 Comments allowed');
+                    $item.append($meta);
 
-                    if (q.options && q.options.length) {
-                        var $optionsLine = $('<div class="font-body-xs text-muted mt-1">');
-                        $optionsLine.append($('<span>').text('Options: '));
-                        $.each(q.options, function (j, o) {
-                            if (j > 0) {
-                                $optionsLine.append(' • ');
-                            }
-                            var $label = $('<span>').text(o.optionText);
-                            if (o.optionValue) {
-                                $label.append($('<span>').text(' (' + o.optionValue + ')'));
-                            }
-                            $optionsLine.append($label);
-                        });
-                        $card.append($optionsLine);
-                    }
-
-                    $container.append($card);
+                    $container.append($item);
                 });
             }
 
-            // Shows the inline question editor (question = null for a new question)
-            function showQuestionEditor(question) {
+            function showEditor(question) {
+                selectedQuestionId = question ? question.questionId : null;
                 $('#editorQuestionId').val(question ? question.questionId : 0);
                 $('#editorQuestionText').val(question ? question.questionText : '');
-                $('#editorIsRequired').prop('checked', question ? question.isRequired : false);
-                $('#editorDisplayOrder').val(question ? question.displayOrder : (loadedQuestions.length + 1));
+                $('#editorAllowComment').prop('checked', question ? question.allowComment : true);
+                $('#editorTitle').text(question ? 'Edit Question #' + question.displayOrder : 'New Question');
 
                 $('#optionRows').empty();
-                var options = (question && question.options && question.options.length) ? question.options : [null];
-                $.each(options, function (i, o) { $('#optionRows').append(optionRowHtml(o)); });
+                var options;
+                if (question && question.options && question.options.length) {
+                    options = question.options;
+                } else if (question) {
+                    options = [null];
+                } else {
+                    options = PRESETS.yesno;
+                }
+                $.each(options, function (i, o) { $('#optionRows').append(optionRowHtml(o, i)); });
 
+                $('#editorEmptyState').addClass('d-none');
                 $('#questionEditor').removeClass('d-none');
-                $('#addQuestionBtn').prop('disabled', true);
-                $('#designModal').animate({ scrollTop: 0 }, 200);
+                highlightSelected();
                 $('#editorQuestionText').trigger('focus');
             }
 
-            function hideQuestionEditor() {
+            function hideEditor() {
+                selectedQuestionId = null;
                 $('#questionEditor').addClass('d-none');
-                $('#addQuestionBtn').prop('disabled', false);
+                $('#editorEmptyState').removeClass('d-none');
+                highlightSelected();
+            }
+
+            function highlightSelected() {
+                $('#questionList .q-item').removeClass('selected');
+                if (selectedQuestionId !== null) {
+                    $('#questionList .q-item').each(function () {
+                        if ($(this).data('question').questionId === selectedQuestionId) {
+                            $(this).addClass('selected');
+                        }
+                    });
+                }
+            }
+
+            function renumberOptions() {
+                $('#optionRows .option-row').each(function (i) {
+                    $(this).find('.option-num').text((i + 1) + '.');
+                });
             }
 
             /* =================================================================
@@ -303,19 +348,16 @@
                 payload.questionId = +$('#editorQuestionId').val() || 0;
                 payload.saqHeaderId = currentSaqId;
                 payload.questionText = $.trim($('#editorQuestionText').val());
-                payload.isRequired = $('#editorIsRequired').is(':checked');
-                payload.displayOrder = +$('#editorDisplayOrder').val() || 0;
+                payload.allowComment = $('#editorAllowComment').is(':checked');
 
                 payload.options = [];
-                $('#optionRows .option-row').each(function (index) {
+                $('#optionRows .option-row').each(function () {
                     var $row = $(this);
                     var text = $.trim($row.find('.option-text').val());
                     if (!text) return;
                     payload.options.push({
                         optionId: +$row.find('.option-id').val() || 0,
-                        optionText: text,
-                        optionValue: $.trim($row.find('.option-value').val()) || null,
-                        displayOrder: index + 1
+                        optionText: text
                     });
                 });
                 return payload;
@@ -337,7 +379,7 @@
             }
 
             /* =================================================================
-               SECTION 5 — CONTROLLER CALLS (AJAX) — the ONLY server touchpoint
+               SECTION 5 — CONTROLLER CALLS (AJAX)
                ================================================================= */
             function submitHeader(payload, $form) {
                 $.ajax({
@@ -394,7 +436,7 @@
                     data: { saqHeaderId: currentSaqId },
                     success: function (res) {
                         if (res.success) {
-                            renderQuestionCards(res.data);
+                            renderQuestionList(res.data);
                         } else {
                             Toast.fire({ icon: 'error', title: res.message || 'Unable to load questions.' });
                         }
@@ -411,7 +453,7 @@
                     data: JSON.stringify(payload),
                     success: function (res) {
                         if (res.success) {
-                            hideQuestionEditor();
+                            hideEditor();
                             loadQuestions();
                             Toast.fire({ icon: 'success', title: res.message || 'Question saved successfully.' });
                         } else {
@@ -440,6 +482,7 @@
                         data: JSON.stringify({ id: question.questionId }),
                         success: function (res) {
                             if (res.success) {
+                                if (selectedQuestionId === question.questionId) hideEditor();
                                 loadQuestions();
                                 Toast.fire({ icon: 'success', title: res.message || 'Question deleted successfully.' });
                             } else {
@@ -482,17 +525,14 @@
             /* =================================================================
                SECTION 7 — EVENT WIRING & INIT
                ================================================================= */
-            // Populate the status dropdowns
             populateSelect($('#addSaqStatus'), statuses);
             populateSelect($('#editSaqStatus'), statuses);
 
-            // Reset the Add form each time its modal opens
             $('#addSaqModal').on('shown.bs.modal', function () {
                 $('#addSaqDesc').val('').trigger('focus');
                 $('#addSaqStatus').val('Active').trigger('change');
             });
 
-            // Load a template's values into the Edit modal
             $('#saqTable tbody').on('click', '.edit-saq-btn', function () {
                 var row = saqTable.row($(this).closest('tr')).data();
                 $('#editSaqHeaderId').val(row.saqHeaderId);
@@ -501,13 +541,12 @@
                 $('#editSaqModal').modal('show');
             });
 
-            // Delete template (with confirmation)
             $('#saqTable tbody').on('click', '.delete-saq-btn', function () {
                 var row = saqTable.row($(this).closest('tr')).data();
                 deleteHeader(row.saqHeaderId, row.saqDesc);
             });
 
-            // Open the Design modal for a template
+            // Open Design modal
             $('#saqTable tbody').on('click', '.design-saq-btn', function () {
                 var row = saqTable.row($(this).closest('tr')).data();
                 currentSaqId = row.saqHeaderId;
@@ -524,44 +563,69 @@
                     $('#addQuestionBtn').show();
                 }
 
-                hideQuestionEditor();
+                hideEditor();
                 loadQuestions();
                 $('#designModal').modal('show');
             });
 
-            // Add Question button
-            $('#addQuestionBtn').on('click', function () {
-                if (!currentSaqLocked) showQuestionEditor(null);
+            // Reload the grid when the designer closes so question counts stay fresh
+            $('#designModal').on('hidden.bs.modal', function () {
+                saqTable.ajax.reload(null, false);
             });
 
-            // Edit / Delete question cards
-            $('#questionList').on('click', '.edit-q-btn', function () {
-                showQuestionEditor($(this).data('question'));
+            // Left panel: click question to edit
+            $('#questionList').on('click', '.q-item', function (e) {
+                if ($(e.target).closest('.q-delete-btn').length) return;
+                if (currentSaqLocked) return;
+                showEditor($(this).data('question'));
             });
 
-            $('#questionList').on('click', '.delete-q-btn', function () {
+            // Left panel: delete button
+            $('#questionList').on('click', '.q-delete-btn', function (e) {
+                e.stopPropagation();
                 deleteQuestion($(this).data('question'));
             });
 
-            // Inline question editor controls
+            // Add Question
+            $('#addQuestionBtn').on('click', function () {
+                if (!currentSaqLocked) showEditor(null);
+            });
+
+            // Option rows
             $('#addOptionBtn').on('click', function () {
-                $('#optionRows').append(optionRowHtml(null));
+                var count = $('#optionRows .option-row').length;
+                $('#optionRows').append(optionRowHtml(null, count));
+            });
+
+            $('#resetOptionsBtn').on('click', function () {
+                $('#optionRows').empty();
+                $('#editorQuestionText').trigger('focus');
             });
 
             $('#optionRows').on('click', '.remove-option-btn', function () {
                 $(this).closest('.option-row').remove();
+                renumberOptions();
             });
 
-            $('#cancelQuestionBtn').on('click', function () {
-                hideQuestionEditor();
+            // Quick Presets
+            $('.preset-btn').on('click', function () {
+                var preset = PRESETS[$(this).data('preset')];
+                if (!preset) return;
+                $('#optionRows').empty();
+                $.each(preset, function (i, o) { $('#optionRows').append(optionRowHtml(o, i)); });
             });
 
+            // Save / Cancel
             $('#saveQuestionBtn').on('click', function () {
                 var payload = getQuestionPayload();
                 if (validateQuestionPayload(payload)) submitQuestion(payload);
             });
 
-            // Bind submit for Add and Edit forms
+            $('#cancelQuestionBtn').on('click', function () {
+                hideEditor();
+            });
+
+            // Header forms
             $('#addSaqForm, #editSaqForm').on('submit', function (e) {
                 e.preventDefault();
                 var payload = getHeaderPayload($(this));

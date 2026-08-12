@@ -90,7 +90,7 @@ namespace RiskPulse.Migrations
                     SaqHeaderId = table.Column<int>(type: "integer", nullable: false),
                     QuestionText = table.Column<string>(type: "text", nullable: false),
                     QuestionType = table.Column<string>(type: "character varying(32)", maxLength: 32, nullable: false),
-                    IsRequired = table.Column<bool>(type: "boolean", nullable: false),
+                    AllowComment = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true),
                     DisplayOrder = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
@@ -173,20 +173,19 @@ namespace RiskPulse.Migrations
                     OptionId = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     QuestionId = table.Column<int>(type: "integer", nullable: false),
-                    SaqQuestionQuestionId = table.Column<int>(type: "integer", nullable: true),
                     OptionText = table.Column<string>(type: "text", nullable: false),
-                    OptionValue = table.Column<string>(type: "text", nullable: true),
-                    DisplayOrder = table.Column<int>(type: "integer", nullable: true)
+                    DisplayOrder = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_SaqQuestionOptions", x => x.OptionId);
                     table.ForeignKey(
-                        name: "FK_SaqQuestionOptions_SaqQuestions_SaqQuestionQuestionId",
-                        column: x => x.SaqQuestionQuestionId,
+                        name: "FK_SaqQuestionOptions_SaqQuestions_QuestionId",
+                        column: x => x.QuestionId,
                         principalSchema: "riskpulse",
                         principalTable: "SaqQuestions",
-                        principalColumn: "QuestionId");
+                        principalColumn: "QuestionId",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateIndex(
@@ -208,10 +207,10 @@ namespace RiskPulse.Migrations
                 column: "DefaultPermissionId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_SaqQuestionOptions_SaqQuestionQuestionId",
+                name: "IX_SaqQuestionOptions_QuestionId",
                 schema: "riskpulse",
                 table: "SaqQuestionOptions",
-                column: "SaqQuestionQuestionId");
+                column: "QuestionId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_SaqQuestions_SaqHeaderId",

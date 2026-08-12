@@ -6,7 +6,7 @@ namespace RiskPulse.Models.ViewModel
 
         public string QuestionText { get; set; } = string.Empty;
 
-        public bool IsRequired { get; set; }
+        public bool AllowComment { get; set; }
 
         public int DisplayOrder { get; set; }
 
