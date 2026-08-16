@@ -361,3 +361,6 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# EF Core migrations (generated locally; the riskpulse schema is provisioned manually via Database/Seed.sql)
+**/Migrations/
