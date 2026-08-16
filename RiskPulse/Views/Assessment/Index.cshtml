@@ -1,0 +1,99 @@
+@{
+    ViewData["Title"] = "Assessment";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/lib/datatables/dataTables.bootstrap5.min.css" />
+}
+
+<div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-end gap-3 mb-3">
+    <div>
+        <h2 class="font-display-lg" style="color: var(--on-background);">Assessment</h2>
+        <p class="font-body-md mt-1 mb-0" style="color: var(--on-surface-variant);">
+            Create risk assessments as a guided flow — pick the SAQ and KRI templates, schedule it, then activate.
+        </p>
+    </div>
+    <a href="@Url.Action("Wizard", "Assessment")" class="btn-stasis-primary d-inline-flex align-items-center gap-2">
+        <i class="fas fa-plus"></i> New Assessment
+    </a>
+</div>
+
+<div class="card-stasis p-2">
+    <table id="assessmentTable" class="table table-stasis table-sm w-100 align-middle">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>SAQ Template</th>
+                <th>KRI Template</th>
+                <th>Schedule</th>
+                <th>Status</th>
+                <th class="text-end">Actions</th>
+            </tr>
+        </thead>
+    </table>
+</div>
+
+@section Scripts {
+    <script src="~/lib/datatables/jquery.dataTables.min.js"></script>
+    <script src="~/lib/datatables/dataTables.bootstrap5.min.js"></script>
+    <script>
+        (function ($) {
+
+            /* =================================================================
+               SECTION 1 — PAGE DATA & ENDPOINTS
+               ================================================================= */
+            var gridUrl = '@Url.Action("Grid", "Assessment")';
+            var wizardUrl = '@Url.Action("Wizard", "Assessment")';
+            var deleteUrl = '@Url.Action("Delete", "Assessment")';
+            var wizardError = @Html.Raw(Json.Serialize(ViewData["WizardError"] ?? (object?)null));
+
+            /* =================================================================
+               SECTION 2 — DATA GRID (DataTables)
+               ================================================================= */
+            var assessmentTable = RiskPulse.initGrid($('#assessmentTable'), {
+                ajax: { url: gridUrl },
+                columns: [
+                    { data: 'assessmentHeaderId' },
+                    { data: 'assessmentName' },
+                    { data: 'saqDesc', render: function (d) { return d || '<em class="text-muted">Not set</em>'; } },
+                    { data: 'kriHeaderDesc', render: function (d) { return d || '<em class="text-muted">Not set</em>'; } },
+                    { data: 'scheduleDesc', render: function (d) { return d || '<em class="text-muted">Not set</em>'; } },
+                    { data: 'assessmentStatus', render: function (d) {
+                        return d === 'Active' ? '<span class="status-pill rag-green">Active</span>' : '<span class="status-pill rag-amber">Draft</span>';
+                    } },
+                    { data: null, orderable: false, searchable: false, className: 'text-end', render: function (data, type, row) {
+                        if (row.assessmentStatus !== 'Draft') {
+                            return '<span class="text-muted">—</span>';
+                        }
+                        return '<a href="' + wizardUrl + '?id=' + row.assessmentHeaderId + '" class="btn-stasis-secondary"><i class="fas fa-pen-to-square"></i> Edit</a> ' +
+                               '<button type="button" class="btn-stasis-secondary delete-assessment-btn"><i class="fas fa-trash-can"></i> Delete</button>';
+                    } }
+                ],
+                order: [[0, 'asc']]
+            });
+
+            /* =================================================================
+               SECTION 3 — EVENT WIRING & INIT
+               ================================================================= */
+            $('#assessmentTable tbody').on('click', '.delete-assessment-btn', function () {
+                var row = assessmentTable.row($(this).closest('tr')).data();
+                RiskPulse.confirmDelete('Delete Draft Assessment?', 'This permanently deletes the draft "' + row.assessmentName + '" and its schedule.', function () {
+                    RiskPulse.postJson(deleteUrl, { id: row.assessmentHeaderId }, {
+                        success: function (res) {
+                            assessmentTable.ajax.reload(null, false);
+                            RiskPulse.toastSuccess(res.message || 'Draft assessment deleted.');
+                        },
+                        fail: function (res) {
+                            RiskPulse.toastError(res.message || 'Unable to delete the assessment.');
+                        }
+                    });
+                });
+            });
+
+            if (wizardError) {
+                RiskPulse.toastError(wizardError);
+            }
+        })(jQuery);
+    </script>
+}

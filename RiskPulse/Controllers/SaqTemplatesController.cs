@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using RiskPulse.Models.Dto;
 using RiskPulse.Data.Entries;
 using RiskPulse.Models.ViewModel;
+using RiskPulse.Services.Administration;
 using RiskPulse.Services.Login;
 using RiskPulse.Services.Templates;
 
@@ -12,23 +13,28 @@ namespace RiskPulse.Controllers;
 public class SaqTemplatesController : Controller
 {
     private readonly SaqTemplatesService _saqTemplatesService;
+    private readonly UnitsService _unitsService;
 
-    public SaqTemplatesController(SaqTemplatesService saqTemplatesService)
+    public SaqTemplatesController(SaqTemplatesService saqTemplatesService, UnitsService unitsService)
     {
         _saqTemplatesService = saqTemplatesService;
+        _unitsService = unitsService;
     }
 
     // --- Page load (Index) ---
     [HttpGet]
-    public IActionResult Index()
+    public async Task<IActionResult> Index()
     {
         var statuses = Enum.GetValues<SaqStatus>()
             .Select(s => new SaqStatusOptionViewModel { Value = s.ToString(), Label = s.ToString() })
             .ToList();
 
+        var unitGroups = await _unitsService.GetUnitGroupOptionsAsync();
+
         return View(new SaqTemplatesIndexViewModel
         {
-            SaqStatuses = statuses
+            SaqStatuses = statuses,
+            UnitGroups = unitGroups
         });
     }
 

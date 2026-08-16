@@ -25,6 +25,8 @@ public class KriTemplatesService
             {
                 KriHeaderId = h.KriHeaderId,
                 KriHeaderDesc = h.KriHeaderDesc,
+                GroupId = h.GroupId,
+                GroupDesc = h.Group!.GroupDesc,
                 KriStatus = h.KriStatus.ToString(),
                 KriCount = h.Kris.Count
             })
@@ -42,11 +44,18 @@ public class KriTemplatesService
             throw new InvalidOperationException($"Template '{desc}' already exists.");
         }
 
+        var groupExists = await _db.Groups.AnyAsync(g => g.GroupId == model.GroupId);
+        if (!groupExists)
+        {
+            throw new InvalidOperationException("Please select a valid unit group.");
+        }
+
         if (model.KriHeaderId == 0)
         {
             var header = new KriHeader
             {
                 KriHeaderDesc = desc,
+                GroupId = model.GroupId,
                 KriStatus = model.KriStatus
             };
 
@@ -64,6 +73,7 @@ public class KriTemplatesService
         }
 
         existing.KriHeaderDesc = desc;
+        existing.GroupId = model.GroupId;
         existing.KriStatus = model.KriStatus;
 
         await _db.SaveChangesAsync();

@@ -1,0 +1,34 @@
+@model RiskPulse.Models.ViewModel.AssessmentWizardViewModel
+
+<section class="wizard-step-panel" data-step="5" style="display:none;">
+    <div class="card-stasis p-3 mb-3">
+        <h6 class="font-display-md mb-3">Assessment summary</h6>
+        <table class="table table-stasis table-sm mb-0">
+            <tbody>
+                <tr>
+                    <th style="width: 200px;">Name</th>
+                    <td id="summaryName">—</td>
+                </tr>
+                <tr>
+                    <th>SAQ Template</th>
+                    <td id="summarySaq">—</td>
+                </tr>
+                <tr>
+                    <th>KRI Template</th>
+                    <td id="summaryKri">—</td>
+                </tr>
+                <tr>
+                    <th>Schedule</th>
+                    <td id="summarySchedule">—</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    <div class="d-flex justify-content-between gap-2 mt-3">
+        <button type="button" class="btn-stasis-secondary wizard-back-btn"><i class="fas fa-arrow-left"></i> Back</button>
+        <div class="d-flex gap-2">
+            <button type="button" class="btn-stasis-secondary finalize-draft-btn"><i class="fas fa-file-pen"></i> Save as Draft</button>
+            <button type="button" class="btn-stasis-primary finalize-active-btn"><i class="fas fa-circle-check"></i> Activate</button>
+        </div>
+    </div>
+</section>

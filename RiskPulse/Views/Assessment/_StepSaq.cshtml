@@ -1,0 +1,26 @@
+@model RiskPulse.Models.ViewModel.AssessmentWizardViewModel
+
+<section class="wizard-step-panel" data-step="2" style="display:none;">
+    <div class="card-stasis p-3">
+        <h6 class="font-display-md mb-1">Step 2 — SAQ template</h6>
+        <p class="font-body-sm mb-3" style="color: var(--on-surface-variant);">
+            Pick the self-assessment questionnaire that will drive this assessment.
+        </p>
+        <div class="row">
+            <div class="col-lg-6">
+                <label class="input-label" for="wizardSaqId">SAQ Template</label>
+                <select id="wizardSaqId" class="input-stasis">
+                    <option value="0">Select an SAQ template...</option>
+                    @foreach (var opt in Model.SaqOptions)
+                    {
+                        <option value="@opt.Value" selected="@(Model.SaqHeaderId == opt.Value ? "selected" : null)">@opt.Label</option>
+                    }
+                </select>
+            </div>
+        </div>
+    </div>
+    <div class="d-flex justify-content-between gap-2 mt-3">
+        <button type="button" class="btn-stasis-secondary wizard-back-btn"><i class="fas fa-arrow-left"></i> Back</button>
+        <button type="button" class="btn-stasis-primary wizard-next-btn">Next <i class="fas fa-arrow-right"></i></button>
+    </div>
+</section>

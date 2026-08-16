@@ -1,19 +1,19 @@
 # AGENTS.md
 
-ASP.NET Core MVC (net10.0) risk-management app, "Risk Pulse". Single web project under `RiskPulse/`; no solution file, no tests, no CI. EF Core 10 + Npgsql 10 + PostgreSQL.
+ASP.NET Core MVC (net10.0) risk-management app, "Risk Pulse". Single web project under `RiskPulse/`; the repo root holds `RiskPulse.slnx` (single-project solution, tracked). No tests, no CI (`.github/workflows` is an empty placeholder). EF Core 10 + Npgsql 10 + PostgreSQL.
 
 ## Commands
-- Build from the project dir (no `.sln` at root): `dotnet build` with `workdir` = `RiskPulse/`.
+- Build: `dotnet build` with `workdir` = `RiskPulse/`. (`dotnet build` from the repo root against `RiskPulse.slnx` also works.)
 - There is no test/lint/format step; the build is the only automated verification.
-- `dotnet ef` migrations: the working tree contains migration `20260812202536_UserPermissionControl` (untracked; covers AccessControl + SAQ + KRI schema). The older `20260812184751_saq` was deleted. Applying it via `dotnet ef database update` requires a tooling run against the live DB; the DB is otherwise provisioned manually via `Database/Seed.sql`.
+- EF migrations: there is **no `Migrations/` folder** — no migrations exist. The `riskpulse` schema is provisioned manually via `Database/Seed.sql` (live lines 1–35) against a pre-created database. `dotnet ef database update` will not work until a migration is generated.
 
 ## Database & EF
 - PostgreSQL, schema `riskpulse` — set via `HasDefaultSchema("riskpulse")` in `Data/AppDbContext.cs` AND `Search Path=riskpulse` in the connection string.
 - Connection string is hard-coded and COMMITTED in `appsettings.json` (`Password=123456`) — known security debt (tracked in `PROJECT-ANALYSIS.md` §8); do not add further secrets.
-- `Database/Seed.sql`: only lines 1–33 are live (10 permissions, 2 roles, 1 unit, 1 test user). Lines 35+ are a commented-out legacy SQL Server `dbo.tbl*` schema that is NOT PostgreSQL-compatible — never execute it.
+- `Database/Seed.sql`: only lines 1–35 are live (9 permissions, 2 roles, 1 unit, 1 test user). Line 39 onwards is a legacy SQL Server `dbo.tbl*` schema draft (line 40 is bare DDL, lines 60+ are block-commented) that is NOT PostgreSQL-compatible — never execute anything past line 35.
 - `Data/Entries/*` are the EF entities, a flat 1:1 mirror of the `riskpulse.*` tables (no domain grouping — `User`/`Role`/`Permission`/`Unit` serve both the Login and Administration modules). `Unit.UnitType` is an enum persisted as `varchar(32)`.
 - **Controllers** stay flat in `Controllers/` (namespace `RiskPulse.Controllers`) — thin, 1:1 with the (also flat) `Views/{ControllerName}/` folders; routes follow the controller class names.
-- **Services** are grouped by application workflow — `Services/Login/` (authentication + authorization: `AdAuthenticationService`, `DbAuthorizationService`, `LoginOrchestratorService`, `PermissionCatalog`, `PermissionPageMapper`), `Services/Administration/` (users + roles CRUD: `UsersService`, `RolesService`), `Services/Templates/` (SAQ + KRI templates: `SaqTemplatesService`, `KriTemplatesService`). Single-page stubs (Dashboard, Submissions, Assessment Control, Form Builder, Risk Register, Error) stay flat.
+- **Services** are grouped by application workflow — `Services/Login/` (authentication + authorization: `AdAuthenticationService`, `DbAuthorizationService`, `LoginOrchestratorService`, `PermissionCatalog`, `PermissionPageMapper`), `Services/Administration/` (users + roles + units CRUD: `UsersService`, `RolesService`, `UnitsService`), `Services/Templates/` (SAQ + KRI templates: `SaqTemplatesService`, `KriTemplatesService`), `Services/Assessment/` (wizard workflow: `AssessmentService`). Single-page stubs (Dashboard, Submissions, Risk Register, Error) stay flat.
 - **Models** are split by layer distinction into `Models/Dto/` (data that moves between layers/systems: `ApiResponse<T>`, `LoginRequestDto`, `LoginResultDto`, `*SaveDto`, `*DeleteRequestDto`) and `Models/ViewModel/` (data shaped for a UI/view: `*IndexViewModel`, `*GridRowViewModel`, `*OptionViewModel`, `ErrorViewModel`). `Views/` stays flat.
 
 ## Architecture & data flow (match this pattern exactly)
@@ -28,14 +28,17 @@ Views → AJAX JSON → thin controller → service → `AppDbContext` → Postg
 - **Modals**: programmatically open/close via `RiskPulse.showModal(id)`/`RiskPulse.hideModal(formEl)` — the vendored bundle is Bootstrap 5, which has no jQuery `.modal()` API. Never use `$('#x').modal('show')` or raw `bootstrap.Modal.getOrCreateInstance` outside the module.
 
 ## Permissions (single source of truth)
-- `PermissionCatalog` strings drive the policies in `Program.cs` (`Permission:<name>`), `[Authorize]`, sidebar `User.HasClaim("Permission", ...)`, and `PermissionPageMapper`. They must match the DB `Permissions.PermissionDesc` seed rows and the `Permission` claims built in `LoginOrchestratorService` exactly. Three values contain spaces: `"Assessment Control"`, `"Form Builder"`, and `"Risk Register"`. Renaming a permission means updating all four places plus the seed.
+- `PermissionCatalog` strings drive the policies in `Program.cs` (`Permission:<name>`), `[Authorize]`, sidebar `User.HasClaim("Permission", ...)`, and `PermissionPageMapper`. They must match the DB `Permissions.PermissionDesc` seed rows and the `Permission` claims built in `LoginOrchestratorService` exactly. One value contains a space: `"Risk Register"`. Renaming a permission means updating `PermissionCatalog`, the `Program.cs` policy, `PermissionPageMapper`, and the seed; page-backed permissions also require renaming the controller, its view folder, and the sidebar link in `_Layout.cshtml`.
 - Auth cookie claims: `Name`, `NameIdentifier` (int user Id), `Role`, `DefaultPage` (permission desc), `Unit`, plus one `Permission` claim per role permission. `DefaultPage` drives the post-login redirect and the "Return to Home" buttons on the AccessDenied/Error pages.
 - `AdAuthenticationService` is a stub that always validates `true` — dev only, not real auth.
 - `PermissionPageMapper.GetRouteForPermission(desc)` → `(controller, action)`, defaulting to Dashboard.
 
 ## Code conventions
 - `Models/Dto/*`, `Models/ViewModel/*`, and `Data/Entries/*` use block namespaces (`namespace X { }`); controllers/services use file-scoped namespaces. Follow the folder you are editing.
+- **Comments**: use `// --- Section name ---` banners in controllers and services to identify action/method groups (e.g. `// --- KRI template headers (grid/save/delete) ---`, `// --- Threshold colors (grid/save/delete) ---`). Keep short inline step comments as plain `//`. Don't comment property-bag classes (entities, DTOs, view models). Views keep their existing JS comment style.
 - Git: lowercase conventional prefixes for commits/branches (`feat/...`, `fix/...`). Commit only when asked.
 
 ## Docs to keep current
-- `RiskPulse/AI/PROJECT-ANALYSIS.md` is the living analysis doc. §8 lists open "Pattern Mismatches"; when you resolve one, remove it, renumber the rest, and refresh the cross-references in §6/§7.2/§9/§10/§11. Per-feature design specs live in `RiskPulse/AI/Specs/<feature>/DESIGN.md`.
+- `RiskPulse/AI/PROJECT-ANALYSIS.md` is the living analysis doc. §8 lists open "Pattern Mismatches"; when you resolve one, remove it, renumber the rest, and refresh the cross-references in §6/§7.2/§9/§10/§11.
+- `RiskPulse/AI/DESIGN.md` is the Stasis Enterprise design-system spec (colors/typography backing `wwwroot/css/site.css`).
+- Per-feature design specs live in `RiskPulse/AI/Specs/<feature>/DESIGN.md` (existing: login, layout, kri, error-page, branch).

@@ -1,0 +1,249 @@
+@model RiskPulse.Models.ViewModel.AssessmentWizardViewModel
+@{
+    ViewData["Title"] = Model.AssessmentHeaderId > 0 ? "Edit Assessment" : "New Assessment";
+
+    var isEdit = Model.AssessmentHeaderId > 0;
+    var completedJson = Json.Serialize(new
+    {
+        saq = Model.CompletedSaq,
+        kri = Model.CompletedKri,
+        schedule = Model.CompletedSchedule
+    });
+}
+
+<div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-end gap-3 mb-3">
+    <div>
+        <h2 class="font-display-lg" style="color: var(--on-background);">@(isEdit ? "Edit Assessment" : "New Assessment")</h2>
+        <p class="font-body-md mt-1 mb-0" style="color: var(--on-surface-variant);">
+            Complete the steps below to build the assessment. Each step is saved as you go; a draft can be reopened and edited later.
+        </p>
+    </div>
+    <a href="@Url.Action("Index", "Assessment")" class="btn-stasis-secondary d-inline-flex align-items-center gap-2">
+        <i class="fas fa-arrow-left"></i> Back to Assessments
+    </a>
+</div>
+
+@if (!Model.CanEdit)
+{
+    <div class="alert alert-warning" role="alert">
+        This assessment is not a draft and cannot be edited. Only draft assessments can be modified.
+    </div>
+}
+
+<!-- ============================================================
+     WIZARD STEP BAR
+     ============================================================ -->
+<div class="card-stasis p-3 mb-3">
+    <div class="wizard-steps d-flex align-items-start">
+        <div class="wizard-step" data-step="1">
+            <div class="wizard-step-dot">1</div>
+            <div class="wizard-step-label">Assessment Name</div>
+        </div>
+        <div class="wizard-connector"></div>
+        <div class="wizard-step" data-step="2">
+            <div class="wizard-step-dot">2</div>
+            <div class="wizard-step-label">SAQ Template</div>
+        </div>
+        <div class="wizard-connector"></div>
+        <div class="wizard-step" data-step="3">
+            <div class="wizard-step-dot">3</div>
+            <div class="wizard-step-label">KRI Template</div>
+        </div>
+        <div class="wizard-connector"></div>
+        <div class="wizard-step is-disabled" data-step="rr" title="Coming soon">
+            <div class="wizard-step-dot"><i class="fas fa-lock fa-xs"></i></div>
+            <div class="wizard-step-label">Risk Register</div>
+        </div>
+        <div class="wizard-connector"></div>
+        <div class="wizard-step" data-step="4">
+            <div class="wizard-step-dot">4</div>
+            <div class="wizard-step-label">Schedule</div>
+        </div>
+        <div class="wizard-connector"></div>
+        <div class="wizard-step" data-step="5">
+            <div class="wizard-step-dot">5</div>
+            <div class="wizard-step-label">Finalize</div>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================
+     WIZARD STEP PANELS (partials)
+     ============================================================ -->
+@await Html.PartialAsync("_StepName", Model)
+@await Html.PartialAsync("_StepSaq", Model)
+@await Html.PartialAsync("_StepKri", Model)
+@await Html.PartialAsync("_StepSchedule", Model)
+@await Html.PartialAsync("_StepFinalize", Model)
+
+@section Scripts {
+    <script>
+        (function ($) {
+
+            /* =================================================================
+               SECTION 1 — PAGE DATA & ENDPOINTS
+               ================================================================= */
+            var canEdit = @(Model.CanEdit ? "true" : "false");
+            var completed = @Html.Raw(completedJson);
+
+            var saveNameUrl = '@Url.Action("SaveName", "Assessment")';
+            var saveSaqUrl = '@Url.Action("SaveSaq", "Assessment")';
+            var saveKriUrl = '@Url.Action("SaveKri", "Assessment")';
+            var saveScheduleUrl = '@Url.Action("SaveSchedule", "Assessment")';
+            var finalizeUrl = '@Url.Action("Finalize", "Assessment")';
+            var indexUrl = '@Url.Action("Index", "Assessment")';
+
+            /* =================================================================
+               SECTION 2 — WIZARD STATE
+               ================================================================= */
+            var state = {
+                id: @Model.AssessmentHeaderId,
+                step: 1,
+                completed: {
+                    1: @(isEdit ? "true" : "false"),
+                    2: completed.saq,
+                    3: completed.kri,
+                    4: completed.schedule,
+                    5: false
+                },
+                frontier: 1
+            };
+
+            // The frontier is the furthest step reachable by clicking the bar.
+            for (var i = 1; i <= 5; i++) {
+                if (state.completed[i]) state.frontier = i + 1;
+            }
+
+            function markStepComplete(s) {
+                state.completed[s] = true;
+                if (s >= state.frontier) state.frontier = s + 1;
+            }
+
+            /* =================================================================
+               SECTION 3 — STEP BAR + NAVIGATION
+               ================================================================= */
+            function setBar(n) {
+                $('.wizard-step[data-step]').each(function () {
+                    var s = $(this).data('step');
+                    var $el = $(this);
+                    if (s === 'rr') {
+                        $el.removeClass('is-active is-complete is-clickable');
+                        return;
+                    }
+                    s = +s;
+                    $el.toggleClass('is-active', s === n);
+                    $el.toggleClass('is-complete', !!state.completed[s] && s < n);
+                    $el.toggleClass('is-clickable', s <= state.frontier && s !== n);
+                });
+            }
+
+            function fillSummary() {
+                $('#summaryName').text($.trim($('#wizardName').val()) || '—');
+                $('#summarySaq').text($('#wizardSaqId option:selected').text() || '—');
+                $('#summaryKri').text($('#wizardKriId option:selected').text() || '—');
+                var sched = $.trim($('#wizardScheduleDesc').val()) || '—';
+                var dates = [];
+                if ($('#wizardStartDate').val()) dates.push('Start: ' + $('#wizardStartDate').val());
+                if ($('#wizardEndDate').val()) dates.push('End: ' + $('#wizardEndDate').val());
+                if (dates.length) sched += ' (' + dates.join(', ') + ')';
+                $('#summarySchedule').text(sched);
+            }
+
+            function goToStep(n) {
+                if (n < 1 || n > 5) return;
+                if (!canEdit) { RiskPulse.toastError('This assessment is not editable.'); return; }
+                if (n > state.frontier) { RiskPulse.toastError('Complete the previous step first.'); return; }
+                state.step = n;
+                $('.wizard-step-panel').hide().filter('[data-step="' + n + '"]').show();
+                setBar(n);
+                if (n === 5) fillSummary();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+
+            /* =================================================================
+               SECTION 4 — STEP SUBMITS (the only server touchpoints)
+               ================================================================= */
+            function submitName() {
+                var name = $.trim($('#wizardName').val());
+                if (!name) { RiskPulse.toastError('Assessment name is required.'); return; }
+                RiskPulse.postJson(saveNameUrl, { assessmentHeaderId: state.id, assessmentName: name }, {
+                    success: function (res) {
+                        state.id = res.data.id;
+                        markStepComplete(1);
+                        goToStep(2);
+                    },
+                    fail: function (res) { RiskPulse.toastError(res.message || 'Unable to save the assessment name.'); }
+                });
+            }
+
+            function submitSaq() {
+                var saqId = +$('#wizardSaqId').val() || 0;
+                if (saqId === 0) { RiskPulse.toastError('Please select an SAQ template.'); return; }
+                RiskPulse.postJson(saveSaqUrl, { assessmentHeaderId: state.id, templateHeaderId: saqId }, {
+                    success: function () { markStepComplete(2); goToStep(3); },
+                    fail: function (res) { RiskPulse.toastError(res.message || 'Unable to save the SAQ template.'); }
+                });
+            }
+
+            function submitKri() {
+                var kriId = +$('#wizardKriId').val() || 0;
+                if (kriId === 0) { RiskPulse.toastError('Please select a KRI template.'); return; }
+                RiskPulse.postJson(saveKriUrl, { assessmentHeaderId: state.id, templateHeaderId: kriId }, {
+                    success: function () { markStepComplete(3); goToStep(4); },
+                    fail: function (res) { RiskPulse.toastError(res.message || 'Unable to save the KRI template.'); }
+                });
+            }
+
+            function submitSchedule() {
+                var desc = $.trim($('#wizardScheduleDesc').val());
+                if (!desc) { RiskPulse.toastError('Schedule description is required.'); return; }
+                var start = $('#wizardStartDate').val() || null;
+                var end = $('#wizardEndDate').val() || null;
+                if (start && end && start > end) { RiskPulse.toastError('End date cannot be before the start date.'); return; }
+                RiskPulse.postJson(saveScheduleUrl, { assessmentHeaderId: state.id, scheduleDesc: desc, startDate: start, endDate: end }, {
+                    success: function () { markStepComplete(4); goToStep(5); },
+                    fail: function (res) { RiskPulse.toastError(res.message || 'Unable to save the schedule.'); }
+                });
+            }
+
+            function finalize(status) {
+                if (state.id === 0) { RiskPulse.toastError('The assessment has not been saved yet.'); return; }
+                RiskPulse.postJson(finalizeUrl, { assessmentHeaderId: state.id, status: status }, {
+                    success: function (res) {
+                        RiskPulse.toastSuccess(res.message || 'Assessment saved.');
+                        setTimeout(function () { window.location.href = indexUrl; }, 800);
+                    },
+                    fail: function (res) { RiskPulse.toastError(res.message || 'Unable to finalize the assessment.'); }
+                });
+            }
+
+            /* =================================================================
+               SECTION 5 — EVENT WIRING & INIT
+               ================================================================= */
+            $('.wizard-next-btn').on('click', function () {
+                if (state.step === 1) submitName();
+                else if (state.step === 2) submitSaq();
+                else if (state.step === 3) submitKri();
+                else if (state.step === 4) submitSchedule();
+            });
+
+            $('.wizard-back-btn').on('click', function () {
+                if (state.step === 1) { window.location.href = indexUrl; return; }
+                goToStep(state.step - 1);
+            });
+
+            $('.wizard-step[data-step]').on('click', function () {
+                var n = $(this).data('step');
+                if (n === 'rr') return;
+                goToStep(n);
+            });
+
+            $('.finalize-draft-btn').on('click', function () { finalize('Draft'); });
+            $('.finalize-active-btn').on('click', function () { finalize('Active'); });
+
+            // Paint the initial state.
+            $('.wizard-step-panel').hide().filter('[data-step="' + state.step + '"]').show();
+            setBar(state.step);
+        })(jQuery);
+    </script>
+}

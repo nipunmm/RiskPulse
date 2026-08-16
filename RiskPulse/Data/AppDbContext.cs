@@ -22,12 +22,34 @@ namespace RiskPulse.Data
                     .HasMaxLength(32);
             });
 
+            //UnitGroup relationships (many-to-many Units ↔ Groups)
+            modelBuilder.Entity<UnitGroup>(entity =>
+            {
+                entity.HasOne(ug => ug.Group)
+                    .WithMany(g => g.UnitGroups)
+                    .HasForeignKey(ug => ug.GroupId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(ug => ug.Unit)
+                    .WithMany(u => u.UnitGroups)
+                    .HasForeignKey(ug => ug.UnitId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(ug => new { ug.GroupId, ug.UnitId })
+                    .IsUnique();
+            });
+
             //SaqStatus enum to string conversion
             modelBuilder.Entity<SaqHeader>(entity =>
             {
                 entity.Property(s => s.SaqStatus)
                     .HasConversion<string>()
                     .HasMaxLength(32);
+
+                entity.HasOne(h => h.Group)
+                    .WithMany(g => g.SaqHeaders)
+                    .HasForeignKey(h => h.GroupId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             //QuestionType enum to string conversion
@@ -53,6 +75,34 @@ namespace RiskPulse.Data
                 entity.Property(h => h.KriStatus)
                     .HasConversion<string>()
                     .HasMaxLength(32);
+
+                entity.HasOne(h => h.Group)
+                    .WithMany(g => g.KriHeaders)
+                    .HasForeignKey(h => h.GroupId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            //AssessmentStatus enum to string conversion
+            modelBuilder.Entity<AssessmentHeader>(entity =>
+            {
+                entity.Property(a => a.AssessmentStatus)
+                    .HasConversion<string>()
+                    .HasMaxLength(32);
+
+                entity.HasOne(a => a.SaqHeader)
+                    .WithMany(h => h.AssessmentHeaders)
+                    .HasForeignKey(a => a.SaqHeaderId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(a => a.KriHeader)
+                    .WithMany(h => h.AssessmentHeaders)
+                    .HasForeignKey(a => a.KriHeaderId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasMany(a => a.ScheduleHeaders)
+                    .WithOne(s => s.AssessmentHeader)
+                    .HasForeignKey(s => s.AssessmentHeaderId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
             //Kri relationships
@@ -91,6 +141,10 @@ namespace RiskPulse.Data
 
         public DbSet<Unit> Units { get; set; }
 
+        public DbSet<Group> Groups { get; set; }
+
+        public DbSet<UnitGroup> UnitGroups { get; set; }
+
         public DbSet<Role> Roles { get; set; }
 
         public DbSet<Permission> Permissions { get; set; }
@@ -112,6 +166,10 @@ namespace RiskPulse.Data
         public DbSet<KriThresholdColor> KriThresholdColors { get; set; }
 
         public DbSet<KriThreshold> KriThresholds { get; set; }
+
+        public DbSet<AssessmentHeader> AssessmentHeaders { get; set; }
+
+        public DbSet<ScheduleHeader> ScheduleHeaders { get; set; }
 
     }
 }

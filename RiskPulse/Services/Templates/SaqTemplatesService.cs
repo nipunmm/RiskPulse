@@ -25,6 +25,8 @@ public class SaqTemplatesService
             {
                 SaqHeaderId = h.SaqHeaderId,
                 SaqDesc = h.SaqDesc,
+                GroupId = h.GroupId,
+                GroupDesc = h.Group!.GroupDesc,
                 SaqStatus = h.SaqStatus.ToString(),
                 QuestionCount = h.SaqQuestions.Count
             })
@@ -42,11 +44,18 @@ public class SaqTemplatesService
             throw new InvalidOperationException($"Template '{desc}' already exists.");
         }
 
+        var groupExists = await _db.Groups.AnyAsync(g => g.GroupId == model.GroupId);
+        if (!groupExists)
+        {
+            throw new InvalidOperationException("Please select a valid unit group.");
+        }
+
         if (model.SaqHeaderId == 0)
         {
             var header = new SaqHeader
             {
                 SaqDesc = desc,
+                GroupId = model.GroupId,
                 SaqStatus = model.SaqStatus
             };
 
@@ -64,6 +73,7 @@ public class SaqTemplatesService
         }
 
         existing.SaqDesc = desc;
+        existing.GroupId = model.GroupId;
         existing.SaqStatus = model.SaqStatus;
 
         await _db.SaveChangesAsync();

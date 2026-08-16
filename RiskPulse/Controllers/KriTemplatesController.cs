@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using RiskPulse.Models.Dto;
 using RiskPulse.Data.Entries;
 using RiskPulse.Models.ViewModel;
+using RiskPulse.Services.Administration;
 using RiskPulse.Services.Login;
 using RiskPulse.Services.Templates;
 
@@ -12,10 +13,12 @@ namespace RiskPulse.Controllers;
 public class KriTemplatesController : Controller
 {
     private readonly KriTemplatesService _kriTemplatesService;
+    private readonly UnitsService _unitsService;
 
-    public KriTemplatesController(KriTemplatesService kriTemplatesService)
+    public KriTemplatesController(KriTemplatesService kriTemplatesService, UnitsService unitsService)
     {
         _kriTemplatesService = kriTemplatesService;
+        _unitsService = unitsService;
     }
 
     // --- Page load (Index) ---
@@ -26,6 +29,8 @@ public class KriTemplatesController : Controller
             .Select(s => new KriStatusOptionViewModel { Value = s.ToString(), Label = s.ToString() })
             .ToList();
 
+        var unitGroups = await _unitsService.GetUnitGroupOptionsAsync();
+
         var groups = (await _kriTemplatesService.GetThresholdGroupsAsync())
             .Select(g => new KriGroupOptionViewModel { Value = g.KriThresholdGroupId, Label = g.KriThresholdGroupDesc })
             .ToList();
@@ -35,6 +40,7 @@ public class KriTemplatesController : Controller
         return View(new KriTemplatesIndexViewModel
         {
             KriStatuses = statuses,
+            UnitGroups = unitGroups,
             KriGroups = groups,
             Colors = colors
         });

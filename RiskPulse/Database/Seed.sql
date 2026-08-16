@@ -1,10 +1,10 @@
 --Run this SQL script against your PostgreSQL database (sit database, riskpulse schema) to populate initial permissions, roles, unit, and user assignment.
 INSERT INTO "riskpulse"."Permissions" ("PermissionDesc") VALUES ('Dashboard');
 INSERT INTO "riskpulse"."Permissions" ("PermissionDesc") VALUES ('Submissions') ;
-INSERT INTO "riskpulse"."Permissions" ("PermissionDesc") VALUES ('Assessment Control') ;
-INSERT INTO "riskpulse"."Permissions" ("PermissionDesc") VALUES ('Form Builder') ;
+INSERT INTO "riskpulse"."Permissions" ("PermissionDesc") VALUES ('Assessment') ;
 INSERT INTO "riskpulse"."Permissions" ("PermissionDesc") VALUES ('Users');
 INSERT INTO "riskpulse"."Permissions" ("PermissionDesc") VALUES ('Roles') ;
+INSERT INTO "riskpulse"."Permissions" ("PermissionDesc") VALUES ('Units') ;
 INSERT INTO "riskpulse"."Permissions" ("PermissionDesc") VALUES ('SAQ');
 INSERT INTO "riskpulse"."Permissions" ("PermissionDesc") VALUES ('KRI');
 INSERT INTO "riskpulse"."Permissions" ("PermissionDesc") VALUES ('Risk Register') ;

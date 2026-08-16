@@ -9,8 +9,14 @@ namespace RiskPulse.Data.Entries
 
         public string KriHeaderDesc { get; set; } = string.Empty;
 
+        public int GroupId { get; set; }
+
+        public Group? Group { get; set; }
+
         public KriStatus KriStatus { get; set; }
 
         public ICollection<Kri> Kris { get; set; } = new List<Kri>();
+
+        public ICollection<AssessmentHeader> AssessmentHeaders { get; set; } = new List<AssessmentHeader>();
     }
 }

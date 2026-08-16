@@ -8,7 +8,7 @@
 
 **RiskPulse** is an enterprise risk management application built with **ASP.NET Core MVC**. The domain targets KRI (Key Risk Indicators), SAQ (Self-Assessment Questionnaires), branch-level risk submissions, and RAG (Red/Amber/Green) status tracking for high-stakes financial environments.
 
-**Current Phase:** Access-control scaffolding complete — authentication (cookie + claims), user/role/permission management (working CRUD + DataTables grids). SAQ Templates and KRI Templates implemented — headers, item designers, threshold-config tabs (merged into KRI Templates), and Locked-immutability rules. Remaining domain pages (Dashboard, Submissions, Assessment Control, Form Builder, Risk Register templates) are **stubs**. PostgreSQL persistence is live via EF Core; a separate legacy SQL Server schema draft exists in `Database/Seed.sql`. Structure is convention-aligned: controllers are **flat** in `Controllers/` (thin, 1:1 with `Views/{Controller}/`), services are **grouped by workflow** (`Login`/`Administration`/`Templates`), and `Models/` is split by layer distinction into `Models/Dto/` (inter-system data, `*Dto` postfix) and `Models/ViewModel/` (UI-shaped data, `*ViewModel` postfix).
+**Current Phase:** Access-control scaffolding complete — authentication (cookie + claims), user/role/permission management (working CRUD + DataTables grids). SAQ Templates and KRI Templates implemented — headers, item designers, threshold-config tabs (merged into KRI Templates), and Locked-immutability rules. Each template header is **linked to a required unit group** (`GroupId FK→Groups`, selected in the add/edit modals and shown in the grid). **Assessment wizard implemented** — step flow (name → SAQ → KRI → schedule → finalize) with per-step AJAX persistence, draft edit/re-save through the stages, and activate rules. **Units page implemented** — two-tab Administration page (Unit CRUD | Unit Group CRUD) under the new `Units` permission with Select2 group→unit assignment. Remaining domain pages (Dashboard, Submissions, Risk Register templates) are **stubs**. PostgreSQL persistence is live via EF Core; a separate legacy SQL Server schema draft exists in `Database/Seed.sql`. Structure is convention-aligned: controllers are **flat** in `Controllers/` (thin, 1:1 with `Views/{Controller}/`), services are **grouped by workflow** (`Login`/`Administration`/`Templates`/`Assessment`), and `Models/` is split by layer distinction into `Models/Dto/` (inter-system data, `*Dto` postfix) and `Models/ViewModel/` (UI-shaped data, `*ViewModel` postfix).
 
 ---
 
@@ -53,21 +53,23 @@ RiskPulse/
 │   ├── LoginController.cs        # GET/POST Index, POST Logout, AccessDenied (AllowAnonymous)
 │   ├── UsersController.cs        # Index (View), Grid (JSON), Save (JSON [FromBody])
 │   ├── RolesController.cs        # Index (View), Grid (JSON), Save (JSON [FromBody])
+│   ├── UnitsController.cs        # 2-tab Units page: UnitGrid/SaveUnit/DeleteUnit + GroupGrid/SaveGroup/DeleteGroup (JSON)
 │   ├── SaqTemplatesController.cs # Grid/Save/Delete headers + QuestionsGrid/SaveQuestion/DeleteQuestion (JSON)
 │   ├── KriTemplatesController.cs # Templates + config: Grid/Save/Delete headers, KrisGrid/SaveKri/DeleteKri, Colors/Groups/Bands CRUD (JSON)
 │   ├── RiskRegisterTemplatesController.cs # Stub, [Authorize(Policy="Permission:Risk Register")]
 │   ├── DashboardController.cs    # Stub, [Authorize(Policy="Permission:Dashboard")]
 │   ├── SubmissionsController.cs  # Stub, [Authorize(Policy="Permission:Submissions")]
-│   ├── AssessmentControlController.cs # Stub, [Authorize(Policy="Permission:Assessment Control")]
-│   ├── FormBuilderController.cs  # Stub, [Authorize(Policy="Permission:Form Builder")]
-│   └── ErrorController.cs        # GET /Error/Index
+│   ├── AssessmentController.cs   # Wizard: Index (grid), Wizard (step flow), SaveName/SaveSaq/SaveKri/SaveSchedule/Finalize/Delete (JSON)
+│   ├── ErrorController.cs        # GET /Error/Index
 │
 ├── Data/
 │   ├── AppDbContext.cs               # DbContext: schema, DbSets, enum→string conversions
 │   └── Entries/                      # EF entities — flat 1:1 mirror of riskpulse.* tables (no domain grouping)
 │       ├── User.cs  Role.cs  Permission.cs  RolePermission.cs  Unit.cs  UnitType.cs (enum)
+│       ├── Group.cs  UnitGroup.cs   # Unit grouping (Group 1—N UnitGroup N—1 Unit, unique GroupId+UnitId)
 │       ├── SaqHeader.cs  SaqQuestion.cs  SaqQuestionOption.cs  SaqStatus.cs (enum)  QuestionType.cs (enum)
-│       └── KriHeader.cs  Kri.cs  KriThresholdGroup.cs  KriThresholdColor.cs  KriThreshold.cs  KriStatus.cs (enum)
+│       ├── KriHeader.cs  Kri.cs  KriThresholdGroup.cs  KriThresholdColor.cs  KriThreshold.cs  KriStatus.cs (enum)
+│       └── AssessmentHeader.cs  ScheduleHeader.cs  AssessmentStatus.cs (enum)   # Assessment wizard entities
 │
 ├── Models/
 │   ├── Dto/                        # Data that moves between layers/systems
@@ -77,10 +79,11 @@ RiskPulse/
 │   │   ├── Saq*.cs                 # SaqHeaderSaveDto, SaqQuestionSaveDto, SaqOptionSaveDto, SaqDeleteRequestDto
 │   │   └── Kri*.cs                 # KriHeaderSaveDto, KriSaveDto, KriDeleteRequestDto, KriColorSaveDto, KriThresholdGroupSaveDto, KriBandsSaveDto, KriBandSaveDto
 │   └── ViewModel/                  # Data shaped specifically for a UI/view — flat (file names carry the feature scope)
-│       ├── UsersIndexViewModel.cs  RolesIndexViewModel.cs  ErrorViewModel.cs
-│       ├── UserGridRowViewModel.cs  RoleGridRowViewModel.cs
+│       ├── UsersIndexViewModel.cs  RolesIndexViewModel.cs  UnitsIndexViewModel.cs  ErrorViewModel.cs
+│       ├── UserGridRowViewModel.cs  RoleGridRowViewModel.cs  UnitGridRowViewModel.cs  GroupGridRowViewModel.cs
 │       ├── Saq*.cs                 # SaqTemplatesIndexViewModel, SaqGridRowViewModel, SaqQuestionGridRowViewModel, SaqOptionGridRowViewModel, SaqStatusOptionViewModel
-│       └── Kri*.cs                 # KriTemplatesIndexViewModel, KriStatusOptionViewModel, KriGroupOptionViewModel, KriGridRowViewModel, KriItemGridRowViewModel, KriGroupGridRowViewModel, KriColorGridRowViewModel, KriBandGridRowViewModel
+│       ├── Kri*.cs                 # KriTemplatesIndexViewModel, KriStatusOptionViewModel, KriGroupOptionViewModel, KriGridRowViewModel, KriItemGridRowViewModel, KriGroupGridRowViewModel, KriColorGridRowViewModel, KriBandGridRowViewModel
+│       └── Assessment*.cs          # AssessmentGridRowViewModel, AssessmentWizardViewModel, SaqTemplateOptionViewModel, KriTemplateOptionViewModel
 │
 ├── Services/
 │   ├── Login/                        # Authentication + authorization
@@ -89,12 +92,15 @@ RiskPulse/
 │   │   ├── LoginOrchestratorService.cs     # Orchestrates: AD check → DB lookup → claims principal
 │   │   ├── PermissionCatalog.cs            # Single source for permission constants (policies, layout, mapper)
 │   │   └── PermissionPageMapper.cs         # Static: PermissionDesc → (Controller, Action)
-│   ├── Administration/               # Users + roles CRUD
+│   ├── Administration/               # Users + roles + units CRUD
 │   │   ├── UsersService.cs                 # CRUD for users + defaults (direct AppDbContext)
-│   │   └── RolesService.cs                 # CRUD for roles + permission mapping (direct AppDbContext)
-│   └── Templates/                    # SAQ + KRI templates
-│       ├── SaqTemplatesService.cs           # SAQ template CRUD: headers, questions, options + lock/duplicate rules
-│       └── KriTemplatesService.cs           # KRI template CRUD (headers + KRIs) + threshold config (colors/groups/bands) + lock/duplicate rules
+│   │   ├── RolesService.cs                 # CRUD for roles + permission mapping (direct AppDbContext)
+│   │   └── UnitsService.cs                 # Unit CRUD (duplicate-code guard, block delete when users reference it) + group CRUD (clear/re-add UnitGroups)
+│   ├── Templates/                    # SAQ + KRI templates
+│   │   ├── SaqTemplatesService.cs           # SAQ template CRUD: headers, questions, options + lock/duplicate rules
+│   │   └── KriTemplatesService.cs           # KRI template CRUD (headers + KRIs) + threshold config (colors/groups/bands) + lock/duplicate rules
+│   └── Assessment/                   # Assessment wizard workflow
+│       └── AssessmentService.cs             # Draft create/rename, SAQ+KRI template pick (non-Locked), schedule upsert, finalize (Active requires SAQ+KRI), delete (drafts only)
 │
 ├── Database/
 │   └── Seed.sql                       # Manual permission/role/unit/user inserts + legacy dbo schema draft
@@ -108,10 +114,12 @@ RiskPulse/
 │   ├── Login/AccessDenied.cshtml      # Standalone (Layout=null)
 │   ├── Users/Index.cshtml             # DataTables grid + Add/Edit modals (Select2 + SweetAlert)
 │   ├── Roles/Index.cshtml             # DataTables grid + Add/Edit modals (permission checkboxes)
+│   ├── Units/Index.cshtml             # Tabs (Units | Unit Groups) + grids + Unit modals + Group modal (Select2 multi-select)
 │   ├── Error/Index.cshtml             # Standalone (Layout=null), RequestId
 │   ├── SaqTemplates/Index.cshtml    # DataTables grid + Add/Edit modals + Design modal (question cards + option editor)
 │   ├── KriTemplates/Index.cshtml    # Tabs (KRI Templates | Threshold Colors | KRI Groups) + grids + Design/Color/Group/Bands modals
-│   └── Dashboard|Submissions|AssessmentControl|FormBuilder|RiskRegisterTemplates/Index.cshtml  # Stubs
+│   ├── Assessment/                  # Wizard flow: Index (DataTables grid) + Wizard (step bar + 5 step partials `_StepName|Saq|Kri|Schedule|Finalize.cshtml`)
+│   └── Dashboard|Submissions|RiskRegisterTemplates/Index.cshtml  # Stubs
 │
 ├── AI/
 │   ├── Skills/ui-ux-pro-max.md        # AI UI generation prompt (tracked in git; currently deleted from the working tree)
@@ -133,7 +141,7 @@ RiskPulse/
 | # | Pattern | Where |
 |---|---|---|
 | 1 | **Classic MVC** (server-side Razor) | All controllers/views |
-| 2 | **Service layer** (concrete classes via DI, Scoped) | `Services/` (`Login`/`Administration`/`Templates`), registered in `Program.cs:22-29` |
+| 2 | **Service layer** (concrete classes via DI, Scoped) | `Services/` (`Login`/`Administration`/`Templates`/`Assessment`), registered in `Program.cs:22-30` |
 | 3 | **EF Core + DbContext** directly inside services (no repository) | `UsersService`, `RolesService`, `DbAuthorizationService` |
 | 4 | **Cookie auth + claim-based authorization** | `Program.cs:30-52`, `[Authorize(Policy=...)]` |
 | 5 | **AJAX JSON endpoints** from controllers (not a Web API) | `Grid`/`Save`/`Login` actions |
@@ -162,7 +170,7 @@ Default entry route is **Login/Index**. The sidebar (`_Layout.cshtml`) gates eac
 
 ### 4.3 Authorization Model
 
-- **9 permissions** are declared once in code as constants in `Services/Login/PermissionCatalog.cs` (`PermissionCatalog.Dashboard | Submissions | AssessmentControl | FormBuilder | Users | Roles | Saq | Kri | RiskRegister`) and referenced by:
+- **9 permissions** are declared once in code as constants in `Services/Login/PermissionCatalog.cs` (`PermissionCatalog.Dashboard | Submissions | Assessment | Users | Roles | Units | Saq | Kri | RiskRegister`) and referenced by:
   1. `Program.cs:40-52` — `AddPolicy($"Permission:{PermissionCatalog.X}")` … `RequireClaim("Permission", PermissionCatalog.X)`
   2. Controllers — `[Authorize(Policy = $"Permission:{PermissionCatalog.X}")]`
   3. `Views/Shared/_Layout.cshtml` — `User.HasClaim("Permission", PermissionCatalog.X)`
@@ -303,26 +311,30 @@ All AJAX responses use the shared **`ApiResponse<T>`** envelope (`Models/Dto/Api
 ```
 Permissions (PermissionId PK, PermissionDesc)
 Units       (UnitId PK, UnitCode, UnitType varchar(32), UnitDesc)
+Groups      (GroupId PK, GroupDesc)
+UnitGroups  (UnitGroupId PK, GroupId FK→Groups, UnitId FK→Units)   [many-to-many join, unique GroupId+UnitId]
 Roles       (RoleId PK, RoleDesc, DefaultPermissionId FK→Permissions)
 RolePermissions (RolePermissionId PK, RoleId FK→Roles, PermissionId FK→Permissions)   [many-to-many join]
 Users       (Id PK, Username, IsActive, UnitId FK→Units, RoleId FK→Roles)
-SaqHeaders          (SaqHeaderId PK, SaqDesc, SaqStatus varchar(32))
+SaqHeaders          (SaqHeaderId PK, SaqDesc, GroupId FK→Groups, SaqStatus varchar(32))
 SaqQuestions        (QuestionId PK, SaqHeaderId FK→SaqHeaders, QuestionText, QuestionType varchar(32), AllowComment, DisplayOrder)
 SaqQuestionOptions  (OptionId PK, QuestionId FK→SaqQuestions, OptionText, DisplayOrder)
-KriHeaders          (KriHeaderId PK, KriHeaderDesc, KriStatus varchar(32))
+KriHeaders          (KriHeaderId PK, KriHeaderDesc, GroupId FK→Groups, KriStatus varchar(32))
 Kri                 (KriId PK, KriHeaderId FK→KriHeaders, KriDesc, AllowComment, KriThresholdGroupId FK→KriThresholdGroups)
 KriThresholdGroups  (KriThresholdGroupId PK, KriThresholdGroupDesc)
 KriThresholdColors  (ColorId PK, ColorDesc, HexCode)
 KriThresholds       (KriThresholdId PK, KriThresholdGroupId FK→KriThresholdGroups, ColorId FK→KriThresholdColors, MinValue, MaxValue)
+AssessmentHeaders   (AssessmentHeaderId PK, AssessmentName, AssessmentStatus varchar(32) — Draft/Active, SaqHeaderId FK→SaqHeaders, KriHeaderId FK→KriHeaders, RiskRegisterHeaderId nullable — Risk Register not built yet)
+ScheduleHeaders     (ScheduleHeaderId PK, AssessmentHeaderId FK→AssessmentHeaders, ScheduleDesc, StartDate, EndDate)   [1:N — an assessment can be re-scheduled]
 ```
 
-- **Enum→string conversion:** `Unit.UnitType`, `SaqStatus`, `QuestionType`, `KriStatus` stored as `character varying(32)` (`AppDbContext.cs:18-56`).
-- **Cascade/restrict rules** (`AppDbContext.cs:44-87`): `SaqQuestion→SaqQuestionOptions` cascade; `KriHeader→Kri` cascade with `Kri→KriThresholdGroup` restrict; `KriThresholdGroup→KriThresholds` cascade with `KriThreshold→KriThresholdColor` restrict. AccessControl FKs (Users→Roles/Units, RolePermissions→Roles/Permissions) cascade by convention.
+- **Enum→string conversion:** `Unit.UnitType`, `SaqStatus`, `QuestionType`, `KriStatus`, `AssessmentStatus` stored as `character varying(32)` (`AppDbContext.cs:18-71`).
+- **Cascade/restrict rules** (`AppDbContext.cs:44-107`): `SaqQuestion→SaqQuestionOptions` cascade; `KriHeader→Kri` cascade with `Kri→KriThresholdGroup` restrict; `KriThresholdGroup→KriThresholds` cascade with `KriThreshold→KriThresholdColor` restrict; `AssessmentHeader→ScheduleHeaders` cascade with `AssessmentHeader→Saq/KriHeaders` restrict; `UnitGroup→Group/Unit` cascade with a unique `(GroupId, UnitId)` index; `SaqHeader/KriHeader→Group` restrict (a group in use by a template can't be deleted). AccessControl FKs (Users→Roles/Units, RolePermissions→Roles/Permissions) cascade by convention.
 - **Implemented via:** EF Core migration `20260812202536_UserPermissionControl` (applied live; files not in the working tree). DB otherwise provisioned manually via `Database/Seed.sql`.
 
 ### 7.2 `Database/Seed.sql` — legacy content & risk
 
-Seed.sql inserts the 10 permissions, 2 roles, 1 unit, and 1 test user. **However** lines 35–324 contain an entire **legacy SQL Server schema** (`dbo.tblAssessmentModuleType`, `tblAssessmentHeader`, `tblSAQ*`, `tblKRI*`, `tblRiskRegister*` — `IDENTITY(1,1)`, `NVARCHAR`, `GETDATE()`) inside a "Do not run this manually" comment. This is not PostgreSQL-compatible and is a copy of a different-era design. It should be extracted to a separate reference document (see mismatch #6).
+Seed.sql inserts the 9 permissions, 2 roles, 1 unit, and 1 test user. **However** lines 36+ contain an entire **legacy SQL Server schema** (`dbo.tblAssessmentModuleType`, `tblAssessmentHeader`, `tblSAQ*`, `tblKRI*`, `tblRiskRegister*` — `IDENTITY(1,1)`, `NVARCHAR`, `GETDATE()`; line 40 is bare DDL, lines 60+ block-commented) inside a "Do not run this manually" comment. This is not PostgreSQL-compatible and is a copy of a different-era design. It should be extracted to a separate reference document (see mismatch #6).
 
 ---
 
@@ -334,9 +346,9 @@ Seed.sql inserts the 10 permissions, 2 roles, 1 unit, and 1 test user. **However
 
 | # | Mismatch | Evidence | Recommended fix |
 |---|---|---|---|
-| 1 | **No repository / unit-of-work; no interface abstractions** — every service talks to `AppDbContext` directly and exposes concrete methods returning entities. The data layer is untestable and services can't be swapped or faked. | `Services/Administration/UsersService.cs:17-24`, `Services/Administration/RolesService.cs:16-25`, `Services/Login/DbAuthorizationService.cs:18-29` | Introduce `IUsersService`, `IRolesService`, `ILoginOrchestratorService`, `IAdAuthenticationService`, `IDbAuthorizationService` (optionally `IRepository<T>`/`IUnitOfWork`) and have services return DTOs, not entities. |
+| 1 | **No repository / unit-of-work; no interface abstractions** — every service talks to `AppDbContext` directly and exposes concrete methods returning entities. The data layer is untestable and services can't be swapped or faked. | `Services/Administration/UsersService.cs:17-24`, `Services/Administration/RolesService.cs:16-25`, `Services/Administration/UnitsService.cs:14-21`, `Services/Login/DbAuthorizationService.cs:18-29` | Introduce `IUsersService`, `IRolesService`, `ILoginOrchestratorService`, `IAdAuthenticationService`, `IDbAuthorizationService` (optionally `IRepository<T>`/`IUnitOfWork`) and have services return DTOs, not entities. |
 | 2 | **Concrete-class-only DI** — every service is registered as `AddScoped<Concrete>()`, so nothing can be mocked or swapped. | `Program.cs:22-29` | Register `AddScoped<IXxx, Xxx>()` against the interfaces from #1. |
-| 3 | **DataTables runs client-side processing** — the full row set ships to the browser in one response; paging/search/sort run in JS, not SQL. Latent scale problem once Submissions hold real data. | `Views/Users/Index.cshtml:191-216`, `Views/Roles/Index.cshtml:220-243` | For large tables use `serverSide:true` and handle `start`/`length`/`search` at the Grid endpoints. |
+| 3 | **DataTables runs client-side processing** — the full row set ships to the browser in one response; paging/search/sort run in JS, not SQL. Latent scale problem once Submissions hold real data. | `Views/Users/Index.cshtml:191-216`, `Views/Roles/Index.cshtml:220-243`, `Views/Units/Index.cshtml` | For large tables use `serverSide:true` and handle `start`/`length`/`search` at the Grid endpoints. |
 | 4 | **Global/inline JS, no modules, no bundling** — page logic lives in `@section Scripts` with hand-rolled `$.ajax` calls; only vendored libs are static. | `wwwroot/js/modules/riskpulse.js` | ~Resolved — shared helpers extracted into the module; page scripts now call `RiskPulse.*` and hold only validation, column configs, and wiring (dedup was the fix; no bundling, no build step). |
 | 5 | **`AdAuthenticationService` is a stub that always returns `true`** — any username/password is "valid" as long as the user exists in DB. | `Services/Login/AdAuthenticationService.cs:7-9` | Implement a real directory/identity-provider lookup (or explicitly dev-gate the stub). |
 
@@ -352,7 +364,7 @@ Seed.sql inserts the 10 permissions, 2 roles, 1 unit, and 1 test user. **However
 
 | # | Mismatch | Evidence | Recommended fix |
 |---|---|---|---|
-| 9 | **No CSRF protection on cookie-auth state-changing endpoints** — `Users/Save`, `Roles/Save`, and `Login/Login` are JSON POSTs authenticated by cookie, but the app has no antiforgery tokens (`[ValidateAntiForgeryToken]` / `@Html.AntiForgeryToken()` are absent everywhere). | `Controllers/UsersController.cs:50-51`, `Controllers/RolesController.cs:47-48`, `Controllers/LoginController.cs:35-37` | Emit antiforgery tokens in the views and add `[ValidateAntiForgeryToken]` on the POST actions; for `[FromBody]` JSON use `AddAntiforgery` + a header token. |
+| 9 | **No CSRF protection on cookie-auth state-changing endpoints** — `Users/Save`, `Roles/Save`, `Units` save/delete, and `Login/Login` are JSON POSTs authenticated by cookie, but the app has no antiforgery tokens (`[ValidateAntiForgeryToken]` / `@Html.AntiForgeryToken()` are absent everywhere). | `Controllers/UsersController.cs:50-51`, `Controllers/RolesController.cs:47-48`, `Controllers/UnitsController.cs:47-49`, `Controllers/LoginController.cs:35-37` | Emit antiforgery tokens in the views and add `[ValidateAntiForgeryToken]` on the POST actions; for `[FromBody]` JSON use `AddAntiforgery` + a header token. |
 | 10 | **Database credentials committed to source** — the PostgreSQL connection string (`Server`, `Port`, user, `Password=123456`) is hard-coded in `appsettings.json` and tracked by git. | `appsettings.json:8-10` | Move credentials to user-secrets / environment variables; keep no secret (or a harmless dev value) in the repo. |
 
 ### 8.4 Code hygiene & minor
@@ -412,7 +424,7 @@ Key decisions for the target:
 | Bootstrap 5 modals (programmatic open/close) | ✅ Fixed — open/close via `RiskPulse.showModal(id)` / `RiskPulse.hideModal(formEl)` in the shared module; no jQuery `$.fn.modal` or raw `getOrCreateInstance` in views |
 | Design system (CSS) + AI specs | ✅ Complete |
 | Project structure conventions | ✅ Complete — controllers flat & 1:1 with Views; services grouped by workflow; Models split `Dto`/`ViewModel`; entities in `Data/Entries`; Views folder=controller, file=action |
-| Domain pages (Dashboard, Submissions, Assessment Control, Form Builder, Risk Register Templates) | ⬜ Stubs |
+| Domain pages (Dashboard, Submissions, Assessment, Risk Register Templates) | ⬜ Stubs |
 | SAQ Templates (grid, header CRUD, question/option designer, Locked immutable rule) | ✅ Implemented |
 | KRI Templates (grid, header CRUD, split-pane KRI builder with value/comment/group, Locked immutable rule) | ✅ Implemented |
 | KRI Config (threshold colors, groups, value-band editor) | ✅ Merged into KRI Templates as tabs |
