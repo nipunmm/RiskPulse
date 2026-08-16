@@ -8,7 +8,11 @@ namespace RiskPulse.Models.ViewModel
 
         public int UnitId { get; set; }
 
+        public string UnitDesc { get; set; } = string.Empty;
+
         public int RoleId { get; set; }
+
+        public string RoleDesc { get; set; } = string.Empty;
 
         public bool IsActive { get; set; }
     }

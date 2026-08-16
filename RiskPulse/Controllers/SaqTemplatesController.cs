@@ -77,7 +77,7 @@ public class SaqTemplatesController : Controller
     }
 
     [HttpPost]
-    public async Task<IActionResult> Delete([FromBody] SaqDeleteRequestDto request)
+    public async Task<IActionResult> Delete([FromBody] DeleteRequestDto request)
     {
         if (request == null || !ModelState.IsValid)
         {
@@ -161,7 +161,7 @@ public class SaqTemplatesController : Controller
     }
 
     [HttpPost]
-    public async Task<IActionResult> DeleteQuestion([FromBody] SaqDeleteRequestDto request)
+    public async Task<IActionResult> DeleteQuestion([FromBody] DeleteRequestDto request)
     {
         if (request == null || !ModelState.IsValid)
         {

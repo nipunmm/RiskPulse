@@ -1,6 +1,6 @@
 namespace RiskPulse.Models.Dto
 {
-    public class AssessmentDeleteRequestDto
+    public class DeleteRequestDto
     {
         public int Id { get; set; }
     }

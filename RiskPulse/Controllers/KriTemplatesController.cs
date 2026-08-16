@@ -85,7 +85,7 @@ public class KriTemplatesController : Controller
     }
 
     [HttpPost]
-    public async Task<IActionResult> Delete([FromBody] KriDeleteRequestDto request)
+    public async Task<IActionResult> Delete([FromBody] DeleteRequestDto request)
     {
         if (request == null || !ModelState.IsValid)
         {
@@ -151,7 +151,7 @@ public class KriTemplatesController : Controller
     }
 
     [HttpPost]
-    public async Task<IActionResult> DeleteKri([FromBody] KriDeleteRequestDto request)
+    public async Task<IActionResult> DeleteKri([FromBody] DeleteRequestDto request)
     {
         if (request == null || !ModelState.IsValid)
         {
@@ -217,7 +217,7 @@ public class KriTemplatesController : Controller
     }
 
     [HttpPost]
-    public async Task<IActionResult> DeleteColor([FromBody] KriDeleteRequestDto request)
+    public async Task<IActionResult> DeleteColor([FromBody] DeleteRequestDto request)
     {
         if (request == null || !ModelState.IsValid)
         {
@@ -283,7 +283,7 @@ public class KriTemplatesController : Controller
     }
 
     [HttpPost]
-    public async Task<IActionResult> DeleteGroup([FromBody] KriDeleteRequestDto request)
+    public async Task<IActionResult> DeleteGroup([FromBody] DeleteRequestDto request)
     {
         if (request == null || !ModelState.IsValid)
         {

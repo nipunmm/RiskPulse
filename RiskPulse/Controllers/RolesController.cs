@@ -76,4 +76,28 @@ public class RolesController : Controller
             return Json(ApiResponse.Fail<object>("An error occurred while saving. Please try again."));
         }
     }
+
+    [HttpPost]
+    public async Task<IActionResult> Delete([FromBody] DeleteRequestDto request)
+    {
+        if (request == null || !ModelState.IsValid)
+        {
+            return Json(ApiResponse.Fail<object>("Please correct the form errors and try again."));
+        }
+
+        try
+        {
+            await _rolesService.DeleteRoleAsync(request.Id);
+
+            return Json(ApiResponse.Ok<object>(new { }, "Role deleted successfully."));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Json(ApiResponse.Fail<object>(ex.Message));
+        }
+        catch (Exception)
+        {
+            return Json(ApiResponse.Fail<object>("An error occurred while deleting. Please try again."));
+        }
+    }
 }

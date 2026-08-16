@@ -194,7 +194,7 @@ public class AssessmentController : Controller
     }
 
     [HttpPost]
-    public async Task<IActionResult> Delete([FromBody] AssessmentDeleteRequestDto request)
+    public async Task<IActionResult> Delete([FromBody] DeleteRequestDto request)
     {
         if (request == null || !ModelState.IsValid)
         {

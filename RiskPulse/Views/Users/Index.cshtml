@@ -15,7 +15,7 @@
     <div>
         <h2 class="font-display-lg" style="color: var(--on-background);">User Management</h2>
         <p class="font-body-md mt-1 mb-0" style="color: var(--on-surface-variant);">
-            Manage system users and account status.
+            Manage system users.
         </p>
     </div>
     <button type="button" class="btn-stasis-primary" data-bs-toggle="modal" data-bs-target="#addUserModal">
@@ -29,6 +29,8 @@
             <tr>
                 <th>ID</th>
                 <th>Username</th>
+                <th>Unit</th>
+                <th>Role</th>
                 <th>Status</th>
                 <th class="text-end">Actions</th>
             </tr>
@@ -75,7 +77,7 @@
 <!-- ============================================================
      EDIT USER MODAL
      Same fields as Add plus an Active toggle. Username is
-     read-only; it cannot be changed after creation.
+     editable in edit mode.
      ============================================================ -->
 <div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
     <div class="modal-dialog">
@@ -89,7 +91,7 @@
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="input-label" for="editUsername">Username</label>
-                        <input type="text" id="editUsername" name="username" class="input-stasis" readonly autocomplete="off" />
+                        <input type="text" id="editUsername" name="username" class="input-stasis" required autocomplete="off" />
                     </div>
 
                     <div class="mb-3">
@@ -130,6 +132,7 @@
             var currentUserId = @currentUserId;
             var gridUrl = '@Url.Action("Grid", "Users")';
             var saveUrl = '@Url.Action("Save", "Users")';
+            var deleteUrl = '@Url.Action("Delete", "Users")';
 
             /* =================================================================
                SECTION 2 — UI RENDERERS (Unit/Role dropdowns)
@@ -160,7 +163,7 @@
                 // Rule 1 — username is required
                 var username = $.trim(payload.username);
                 if (!username) { RiskPulse.toastError('Username is required.'); return false; }
-                // Rule 2 — username must be lowercase a-z only (Add only)
+                // Rule 2 — username must be lowercase a-z only
                 if (!/^[a-z]+$/.test(username)) { RiskPulse.toastError('Username must be lowercase letters only (a-z), no numbers, spaces, or special characters.'); return false; }
                 // Rule 3 — unit must be selected
                 if (!payload.unitId || payload.unitId === 0) { RiskPulse.toastError('Please select a unit.'); return false; }
@@ -193,14 +196,18 @@
                 columns: [
                     { data: 'id' },
                     { data: 'username' },
+                    { data: 'unitDesc' },
+                    { data: 'roleDesc' },
                     { data: 'isActive', render: function (d) {
                         return d ? '<span class="status-pill rag-green">Active</span>' : '<span class="status-pill rag-red">Inactive</span>';
                     } },
                     { data: null, orderable: false, searchable: false, className: 'text-end', render: function (data, type, row) {
                         if (row.id === currentUserId) {
-                            return '<button type="button" class="btn-stasis-secondary" disabled title="You cannot edit your own record"><i class="fas fa-pen-to-square"></i> Edit</button>';
+                            return '<button type="button" class="btn-stasis-secondary" disabled title="You cannot edit your own record"><i class="fas fa-pen-to-square"></i> Edit</button> ' +
+                                   '<button type="button" class="btn-stasis-secondary" disabled title="You cannot delete your own record"><i class="fas fa-trash-can"></i> Delete</button>';
                         }
-                        return '<button type="button" class="btn-stasis-secondary edit-user-btn"><i class="fas fa-pen-to-square"></i> Edit</button>';
+                        return '<button type="button" class="btn-stasis-secondary edit-user-btn"><i class="fas fa-pen-to-square"></i> Edit</button> ' +
+                               '<button type="button" class="btn-stasis-secondary delete-user-btn"><i class="fas fa-trash-can"></i> Delete</button>';
                     } }
                 ],
                 order: [[0, 'asc']]
@@ -225,6 +232,26 @@
                 $('#editRoleId').val(row.roleId).trigger('change');
                 $('#editIsActive').prop('checked', !!row.isActive);
                 RiskPulse.showModal('editUserModal');
+            });
+
+            // Delete handler
+            $('#userTable tbody').on('click', '.delete-user-btn', function () {
+                var row = $('#userTable').DataTable().row($(this).closest('tr')).data();
+                RiskPulse.confirmDelete(
+                    'Delete User?',
+                    'This permanently deletes "' + row.username + '".',
+                    function () {
+                        RiskPulse.postJson(deleteUrl, { id: row.id }, {
+                            success: function (res) {
+                                userTable.ajax.reload(null, false);
+                                RiskPulse.toastSuccess(res.message || 'User deleted successfully.');
+                            },
+                            fail: function (res) {
+                                RiskPulse.toastError(res.message || 'Unable to delete user.');
+                            }
+                        });
+                    }
+                );
             });
 
             // Populate and initialize the Unit/Role dropdowns with Select2 (kept inside their modal)

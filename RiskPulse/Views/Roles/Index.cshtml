@@ -128,6 +128,7 @@
             var permissions = @Html.Raw(permissionsJson);
             var gridUrl = '@Url.Action("Grid", "Roles")';
             var saveUrl = '@Url.Action("Save", "Roles")';
+            var deleteUrl = '@Url.Action("Delete", "Roles")';
 
             /* =================================================================
                SECTION 2 — UI RENDERERS
@@ -230,7 +231,8 @@
                         return badges.length ? badges.join(' ') : '<span class="text-muted">None</span>';
                     } },
                     { data: null, orderable: false, searchable: false, className: 'text-end', render: function () {
-                        return '<button type="button" class="btn-stasis-secondary edit-role-btn"><i class="fas fa-pen-to-square"></i> Edit</button>';
+                        return '<button type="button" class="btn-stasis-secondary edit-role-btn"><i class="fas fa-pen-to-square"></i> Edit</button> ' +
+                               '<button type="button" class="btn-stasis-secondary delete-role-btn"><i class="fas fa-trash-can"></i> Delete</button>';
                     } }
                 ],
                 order: [[0, 'asc']]
@@ -260,6 +262,26 @@
                 renderPermissionList('editPermissionList', row.permissionIds || []);
                 renderDefaultPermissionOptions('editDefaultPermissionId', row.defaultPermissionId, row.permissionIds || []);
                 RiskPulse.showModal('editRoleModal');
+            });
+
+            // Delete handler
+            $('#roleTable tbody').on('click', '.delete-role-btn', function () {
+                var row = $('#roleTable').DataTable().row($(this).closest('tr')).data();
+                RiskPulse.confirmDelete(
+                    'Delete Role?',
+                    'This permanently deletes "' + row.roleDesc + '".',
+                    function () {
+                        RiskPulse.postJson(deleteUrl, { id: row.roleId }, {
+                            success: function (res) {
+                                roleTable.ajax.reload(null, false);
+                                RiskPulse.toastSuccess(res.message || 'Role deleted successfully.');
+                            },
+                            fail: function (res) {
+                                RiskPulse.toastError(res.message || 'Unable to delete role.');
+                            }
+                        });
+                    }
+                );
             });
 
             // Bind submit for both Add and Edit forms

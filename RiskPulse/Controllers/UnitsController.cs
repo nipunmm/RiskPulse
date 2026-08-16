@@ -68,7 +68,7 @@ public class UnitsController : Controller
     }
 
     [HttpPost]
-    public async Task<IActionResult> DeleteUnit([FromBody] UnitDeleteRequestDto request)
+    public async Task<IActionResult> DeleteUnit([FromBody] DeleteRequestDto request)
     {
         if (request == null || !ModelState.IsValid)
         {
@@ -129,7 +129,7 @@ public class UnitsController : Controller
     }
 
     [HttpPost]
-    public async Task<IActionResult> DeleteGroup([FromBody] GroupDeleteRequestDto request)
+    public async Task<IActionResult> DeleteGroup([FromBody] DeleteRequestDto request)
     {
         if (request == null || !ModelState.IsValid)
         {

@@ -99,4 +99,20 @@ public class RolesService
             throw new InvalidOperationException("The default page must be one of the assigned permissions.");
         }
     }
+
+    // --- Role delete ---
+    public async Task DeleteRoleAsync(int roleId)
+    {
+        var role = await _db.Roles.FindAsync(roleId)
+            ?? throw new InvalidOperationException($"Role with Id {roleId} was not found.");
+
+        var inUseByUsers = await _db.Users.AnyAsync(u => u.RoleId == roleId);
+        if (inUseByUsers)
+        {
+            throw new InvalidOperationException("Cannot delete a role that is assigned to one or more users.");
+        }
+
+        _db.Roles.Remove(role);
+        await _db.SaveChangesAsync();
+    }
 }

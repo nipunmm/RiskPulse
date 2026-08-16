@@ -42,7 +42,9 @@ public class UsersController : Controller
             Id = u.Id,
             Username = u.Username,
             UnitId = u.UnitId,
+            UnitDesc = u.Unit?.UnitDesc ?? string.Empty,
             RoleId = u.RoleId,
+            RoleDesc = u.Role?.RoleDesc ?? string.Empty,
             IsActive = u.IsActive
         });
         return Json(ApiResponse.Ok(rows));
@@ -79,6 +81,31 @@ public class UsersController : Controller
         catch (Exception)
         {
             return Json(ApiResponse.Fail<object>("An error occurred while saving. Please try again."));
+        }
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> Delete([FromBody] DeleteRequestDto request)
+    {
+        if (request == null || !ModelState.IsValid)
+        {
+            return Json(ApiResponse.Fail<object>("Please correct the form errors and try again."));
+        }
+
+        try
+        {
+            var currentUserId = Convert.ToInt32(User.FindFirstValue(ClaimTypes.NameIdentifier));
+            await _userService.DeleteUserAsync(request.Id, currentUserId);
+
+            return Json(ApiResponse.Ok<object>(new { }, "User deleted successfully."));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Json(ApiResponse.Fail<object>(ex.Message));
+        }
+        catch (Exception)
+        {
+            return Json(ApiResponse.Fail<object>("An error occurred while deleting. Please try again."));
         }
     }
 }

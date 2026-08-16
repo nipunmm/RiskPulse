@@ -51,8 +51,8 @@ RiskPulse/
 │
 ├── Controllers/                  # Flat — thin, 1:1 with Views/{ControllerName}/; routes follow class names
 │   ├── LoginController.cs        # GET/POST Index, POST Logout, AccessDenied (AllowAnonymous)
-│   ├── UsersController.cs        # Index (View), Grid (JSON), Save (JSON [FromBody])
-│   ├── RolesController.cs        # Index (View), Grid (JSON), Save (JSON [FromBody])
+│   ├── UsersController.cs        # Index (View), Grid (JSON incl. unit/role descs), Save (JSON [FromBody]), Delete (JSON)
+│   ├── RolesController.cs        # Index (View), Grid (JSON), Save (JSON [FromBody]), Delete (JSON)
 │   ├── UnitsController.cs        # 2-tab Units page: UnitGrid/SaveUnit/DeleteUnit + GroupGrid/SaveGroup/DeleteGroup (JSON)
 │   ├── SaqTemplatesController.cs # Grid/Save/Delete headers + QuestionsGrid/SaveQuestion/DeleteQuestion (JSON)
 │   ├── KriTemplatesController.cs # Templates + config: Grid/Save/Delete headers, KrisGrid/SaveKri/DeleteKri, Colors/Groups/Bands CRUD (JSON)

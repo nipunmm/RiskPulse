@@ -18,6 +18,8 @@ public class UsersService
     public async Task<List<User>> GetAllAsync()
     {
         return await _db.Users
+            .Include(u => u.Unit)
+            .Include(u => u.Role)
             .AsNoTracking()
             .OrderBy(u => u.Id)
             .ToListAsync();
@@ -71,11 +73,34 @@ public class UsersService
         var existing = await _db.Users.FindAsync(model.Id)
             ?? throw new InvalidOperationException($"User with Id {model.Id} was not found.");
 
+        var duplicate = await _db.Users.AnyAsync(u =>
+            u.Username == model.Username && u.Id != model.Id);
+        if (duplicate)
+        {
+            throw new InvalidOperationException($"Username '{model.Username}' already exists.");
+        }
+
+        existing.Username = model.Username;
         existing.IsActive = model.IsActive;
         existing.UnitId = model.UnitId;
         existing.RoleId = model.RoleId;
 
         await _db.SaveChangesAsync();
         return existing;
+    }
+
+    // --- User delete ---
+    public async Task DeleteUserAsync(int id, int actingUserId)
+    {
+        if (id == actingUserId)
+        {
+            throw new InvalidOperationException("You cannot delete your own user record.");
+        }
+
+        var user = await _db.Users.FindAsync(id)
+            ?? throw new InvalidOperationException($"User with Id {id} was not found.");
+
+        _db.Users.Remove(user);
+        await _db.SaveChangesAsync();
     }
 }
