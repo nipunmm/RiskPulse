@@ -2,11 +2,9 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 using RiskPulse.Data;
 using RiskPulse.Services;
-using RiskPulse.Services.AccessControlService;
-using RiskPulse.Services.LoginService;
-using RiskPulse.Services.SaqService;
-using RiskPulse.Services.KriService;
-using RiskPulse.Services.KriConfigService;
+using RiskPulse.Services.Administration;
+using RiskPulse.Services.Login;
+using RiskPulse.Services.Templates;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -26,9 +24,8 @@ builder.Services.AddScoped<DbAuthorizationService>();
 builder.Services.AddScoped<LoginOrchestratorService>();
 builder.Services.AddScoped<UsersService>();
 builder.Services.AddScoped<RolesService>();
-builder.Services.AddScoped<SaqService>();
-builder.Services.AddScoped<KriService>();
-builder.Services.AddScoped<KriConfigService>();
+builder.Services.AddScoped<SaqTemplatesService>();
+builder.Services.AddScoped<KriTemplatesService>();
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
@@ -50,7 +47,6 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy($"Permission:{PermissionCatalog.Saq}", policy => policy.RequireClaim("Permission", PermissionCatalog.Saq));
     options.AddPolicy($"Permission:{PermissionCatalog.Kri}", policy => policy.RequireClaim("Permission", PermissionCatalog.Kri));
     options.AddPolicy($"Permission:{PermissionCatalog.RiskRegister}", policy => policy.RequireClaim("Permission", PermissionCatalog.RiskRegister));
-    options.AddPolicy($"Permission:{PermissionCatalog.KriConfig}", policy => policy.RequireClaim("Permission", PermissionCatalog.KriConfig));
 });
 
 var app = builder.Build();

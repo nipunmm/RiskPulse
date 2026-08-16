@@ -1,4 +1,4 @@
-using RiskPulse.Models.DbModel.AccessControl;
+using RiskPulse.Data.Entries;
 
 namespace RiskPulse.Models.ViewModel
 {

@@ -1,8 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using RiskPulse.Models.AppModel;
+using RiskPulse.Models.Dto;
 using RiskPulse.Models.ViewModel;
-using RiskPulse.Services.AccessControlService;
+using RiskPulse.Services.Administration;
+using RiskPulse.Services.Login;
 
 namespace RiskPulse.Controllers;
 
@@ -16,6 +17,7 @@ public class RolesController : Controller
         _rolesService = rolesService;
     }
 
+    // --- Page load (Index) ---
     [HttpGet]
     public async Task<IActionResult> Index()
     {
@@ -27,10 +29,11 @@ public class RolesController : Controller
         });
     }
 
+    // --- Role grid + save ---
     [HttpGet]
     public async Task<IActionResult> Grid()
     {
-        var rows = (await _rolesService.GetAllRolesAsync()).Select(r => new RoleGridRow
+        var rows = (await _rolesService.GetAllRolesAsync()).Select(r => new RoleGridRowViewModel
         {
             RoleId = r.RoleId,
             RoleDesc = r.RoleDesc,
@@ -43,7 +46,7 @@ public class RolesController : Controller
     }
 
     [HttpPost]
-    public async Task<IActionResult> Save([FromBody] RoleSaveModel model)
+    public async Task<IActionResult> Save([FromBody] RoleSaveDto model)
     {
         if (model == null || !ModelState.IsValid)
         {

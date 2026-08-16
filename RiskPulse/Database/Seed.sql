@@ -8,7 +8,6 @@ INSERT INTO "riskpulse"."Permissions" ("PermissionDesc") VALUES ('Roles') ;
 INSERT INTO "riskpulse"."Permissions" ("PermissionDesc") VALUES ('SAQ');
 INSERT INTO "riskpulse"."Permissions" ("PermissionDesc") VALUES ('KRI');
 INSERT INTO "riskpulse"."Permissions" ("PermissionDesc") VALUES ('Risk Register') ;
-INSERT INTO "riskpulse"."Permissions" ("PermissionDesc") VALUES ('KRI Config') ;
 
 
 -- 2. Insert Roles

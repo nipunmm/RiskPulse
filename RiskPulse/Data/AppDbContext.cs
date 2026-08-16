@@ -1,7 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using RiskPulse.Models.DbModel.AccessControl;
-using RiskPulse.Models.DbModel.Kri;
-using RiskPulse.Models.DbModel.Saq;
+using RiskPulse.Data.Entries;
 
 namespace RiskPulse.Data
 {

@@ -1,9 +1,10 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using RiskPulse.Models.AppModel;
+using RiskPulse.Models.Dto;
 using RiskPulse.Models.ViewModel;
-using RiskPulse.Services.AccessControlService;
+using RiskPulse.Services.Administration;
+using RiskPulse.Services.Login;
 
 namespace RiskPulse.Controllers;
 
@@ -17,6 +18,7 @@ public class UsersController : Controller
         _userService = userService;
     }
 
+    // --- Page load (Index) ---
     [HttpGet]
     public async Task<IActionResult> Index()
     {
@@ -31,10 +33,11 @@ public class UsersController : Controller
         });
     }
 
+    // --- User grid + save ---
     [HttpGet]
     public async Task<IActionResult> Grid()
     {
-        var rows = (await _userService.GetAllAsync()).Select(u => new UserGridRow
+        var rows = (await _userService.GetAllAsync()).Select(u => new UserGridRowViewModel
         {
             Id = u.Id,
             Username = u.Username,
@@ -46,7 +49,7 @@ public class UsersController : Controller
     }
 
     [HttpPost]
-    public async Task<IActionResult> Save([FromBody] UserSaveModel user)
+    public async Task<IActionResult> Save([FromBody] UserSaveDto user)
     {
         if (user == null || !ModelState.IsValid)
         {

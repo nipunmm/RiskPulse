@@ -2,10 +2,8 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using RiskPulse.Models.AppModel;
-using RiskPulse.Models.ViewModel;
-using RiskPulse.Services.AccessControlService;
-using RiskPulse.Services.LoginService;
+using RiskPulse.Models.Dto;
+using RiskPulse.Services.Login;
 
 namespace RiskPulse.Controllers
 {
@@ -18,6 +16,7 @@ namespace RiskPulse.Controllers
             _loginService = loginService;
         }
 
+        // --- Login (page + submit) ---
         [HttpGet]
         [AllowAnonymous]
         public IActionResult Index()
@@ -34,7 +33,7 @@ namespace RiskPulse.Controllers
 
         [HttpPost]
         [AllowAnonymous]
-        public async Task<IActionResult> Login([FromBody] LoginRequest request)
+        public async Task<IActionResult> Login([FromBody] LoginRequestDto request)
         {
             if (request == null || !ModelState.IsValid)
             {
@@ -58,6 +57,7 @@ namespace RiskPulse.Controllers
             return Json(ApiResponse.Ok(new { redirectUrl }));
         }
 
+        // --- Logout + access denied ---
         [AllowAnonymous]
         public async Task<IActionResult> Logout()
         {

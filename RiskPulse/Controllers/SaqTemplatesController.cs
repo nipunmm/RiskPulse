@@ -1,28 +1,29 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using RiskPulse.Models.AppModel;
-using RiskPulse.Models.DbModel.Saq;
+using RiskPulse.Models.Dto;
+using RiskPulse.Data.Entries;
 using RiskPulse.Models.ViewModel;
-using RiskPulse.Services.AccessControlService;
-using RiskPulse.Services.SaqService;
+using RiskPulse.Services.Login;
+using RiskPulse.Services.Templates;
 
 namespace RiskPulse.Controllers;
 
 [Authorize(Policy = $"Permission:{PermissionCatalog.Saq}")]
 public class SaqTemplatesController : Controller
 {
-    private readonly SaqService _saqService;
+    private readonly SaqTemplatesService _saqTemplatesService;
 
-    public SaqTemplatesController(SaqService saqService)
+    public SaqTemplatesController(SaqTemplatesService saqTemplatesService)
     {
-        _saqService = saqService;
+        _saqTemplatesService = saqTemplatesService;
     }
 
+    // --- Page load (Index) ---
     [HttpGet]
     public IActionResult Index()
     {
         var statuses = Enum.GetValues<SaqStatus>()
-            .Select(s => new SaqStatusOption { Value = s.ToString(), Label = s.ToString() })
+            .Select(s => new SaqStatusOptionViewModel { Value = s.ToString(), Label = s.ToString() })
             .ToList();
 
         return View(new SaqTemplatesIndexViewModel
@@ -31,15 +32,16 @@ public class SaqTemplatesController : Controller
         });
     }
 
+    // --- SAQ template headers (grid/save/delete) ---
     [HttpGet]
     public async Task<IActionResult> Grid()
     {
-        var rows = await _saqService.GetHeaderRowsAsync();
+        var rows = await _saqTemplatesService.GetHeaderRowsAsync();
         return Json(ApiResponse.Ok(rows));
     }
 
     [HttpPost]
-    public async Task<IActionResult> Save([FromBody] SaqHeaderSaveModel model)
+    public async Task<IActionResult> Save([FromBody] SaqHeaderSaveDto model)
     {
         if (model == null || !ModelState.IsValid)
         {
@@ -54,7 +56,7 @@ public class SaqTemplatesController : Controller
         try
         {
             var isNew = model.SaqHeaderId == 0;
-            var saved = await _saqService.SaveHeaderAsync(model);
+            var saved = await _saqTemplatesService.SaveHeaderAsync(model);
 
             return Json(ApiResponse.Ok(new { id = saved.SaqHeaderId }, isNew ? "Template created successfully." : "Template updated successfully."));
         }
@@ -69,7 +71,7 @@ public class SaqTemplatesController : Controller
     }
 
     [HttpPost]
-    public async Task<IActionResult> Delete([FromBody] SaqDeleteRequest request)
+    public async Task<IActionResult> Delete([FromBody] SaqDeleteRequestDto request)
     {
         if (request == null || !ModelState.IsValid)
         {
@@ -83,7 +85,7 @@ public class SaqTemplatesController : Controller
 
         try
         {
-            await _saqService.DeleteHeaderAsync(request.Id);
+            await _saqTemplatesService.DeleteHeaderAsync(request.Id);
             return Json(ApiResponse.Ok<object>(new { }, "Template deleted successfully."));
         }
         catch (InvalidOperationException ex)
@@ -96,12 +98,13 @@ public class SaqTemplatesController : Controller
         }
     }
 
+    // --- SAQ questions (grid/save/delete) ---
     [HttpGet]
     public async Task<IActionResult> QuestionsGrid(int saqHeaderId)
     {
-        var questions = await _saqService.GetQuestionsAsync(saqHeaderId);
+        var questions = await _saqTemplatesService.GetQuestionsAsync(saqHeaderId);
 
-        var rows = questions.Select(q => new SaqQuestionGridRow
+        var rows = questions.Select(q => new SaqQuestionGridRowViewModel
         {
             QuestionId = q.QuestionId,
             QuestionText = q.QuestionText,
@@ -110,7 +113,7 @@ public class SaqTemplatesController : Controller
             Options = q.SaqQuestionOptions
                 .OrderBy(o => o.DisplayOrder)
                 .ThenBy(o => o.OptionId)
-                .Select(o => new SaqOptionGridRow
+                .Select(o => new SaqOptionGridRowViewModel
                 {
                     OptionId = o.OptionId,
                     OptionText = o.OptionText
@@ -122,7 +125,7 @@ public class SaqTemplatesController : Controller
     }
 
     [HttpPost]
-    public async Task<IActionResult> SaveQuestion([FromBody] SaqQuestionSaveModel model)
+    public async Task<IActionResult> SaveQuestion([FromBody] SaqQuestionSaveDto model)
     {
         if (model == null || !ModelState.IsValid)
         {
@@ -137,7 +140,7 @@ public class SaqTemplatesController : Controller
         try
         {
             var isNew = model.QuestionId == 0;
-            var saved = await _saqService.SaveQuestionAsync(model);
+            var saved = await _saqTemplatesService.SaveQuestionAsync(model);
 
             return Json(ApiResponse.Ok(new { id = saved.QuestionId }, isNew ? "Question saved successfully." : "Question updated successfully."));
         }
@@ -152,7 +155,7 @@ public class SaqTemplatesController : Controller
     }
 
     [HttpPost]
-    public async Task<IActionResult> DeleteQuestion([FromBody] SaqDeleteRequest request)
+    public async Task<IActionResult> DeleteQuestion([FromBody] SaqDeleteRequestDto request)
     {
         if (request == null || !ModelState.IsValid)
         {
@@ -166,7 +169,7 @@ public class SaqTemplatesController : Controller
 
         try
         {
-            await _saqService.DeleteQuestionAsync(request.Id);
+            await _saqTemplatesService.DeleteQuestionAsync(request.Id);
             return Json(ApiResponse.Ok<object>(new { }, "Question deleted successfully."));
         }
         catch (InvalidOperationException ex)
