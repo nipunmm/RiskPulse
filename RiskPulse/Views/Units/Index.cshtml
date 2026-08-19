@@ -182,7 +182,7 @@
                     <div class="mb-3">
                         <label class="input-label" for="addGroupUnitIds">Units</label>
                         <select id="addGroupUnitIds" name="unitIds" class="input-stasis" multiple></select>
-                        <small class="text-muted font-body-xs mt-1 d-block">You can assign units now or add them later.</small>
+                        <small class="text-muted font-body-xs mt-1 d-block">Select at least 2 units to create a group.</small>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -215,7 +215,7 @@
                     <div class="mb-3">
                         <label class="input-label" for="editGroupUnitIds">Units</label>
                         <select id="editGroupUnitIds" name="unitIds" class="input-stasis" multiple></select>
-                        <small class="text-muted font-body-xs mt-1 d-block">You can assign units now or add them later.</small>
+                        <small class="text-muted font-body-xs mt-1 d-block">Select at least 2 units.</small>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -272,6 +272,7 @@
 
             function validateGroupPayload(payload) {
                 if (!$.trim(payload.groupDesc)) { RiskPulse.toastError('Group name is required.'); return false; }
+                if (!payload.unitIds || payload.unitIds.length < 2) { RiskPulse.toastError('Please select at least 2 units.'); return false; }
                 return true;
             }
 

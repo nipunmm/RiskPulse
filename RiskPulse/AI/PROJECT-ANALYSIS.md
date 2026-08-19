@@ -316,10 +316,10 @@ UnitGroups  (UnitGroupId PK, GroupId FK→Groups, UnitId FK→Units)   [many-to-
 Roles       (RoleId PK, RoleDesc, DefaultPermissionId FK→Permissions)
 RolePermissions (RolePermissionId PK, RoleId FK→Roles, PermissionId FK→Permissions)   [many-to-many join]
 Users       (Id PK, Username, IsActive, UnitId FK→Units, RoleId FK→Roles)
-SaqHeaders          (SaqHeaderId PK, SaqDesc, GroupId FK→Groups, SaqStatus varchar(32))
+SaqHeaders          (SaqHeaderId PK, SaqDesc, GroupId FK→Groups (nullable), UnitId FK→Units (nullable), SaqStatus varchar(32))
 SaqQuestions        (QuestionId PK, SaqHeaderId FK→SaqHeaders, QuestionText, QuestionType varchar(32), AllowComment, DisplayOrder)
 SaqQuestionOptions  (OptionId PK, QuestionId FK→SaqQuestions, OptionText, DisplayOrder)
-KriHeaders          (KriHeaderId PK, KriHeaderDesc, GroupId FK→Groups, KriStatus varchar(32))
+KriHeaders          (KriHeaderId PK, KriHeaderDesc, GroupId FK→Groups (nullable), UnitId FK→Units (nullable), KriStatus varchar(32))
 Kri                 (KriId PK, KriHeaderId FK→KriHeaders, KriDesc, AllowComment, KriThresholdGroupId FK→KriThresholdGroups)
 KriThresholdGroups  (KriThresholdGroupId PK, KriThresholdGroupDesc)
 KriThresholdColors  (ColorId PK, ColorDesc, HexCode)
@@ -329,7 +329,7 @@ ScheduleHeaders     (ScheduleHeaderId PK, AssessmentHeaderId FK→AssessmentHead
 ```
 
 - **Enum→string conversion:** `Unit.UnitType`, `SaqStatus`, `QuestionType`, `KriStatus`, `AssessmentStatus` stored as `character varying(32)` (`AppDbContext.cs:18-71`).
-- **Cascade/restrict rules** (`AppDbContext.cs:44-107`): `SaqQuestion→SaqQuestionOptions` cascade; `KriHeader→Kri` cascade with `Kri→KriThresholdGroup` restrict; `KriThresholdGroup→KriThresholds` cascade with `KriThreshold→KriThresholdColor` restrict; `AssessmentHeader→ScheduleHeaders` cascade with `AssessmentHeader→Saq/KriHeaders` restrict; `UnitGroup→Group/Unit` cascade with a unique `(GroupId, UnitId)` index; `SaqHeader/KriHeader→Group` restrict (a group in use by a template can't be deleted). AccessControl FKs (Users→Roles/Units, RolePermissions→Roles/Permissions) cascade by convention.
+- **Cascade/restrict rules** (`AppDbContext.cs:44-107`): `SaqQuestion→SaqQuestionOptions` cascade; `KriHeader→Kri` cascade with `Kri→KriThresholdGroup` restrict; `KriThresholdGroup→KriThresholds` cascade with `KriThreshold→KriThresholdColor` restrict; `AssessmentHeader→ScheduleHeaders` cascade with `AssessmentHeader→Saq/KriHeaders` restrict; `UnitGroup→Group/Unit` cascade with a unique `(GroupId, UnitId)` index; `SaqHeader/KriHeader→Group` and `SaqHeader/KriHeader→Unit` restrict (a group or unit in use by a template can't be deleted; exactly one of GroupId/UnitId must be set). AccessControl FKs (Users→Roles/Units, RolePermissions→Roles/Permissions) cascade by convention.
 - **Implemented via:** EF Core migration `20260812202536_UserPermissionControl` (applied live; files not in the working tree). DB otherwise provisioned manually via `Database/Seed.sql`.
 
 ### 7.2 `Database/Seed.sql` — legacy content & risk

@@ -29,7 +29,7 @@ public class UsersService
     {
         return await _db.Units
             .AsNoTracking()
-            .OrderBy(u => u.UnitId)
+            .OrderBy(u => u.UnitDesc)
             .ToListAsync();
     }
 
@@ -37,7 +37,7 @@ public class UsersService
     {
         return await _db.Roles
             .AsNoTracking()
-            .OrderBy(r => r.RoleId)
+            .OrderBy(r => r.RoleDesc)
             .ToListAsync();
     }
 

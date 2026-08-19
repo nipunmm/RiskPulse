@@ -30,6 +30,7 @@ public class KriTemplatesController : Controller
             .ToList();
 
         var unitGroups = await _unitsService.GetUnitGroupOptionsAsync();
+        var units = await _unitsService.GetUnitOptionsAsync();
 
         var groups = (await _kriTemplatesService.GetThresholdGroupsAsync())
             .Select(g => new KriGroupOptionViewModel { Value = g.KriThresholdGroupId, Label = g.KriThresholdGroupDesc })
@@ -41,6 +42,7 @@ public class KriTemplatesController : Controller
         {
             KriStatuses = statuses,
             UnitGroups = unitGroups,
+            Units = units,
             KriGroups = groups,
             Colors = colors
         });

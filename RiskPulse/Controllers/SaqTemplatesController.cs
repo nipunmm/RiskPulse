@@ -30,11 +30,13 @@ public class SaqTemplatesController : Controller
             .ToList();
 
         var unitGroups = await _unitsService.GetUnitGroupOptionsAsync();
+        var units = await _unitsService.GetUnitOptionsAsync();
 
         return View(new SaqTemplatesIndexViewModel
         {
             SaqStatuses = statuses,
-            UnitGroups = unitGroups
+            UnitGroups = unitGroups,
+            Units = units
         });
     }
 

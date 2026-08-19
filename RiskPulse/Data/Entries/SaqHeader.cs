@@ -9,9 +9,13 @@ namespace RiskPulse.Data.Entries
 
         public string SaqDesc { get; set; } = string.Empty;
 
-        public int GroupId { get; set; }
+        public int? GroupId { get; set; }
 
         public Group? Group { get; set; }
+
+        public int? UnitId { get; set; }
+
+        public Unit? Unit { get; set; }
 
         public SaqStatus SaqStatus { get; set; }
 

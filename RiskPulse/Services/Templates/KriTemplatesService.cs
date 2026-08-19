@@ -26,7 +26,9 @@ public class KriTemplatesService
                 KriHeaderId = h.KriHeaderId,
                 KriHeaderDesc = h.KriHeaderDesc,
                 GroupId = h.GroupId,
-                GroupDesc = h.Group!.GroupDesc,
+                GroupDesc = h.Group != null ? h.Group.GroupDesc : string.Empty,
+                UnitId = h.UnitId,
+                UnitDesc = h.Unit != null ? h.Unit.UnitDesc : string.Empty,
                 KriStatus = h.KriStatus.ToString(),
                 KriCount = h.Kris.Count
             })
@@ -44,10 +46,29 @@ public class KriTemplatesService
             throw new InvalidOperationException($"Template '{desc}' already exists.");
         }
 
-        var groupExists = await _db.Groups.AnyAsync(g => g.GroupId == model.GroupId);
-        if (!groupExists)
+        var hasGroup = model.GroupId.HasValue && model.GroupId.Value > 0;
+        var hasUnit = model.UnitId.HasValue && model.UnitId.Value > 0;
+        if (hasGroup == hasUnit)
         {
-            throw new InvalidOperationException("Please select a valid unit group.");
+            throw new InvalidOperationException("Please select either a unit group or a unit, not both.");
+        }
+
+        if (hasGroup)
+        {
+            var groupExists = await _db.Groups.AnyAsync(g => g.GroupId == model.GroupId!.Value);
+            if (!groupExists)
+            {
+                throw new InvalidOperationException("Please select a valid unit group.");
+            }
+        }
+
+        if (hasUnit)
+        {
+            var unitExists = await _db.Units.AnyAsync(u => u.UnitId == model.UnitId!.Value);
+            if (!unitExists)
+            {
+                throw new InvalidOperationException("Please select a valid unit.");
+            }
         }
 
         if (model.KriHeaderId == 0)
@@ -55,7 +76,8 @@ public class KriTemplatesService
             var header = new KriHeader
             {
                 KriHeaderDesc = desc,
-                GroupId = model.GroupId,
+                GroupId = hasGroup ? model.GroupId : null,
+                UnitId = hasUnit ? model.UnitId : null,
                 KriStatus = model.KriStatus
             };
 
@@ -73,7 +95,8 @@ public class KriTemplatesService
         }
 
         existing.KriHeaderDesc = desc;
-        existing.GroupId = model.GroupId;
+        existing.GroupId = hasGroup ? model.GroupId : null;
+        existing.UnitId = hasUnit ? model.UnitId : null;
         existing.KriStatus = model.KriStatus;
 
         await _db.SaveChangesAsync();

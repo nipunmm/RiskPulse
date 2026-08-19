@@ -4,6 +4,7 @@
 
     var statusesJson = Json.Serialize(Model.KriStatuses);
     var unitGroupsJson = Json.Serialize(Model.UnitGroups);
+    var unitsJson = Json.Serialize(Model.Units);
     var groupsJson = Json.Serialize(Model.KriGroups);
     var colorsJson = Json.Serialize(Model.Colors.Select(c => new { colorId = c.ColorId, colorDesc = c.ColorDesc, hexCode = c.HexCode }));
 }
@@ -70,7 +71,7 @@
                     <tr>
                         <th>ID</th>
                         <th>Description</th>
-                        <th>Unit Group</th>
+                        <th>Assigned To</th>
                         <th>Status</th>
                         <th>KRIs</th>
                         <th class="text-end">Actions</th>
@@ -143,8 +144,19 @@
                         <input type="text" id="kriHeaderDesc" name="kriHeaderDesc" class="input-stasis" required autocomplete="off" />
                     </div>
                     <div class="mb-3">
+                        <label class="input-label" for="kriLinkType">Link Type</label>
+                        <select id="kriLinkType" class="input-stasis">
+                            <option value="group">Unit Group</option>
+                            <option value="unit">Unit</option>
+                        </select>
+                    </div>
+                    <div class="mb-3" id="kriGroupRow">
                         <label class="input-label" for="kriGroupId">Unit Group</label>
                         <select id="kriGroupId" name="groupId" class="input-stasis"></select>
+                    </div>
+                    <div class="mb-3 d-none" id="kriUnitRow">
+                        <label class="input-label" for="kriUnitId">Unit</label>
+                        <select id="kriUnitId" name="unitId" class="input-stasis"></select>
                     </div>
                     <div class="mb-3">
                         <label class="input-label" for="kriStatus">Status</label>
@@ -331,6 +343,7 @@
                ================================================================= */
             var statuses = @Html.Raw(statusesJson);
             var unitGroups = @Html.Raw(unitGroupsJson);
+            var units = @Html.Raw(unitsJson);
             var groups = @Html.Raw(groupsJson);
             var colors = @Html.Raw(colorsJson);
 
@@ -459,8 +472,11 @@
                ================================================================= */
             function getHeaderPayload($form) {
                 var payload = RiskPulse.serializeForm($form, {
-                    numbers: ['kriHeaderId', 'groupId']
+                    numbers: ['kriHeaderId']
                 });
+                var isGroup = $('#kriLinkType').val() === 'group';
+                payload.groupId = isGroup ? (+$('#kriGroupId').val() || null) : null;
+                payload.unitId = !isGroup ? (+$('#kriUnitId').val() || null) : null;
                 return payload;
             }
 
@@ -508,7 +524,8 @@
                ================================================================= */
             function validateHeaderPayload(payload) {
                 if (!$.trim(payload.kriHeaderDesc)) { RiskPulse.toastError('Template description is required.'); return false; }
-                if (!payload.groupId) { RiskPulse.toastError('Please select a unit group.'); return false; }
+                if (!payload.groupId && !payload.unitId) { RiskPulse.toastError('Please select a unit group or a unit.'); return false; }
+                if (payload.groupId && payload.unitId) { RiskPulse.toastError('Please select either a unit group or a unit, not both.'); return false; }
                 if (!payload.kriStatus) { RiskPulse.toastError('Please select a status.'); return false; }
                 return true;
             }
@@ -719,7 +736,7 @@
                 columns: [
                     { data: 'kriHeaderId' },
                     { data: 'kriHeaderDesc' },
-                    { data: 'groupDesc', render: function (d) { return '<span class="status-pill">' + (d || '') + '</span>'; } },
+                    { data: 'groupDesc', render: function (d, type, row) { return '<span class="status-pill">' + (d || row.unitDesc || '') + '</span>'; } },
                     { data: 'kriStatus', render: function (d) { return statusPill(d); } },
                     { data: 'kriCount', render: function (d) { return '<span class="status-pill">' + (d || 0) + '</span>'; } },
                     { data: null, orderable: false, searchable: false, className: 'text-end', render: function (data, type, row) {
@@ -777,8 +794,21 @@
             RiskPulse.populateSelect($('#kriStatus'), statuses);
             RiskPulse.populateSelect($('#editorGroupId'), groups);
 
+            function toggleKriLinkType() {
+                var isGroup = $('#kriLinkType').val() === 'group';
+                $('#kriGroupRow').toggleClass('d-none', !isGroup);
+                $('#kriUnitRow').toggleClass('d-none', isGroup);
+                if (isGroup) { $('#kriUnitId').val(0).trigger('change'); }
+                else { $('#kriGroupId').val(0).trigger('change'); }
+            }
+
             $('#kriGroupId').empty().append('<option value="0">Select a unit group...</option>');
             RiskPulse.populateSelect($('#kriGroupId'), unitGroups);
+
+            $('#kriUnitId').empty().append('<option value="0">Select a unit...</option>');
+            RiskPulse.populateSelect($('#kriUnitId'), units);
+
+            $('#kriLinkType').on('change', toggleKriLinkType);
 
             // Tabs — recalc DataTables widths once a pane becomes visible
             $('#kriTabs button[data-bs-toggle="tab"]').on('shown.bs.tab', function () {
@@ -788,7 +818,9 @@
             $('#kriModal').on('shown.bs.modal', function () {
                 if ($('#kriHeaderId').val() == 0) {
                     $('#kriHeaderDesc').val('').trigger('focus');
+                    $('#kriLinkType').val('group').trigger('change');
                     $('#kriGroupId').val(0).trigger('change');
+                    $('#kriUnitId').val(0).trigger('change');
                     $('#kriStatus').val('Active').trigger('change');
                 }
             });
@@ -797,7 +829,15 @@
                 var row = kriTable.row($(this).closest('tr')).data();
                 $('#kriHeaderId').val(row.kriHeaderId);
                 $('#kriHeaderDesc').val(row.kriHeaderDesc);
-                $('#kriGroupId').val(row.groupId).trigger('change');
+                if (row.groupId) {
+                    $('#kriLinkType').val('group').trigger('change');
+                    $('#kriGroupId').val(row.groupId).trigger('change');
+                    $('#kriUnitId').val(0).trigger('change');
+                } else {
+                    $('#kriLinkType').val('unit').trigger('change');
+                    $('#kriUnitId').val(row.unitId).trigger('change');
+                    $('#kriGroupId').val(0).trigger('change');
+                }
                 $('#kriStatus').val(row.kriStatus).trigger('change');
                 $('#kriModalLabel').text('Edit Template');
                 RiskPulse.showModal('kriModal');
@@ -810,7 +850,9 @@
 
             $('#kriModal').on('hidden.bs.modal', function () {
                 $('#kriHeaderId').val(0);
+                $('#kriLinkType').val('group').trigger('change');
                 $('#kriGroupId').val(0).trigger('change');
+                $('#kriUnitId').val(0).trigger('change');
                 $('#kriModalLabel').text('Add Template');
             });
 

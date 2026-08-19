@@ -78,6 +78,14 @@ public class UnitsService
         {
             throw new InvalidOperationException("Cannot delete a unit that is assigned to one or more users.");
         }
+
+        var linkedToTemplate = await _db.SaqHeaders.AnyAsync(h => h.UnitId == unitId) ||
+                               await _db.KriHeaders.AnyAsync(h => h.UnitId == unitId);
+        if (linkedToTemplate)
+        {
+            throw new InvalidOperationException("Cannot delete a unit that is linked to a template.");
+        }
+
         _db.Units.Remove(unit);
         await _db.SaveChangesAsync();
     }
@@ -92,6 +100,19 @@ public class UnitsService
             {
                 Value = g.GroupId,
                 Label = g.GroupDesc
+            })
+            .ToListAsync();
+    }
+
+    public async Task<List<UnitGroupOptionViewModel>> GetUnitOptionsAsync()
+    {
+        return await _db.Units
+            .AsNoTracking()
+            .OrderBy(u => u.UnitId)
+            .Select(u => new UnitGroupOptionViewModel
+            {
+                Value = u.UnitId,
+                Label = u.UnitDesc
             })
             .ToListAsync();
     }
@@ -125,6 +146,11 @@ public class UnitsService
     public async Task<Group> SaveGroupAsync(GroupSaveDto model)
     {
         var desc = model.GroupDesc.Trim();
+
+        if (model.UnitIds == null || model.UnitIds.Count < 2)
+        {
+            throw new InvalidOperationException("A group must have at least 2 units.");
+        }
 
         var exists = await _db.Groups.AnyAsync(g =>
             g.GroupDesc.ToLower() == desc.ToLower() && g.GroupId != model.GroupId);

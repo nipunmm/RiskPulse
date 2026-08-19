@@ -4,6 +4,7 @@
 
     var statusesJson = Json.Serialize(Model.SaqStatuses);
     var unitGroupsJson = Json.Serialize(Model.UnitGroups);
+    var unitsJson = Json.Serialize(Model.Units);
 }
 
 @section Styles {
@@ -42,7 +43,7 @@
             <tr>
                 <th>ID</th>
                 <th>Description</th>
-                <th>Unit Group</th>
+                <th>Assigned To</th>
                 <th>Status</th>
                 <th>Questions</th>
                 <th class="text-end">Actions</th>
@@ -68,8 +69,19 @@
                         <input type="text" id="addSaqDesc" name="saqDesc" class="input-stasis" required autocomplete="off" />
                     </div>
                     <div class="mb-3">
+                        <label class="input-label" for="addSaqLinkType">Link Type</label>
+                        <select id="addSaqLinkType" class="input-stasis">
+                            <option value="group">Unit Group</option>
+                            <option value="unit">Unit</option>
+                        </select>
+                    </div>
+                    <div class="mb-3" id="addSaqGroupRow">
                         <label class="input-label" for="addSaqGroup">Unit Group</label>
                         <select id="addSaqGroup" name="groupId" class="input-stasis"></select>
+                    </div>
+                    <div class="mb-3 d-none" id="addSaqUnitRow">
+                        <label class="input-label" for="addSaqUnit">Unit</label>
+                        <select id="addSaqUnit" name="unitId" class="input-stasis"></select>
                     </div>
                     <div class="mb-3">
                         <label class="input-label" for="addSaqStatus">Status</label>
@@ -103,8 +115,19 @@
                         <input type="text" id="editSaqDesc" name="saqDesc" class="input-stasis" required autocomplete="off" />
                     </div>
                     <div class="mb-3">
+                        <label class="input-label" for="editSaqLinkType">Link Type</label>
+                        <select id="editSaqLinkType" class="input-stasis">
+                            <option value="group">Unit Group</option>
+                            <option value="unit">Unit</option>
+                        </select>
+                    </div>
+                    <div class="mb-3" id="editSaqGroupRow">
                         <label class="input-label" for="editSaqGroup">Unit Group</label>
                         <select id="editSaqGroup" name="groupId" class="input-stasis"></select>
+                    </div>
+                    <div class="mb-3 d-none" id="editSaqUnitRow">
+                        <label class="input-label" for="editSaqUnit">Unit</label>
+                        <select id="editSaqUnit" name="unitId" class="input-stasis"></select>
                     </div>
                     <div class="mb-3">
                         <label class="input-label" for="editSaqStatus">Status</label>
@@ -212,6 +235,7 @@
                ================================================================= */
             var statuses = @Html.Raw(statusesJson);
             var unitGroups = @Html.Raw(unitGroupsJson);
+            var units = @Html.Raw(unitsJson);
             var gridUrl = '@Url.Action("Grid", "SaqTemplates")';
             var saveUrl = '@Url.Action("Save", "SaqTemplates")';
             var deleteUrl = '@Url.Action("Delete", "SaqTemplates")';
@@ -343,8 +367,11 @@
                ================================================================= */
             function getHeaderPayload($form) {
                 var payload = RiskPulse.serializeForm($form, {
-                    numbers: ['saqHeaderId', 'groupId']
+                    numbers: ['saqHeaderId']
                 });
+                var isGroup = $form.find('[id$="SaqLinkType"]').val() === 'group';
+                payload.groupId = isGroup ? (+$form.find('[id$="SaqGroup"]').val() || null) : null;
+                payload.unitId = !isGroup ? (+$form.find('[id$="SaqUnit"]').val() || null) : null;
                 return payload;
             }
 
@@ -373,7 +400,8 @@
                ================================================================= */
             function validateHeaderPayload(payload) {
                 if (!$.trim(payload.saqDesc)) { RiskPulse.toastError('Template description is required.'); return false; }
-                if (!payload.groupId) { RiskPulse.toastError('Please select a unit group.'); return false; }
+                if (!payload.groupId && !payload.unitId) { RiskPulse.toastError('Please select a unit group or a unit.'); return false; }
+                if (payload.groupId && payload.unitId) { RiskPulse.toastError('Please select either a unit group or a unit, not both.'); return false; }
                 if (!payload.saqStatus) { RiskPulse.toastError('Please select a status.'); return false; }
                 return true;
             }
@@ -469,7 +497,7 @@
                 columns: [
                     { data: 'saqHeaderId' },
                     { data: 'saqDesc' },
-                    { data: 'groupDesc', render: function (d) { return '<span class="status-pill">' + (d || '') + '</span>'; } },
+                    { data: 'groupDesc', render: function (d, type, row) { return '<span class="status-pill">' + (d || row.unitDesc || '') + '</span>'; } },
                     { data: 'saqStatus', render: function (d) { return statusPill(d); } },
                     { data: 'questionCount', render: function (d) { return '<span class="status-pill">' + (d || 0) + '</span>'; } },
                     { data: null, orderable: false, searchable: false, className: 'text-end', render: function (data, type, row) {
@@ -494,17 +522,38 @@
             RiskPulse.populateSelect($('#addSaqStatus'), statuses);
             RiskPulse.populateSelect($('#editSaqStatus'), statuses);
 
-            function initSaqGroupSelects() {
+            function toggleSaqLinkType(linkTypeSelect, groupRowId, unitRowId, groupSelect, unitSelect) {
+                var isGroup = $(linkTypeSelect).val() === 'group';
+                $('#' + groupRowId).toggleClass('d-none', !isGroup);
+                $('#' + unitRowId).toggleClass('d-none', isGroup);
+                if (isGroup) { $(unitSelect).val(0).trigger('change'); }
+                else { $(groupSelect).val(0).trigger('change'); }
+            }
+
+            function initSaqSelects() {
                 $.each(['#addSaqGroup', '#editSaqGroup'], function (i, selector) {
                     $(selector).empty().append('<option value="0">Select a unit group...</option>');
                     RiskPulse.populateSelect($(selector), unitGroups);
                 });
+                $.each(['#addSaqUnit', '#editSaqUnit'], function (i, selector) {
+                    $(selector).empty().append('<option value="0">Select a unit...</option>');
+                    RiskPulse.populateSelect($(selector), units);
+                });
             }
-            initSaqGroupSelects();
+            initSaqSelects();
+
+            $('#addSaqLinkType').on('change', function () {
+                toggleSaqLinkType(this, 'addSaqGroupRow', 'addSaqUnitRow', '#addSaqGroup', '#addSaqUnit');
+            });
+            $('#editSaqLinkType').on('change', function () {
+                toggleSaqLinkType(this, 'editSaqGroupRow', 'editSaqUnitRow', '#editSaqGroup', '#editSaqUnit');
+            });
 
             $('#addSaqModal').on('shown.bs.modal', function () {
                 $('#addSaqDesc').val('').trigger('focus');
+                $('#addSaqLinkType').val('group').trigger('change');
                 $('#addSaqGroup').val(0).trigger('change');
+                $('#addSaqUnit').val(0).trigger('change');
                 $('#addSaqStatus').val('Active').trigger('change');
             });
 
@@ -512,7 +561,15 @@
                 var row = saqTable.row($(this).closest('tr')).data();
                 $('#editSaqHeaderId').val(row.saqHeaderId);
                 $('#editSaqDesc').val(row.saqDesc);
-                $('#editSaqGroup').val(row.groupId).trigger('change');
+                if (row.groupId) {
+                    $('#editSaqLinkType').val('group').trigger('change');
+                    $('#editSaqGroup').val(row.groupId).trigger('change');
+                    $('#editSaqUnit').val(0).trigger('change');
+                } else {
+                    $('#editSaqLinkType').val('unit').trigger('change');
+                    $('#editSaqUnit').val(row.unitId).trigger('change');
+                    $('#editSaqGroup').val(0).trigger('change');
+                }
                 $('#editSaqStatus').val(row.saqStatus).trigger('change');
                 RiskPulse.showModal('editSaqModal');
             });
