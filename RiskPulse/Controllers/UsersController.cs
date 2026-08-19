@@ -12,17 +12,19 @@ namespace RiskPulse.Controllers;
 public class UsersController : Controller
 {
     private readonly UsersService _userService;
+    private readonly UnitsService _unitsService;
 
-    public UsersController(UsersService userService)
+    public UsersController(UsersService userService, UnitsService unitsService)
     {
         _userService = userService;
+        _unitsService = unitsService;
     }
 
     // --- Page load (Index) ---
     [HttpGet]
     public async Task<IActionResult> Index()
     {
-        var units = await _userService.GetAllUnitsAsync();
+        var units = await _unitsService.GetAllUnitsAsync();
         var roles = await _userService.GetAllRolesAsync();
 
         return View(new UsersIndexViewModel
@@ -37,75 +39,41 @@ public class UsersController : Controller
     [HttpGet]
     public async Task<IActionResult> Grid()
     {
-        var rows = (await _userService.GetAllAsync()).Select(u => new UserGridRowViewModel
-        {
-            Id = u.Id,
-            Username = u.Username,
-            UnitId = u.UnitId,
-            UnitDesc = u.Unit?.UnitDesc ?? string.Empty,
-            RoleId = u.RoleId,
-            RoleDesc = u.Role?.RoleDesc ?? string.Empty,
-            IsActive = u.IsActive
-        });
+        var rows = await _userService.GetGridRowsAsync();
         return Json(ApiResponse.Ok(rows));
     }
 
     [HttpPost]
     public async Task<IActionResult> Save([FromBody] UserSaveDto user)
     {
-        if (user == null || !ModelState.IsValid)
-        {
-            var message = ModelState.Values
-                .SelectMany(v => v.Errors)
-                .Select(e => e.ErrorMessage)
-                .FirstOrDefault() ?? "Please correct the form errors and try again.";
+        var error = ControllerHelpers.ValidateModel(user, ModelState);
+        if (error != null) return error;
 
-            return Json(ApiResponse.Fail<object>(message));
-        }
-
-        try
+        return await ControllerHelpers.TryExecute(async () =>
         {
-            var isNew = user.Id == 0;
+            var isNew = user!.Id == 0;
             var currentUserId = Convert.ToInt32(User.FindFirstValue(ClaimTypes.NameIdentifier));
 
-            var saved = isNew
+            var result = isNew
                 ? await _userService.CreateUserAsync(user)
                 : await _userService.UpdateUserAsync(user, currentUserId);
 
-            return Json(ApiResponse.Ok(new { id = saved.Id }, isNew ? "User created successfully." : "User updated successfully."));
-        }
-        catch (InvalidOperationException ex)
-        {
-            return Json(ApiResponse.Fail<object>(ex.Message));
-        }
-        catch (Exception)
-        {
-            return Json(ApiResponse.Fail<object>("An error occurred while saving. Please try again."));
-        }
+            return Json(ApiResponse.Ok(new { id = result.Id }, isNew ? "User created successfully." : "User updated successfully."));
+        }, "An error occurred while saving. Please try again.");
     }
 
     [HttpPost]
     public async Task<IActionResult> Delete([FromBody] DeleteRequestDto request)
     {
-        if (request == null || !ModelState.IsValid)
-        {
-            return Json(ApiResponse.Fail<object>("Please correct the form errors and try again."));
-        }
+        var error = ControllerHelpers.ValidateModel(request, ModelState);
+        if (error != null) return error;
 
-        try
+        return await ControllerHelpers.TryExecute(async () =>
         {
             var currentUserId = Convert.ToInt32(User.FindFirstValue(ClaimTypes.NameIdentifier));
-            await _userService.DeleteUserAsync(request.Id, currentUserId);
+            await _userService.DeleteUserAsync(request!.Id, currentUserId);
 
             return Json(ApiResponse.Ok<object>(new { }, "User deleted successfully."));
-        }
-        catch (InvalidOperationException ex)
-        {
-            return Json(ApiResponse.Fail<object>(ex.Message));
-        }
-        catch (Exception)
-        {
-            return Json(ApiResponse.Fail<object>("An error occurred while deleting. Please try again."));
-        }
+        }, "An error occurred while deleting. Please try again.");
     }
 }

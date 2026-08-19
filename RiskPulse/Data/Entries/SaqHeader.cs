@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using RiskPulse.Models.Enum;
 
 namespace RiskPulse.Data.Entries
 {

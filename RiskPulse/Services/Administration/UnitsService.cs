@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using RiskPulse.Data;
 using RiskPulse.Data.Entries;
+using RiskPulse.Data.Extensions;
 using RiskPulse.Models.Dto;
 using RiskPulse.Models.ViewModel;
 
@@ -31,17 +32,12 @@ public class UnitsService
             .ToListAsync();
     }
 
-    public async Task<Unit> SaveUnitAsync(UnitSaveDto model)
+    public async Task<SaveResultDto> SaveUnitAsync(UnitSaveDto model)
     {
         var code = model.UnitCode.Trim();
         var desc = model.UnitDesc.Trim();
 
-        var exists = await _db.Units.AnyAsync(u =>
-            u.UnitCode.ToLower() == code.ToLower() && u.UnitId != model.UnitId);
-        if (exists)
-        {
-            throw new InvalidOperationException($"Unit code '{code}' already exists.");
-        }
+        await _db.Units.EnsureUniqueAsync(u => u.UnitCode.ToLower() == code.ToLower() && u.UnitId != model.UnitId, "Unit code", code);
 
         if (model.UnitId == 0)
         {
@@ -54,7 +50,7 @@ public class UnitsService
 
             _db.Units.Add(unit);
             await _db.SaveChangesAsync();
-            return unit;
+            return new SaveResultDto { Id = unit.UnitId };
         }
 
         var existing = await _db.Units.FindAsync(model.UnitId)
@@ -65,7 +61,7 @@ public class UnitsService
         existing.UnitDesc = desc;
 
         await _db.SaveChangesAsync();
-        return existing;
+        return new SaveResultDto { Id = existing.UnitId };
     }
 
     public async Task DeleteUnitAsync(int unitId)
@@ -91,30 +87,18 @@ public class UnitsService
     }
 
     // --- Unit groups (grid/save/delete) ---
-    public async Task<List<UnitGroupOptionViewModel>> GetUnitGroupOptionsAsync()
+    public async Task<List<OptionViewModel>> GetUnitGroupOptionsAsync()
     {
-        return await _db.Groups
-            .AsNoTracking()
+        return await _db.Groups.AsNoTracking()
             .OrderBy(g => g.GroupId)
-            .Select(g => new UnitGroupOptionViewModel
-            {
-                Value = g.GroupId,
-                Label = g.GroupDesc
-            })
-            .ToListAsync();
+            .ToOptionListAsync(g => g.GroupId, g => g.GroupDesc);
     }
 
-    public async Task<List<UnitGroupOptionViewModel>> GetUnitOptionsAsync()
+    public async Task<List<OptionViewModel>> GetUnitOptionsAsync()
     {
-        return await _db.Units
-            .AsNoTracking()
+        return await _db.Units.AsNoTracking()
             .OrderBy(u => u.UnitId)
-            .Select(u => new UnitGroupOptionViewModel
-            {
-                Value = u.UnitId,
-                Label = u.UnitDesc
-            })
-            .ToListAsync();
+            .ToOptionListAsync(u => u.UnitId, u => u.UnitDesc);
     }
 
     public async Task<List<GroupGridRowViewModel>> GetGroupGridRowsAsync()
@@ -135,15 +119,14 @@ public class UnitsService
             .ToListAsync();
     }
 
-    public async Task<List<Unit>> GetAllUnitsAsync()
+    public async Task<List<OptionViewModel>> GetAllUnitsAsync()
     {
-        return await _db.Units
-            .AsNoTracking()
-            .OrderBy(u => u.UnitId)
-            .ToListAsync();
+        return await _db.Units.AsNoTracking()
+            .OrderBy(u => u.UnitDesc)
+            .ToOptionListAsync(u => u.UnitId, u => u.UnitDesc);
     }
 
-    public async Task<Group> SaveGroupAsync(GroupSaveDto model)
+    public async Task<SaveResultDto> SaveGroupAsync(GroupSaveDto model)
     {
         var desc = model.GroupDesc.Trim();
 
@@ -152,12 +135,7 @@ public class UnitsService
             throw new InvalidOperationException("A group must have at least 2 units.");
         }
 
-        var exists = await _db.Groups.AnyAsync(g =>
-            g.GroupDesc.ToLower() == desc.ToLower() && g.GroupId != model.GroupId);
-        if (exists)
-        {
-            throw new InvalidOperationException($"Group '{desc}' already exists.");
-        }
+        await _db.Groups.EnsureUniqueAsync(g => g.GroupDesc.ToLower() == desc.ToLower() && g.GroupId != model.GroupId, "Group", desc);
 
         if (model.GroupId == 0)
         {
@@ -172,7 +150,7 @@ public class UnitsService
 
             _db.Groups.Add(group);
             await _db.SaveChangesAsync();
-            return group;
+            return new SaveResultDto { Id = group.GroupId };
         }
 
         var existing = await _db.Groups
@@ -189,7 +167,7 @@ public class UnitsService
         }
 
         await _db.SaveChangesAsync();
-        return existing;
+        return new SaveResultDto { Id = existing.GroupId };
     }
 
     public async Task DeleteGroupAsync(int groupId)

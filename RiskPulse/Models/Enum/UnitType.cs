@@ -1,4 +1,4 @@
-namespace RiskPulse.Data.Entries
+namespace RiskPulse.Models.Enum
 {
     public enum UnitType
     {

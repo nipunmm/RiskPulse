@@ -55,6 +55,11 @@ namespace RiskPulse.Data
                     .WithMany(u => u.SaqHeaders)
                     .HasForeignKey(h => h.UnitId)
                     .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasMany(h => h.SaqQuestions)
+                    .WithOne(q => q.SaqHeader)
+                    .HasForeignKey(q => q.SaqHeaderId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
             //QuestionType enum to string conversion

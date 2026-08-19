@@ -1,7 +1,6 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using RiskPulse.Models.Dto;
-using RiskPulse.Data.Entries;
 
 namespace RiskPulse.Services.Login;
 
@@ -35,27 +34,24 @@ public class LoginOrchestratorService
             return new LoginResultDto { Success = false, Message = "User account is inactive." };
         }
 
-        var defaultPageDesc = user.Role?.DefaultPermission?.PermissionDesc ?? PermissionCatalog.Dashboard;
+        var defaultPageDesc = user.DefaultPermissionDesc ?? PermissionCatalog.Dashboard;
 
         var claims = new List<Claim>
         {
             new Claim(ClaimTypes.Name, user.Username),
-            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new Claim(ClaimTypes.Role, user.Role?.RoleDesc ?? string.Empty),
+            new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
+            new Claim(ClaimTypes.Role, user.RoleDesc ?? string.Empty),
             new Claim("DefaultPage", defaultPageDesc)
         };
 
-        if (user.Unit != null)
+        if (!string.IsNullOrEmpty(user.UnitDesc))
         {
-            claims.Add(new Claim("Unit", user.Unit.UnitDesc));
+            claims.Add(new Claim("Unit", user.UnitDesc));
         }
 
-        foreach (var rolePermission in user.Role?.RolePermissions ?? Enumerable.Empty<RolePermission>())
+        foreach (var perm in user.PermissionDescs)
         {
-            if (rolePermission.Permission != null)
-            {
-                claims.Add(new Claim("Permission", rolePermission.Permission.PermissionDesc));
-            }
+            claims.Add(new Claim("Permission", perm));
         }
 
         var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);

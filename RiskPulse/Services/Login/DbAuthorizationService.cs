@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using RiskPulse.Data;
-using RiskPulse.Data.Entries;
+using RiskPulse.Models.Dto;
 
 namespace RiskPulse.Services.Login;
 
@@ -14,16 +14,28 @@ public class DbAuthorizationService
         _db = db;
     }
 
-    public async Task<User?> GetUserDetailsAsync(string username)
+    public async Task<UserAuthorizationDto?> GetUserDetailsAsync(string username)
     {
         return await _db.Users
-            .Include(u => u.Role)
-                .ThenInclude(r => r!.RolePermissions)
-                .ThenInclude(rp => rp.Permission)
-            .Include(u => u.Role)
-                .ThenInclude(r => r!.DefaultPermission)
-            .Include(u => u.Unit)
+            .Where(u => u.Username == username)
             .AsNoTracking()
-            .FirstOrDefaultAsync(u => u.Username == username);
+            .Select(u => new UserAuthorizationDto
+            {
+                UserId = u.Id,
+                Username = u.Username,
+                IsActive = u.IsActive,
+                RoleDesc = u.Role != null ? u.Role.RoleDesc : null,
+                UnitDesc = u.Unit != null ? u.Unit.UnitDesc : null,
+                DefaultPermissionDesc = u.Role != null && u.Role.DefaultPermission != null
+                    ? u.Role.DefaultPermission.PermissionDesc
+                    : null,
+                PermissionDescs = u.Role != null
+                    ? u.Role.RolePermissions
+                        .Where(rp => rp.Permission != null)
+                        .Select(rp => rp.Permission!.PermissionDesc)
+                        .ToList()
+                    : new List<string>()
+            })
+            .FirstOrDefaultAsync();
     }
 }

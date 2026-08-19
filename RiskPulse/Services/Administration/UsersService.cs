@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using RiskPulse.Data;
 using RiskPulse.Data.Entries;
+using RiskPulse.Data.Extensions;
 using RiskPulse.Models.Dto;
+using RiskPulse.Models.ViewModel;
 
 namespace RiskPulse.Services.Administration;
 
@@ -15,40 +17,37 @@ public class UsersService
     }
 
     // --- Reads (page dropdowns + grid) ---
-    public async Task<List<User>> GetAllAsync()
+    public async Task<List<UserGridRowViewModel>> GetGridRowsAsync()
     {
         return await _db.Users
             .Include(u => u.Unit)
             .Include(u => u.Role)
             .AsNoTracking()
             .OrderBy(u => u.Id)
+            .Select(u => new UserGridRowViewModel
+            {
+                Id = u.Id,
+                Username = u.Username,
+                UnitId = u.UnitId,
+                UnitDesc = u.Unit != null ? u.Unit.UnitDesc : string.Empty,
+                RoleId = u.RoleId,
+                RoleDesc = u.Role != null ? u.Role.RoleDesc : string.Empty,
+                IsActive = u.IsActive
+            })
             .ToListAsync();
     }
 
-    public async Task<List<Unit>> GetAllUnitsAsync()
+    public async Task<List<OptionViewModel>> GetAllRolesAsync()
     {
-        return await _db.Units
-            .AsNoTracking()
-            .OrderBy(u => u.UnitDesc)
-            .ToListAsync();
-    }
-
-    public async Task<List<Role>> GetAllRolesAsync()
-    {
-        return await _db.Roles
-            .AsNoTracking()
+        return await _db.Roles.AsNoTracking()
             .OrderBy(r => r.RoleDesc)
-            .ToListAsync();
+            .ToOptionListAsync(r => r.RoleId, r => r.RoleDesc);
     }
 
     // --- User create/update ---
-    public async Task<User> CreateUserAsync(UserSaveDto model)
+    public async Task<SaveResultDto> CreateUserAsync(UserSaveDto model)
     {
-        var exists = await _db.Users.AnyAsync(u => u.Username == model.Username);
-        if (exists)
-        {
-            throw new InvalidOperationException($"Username '{model.Username}' already exists.");
-        }
+        await _db.Users.EnsureUniqueAsync(u => u.Username.ToLower() == model.Username.ToLower(), "Username", model.Username);
 
         var user = new User
         {
@@ -60,10 +59,10 @@ public class UsersService
 
         _db.Users.Add(user);
         await _db.SaveChangesAsync();
-        return user;
+        return new SaveResultDto { Id = user.Id };
     }
 
-    public async Task<User> UpdateUserAsync(UserSaveDto model, int actingUserId)
+    public async Task<SaveResultDto> UpdateUserAsync(UserSaveDto model, int actingUserId)
     {
         if (model.Id == actingUserId)
         {
@@ -73,12 +72,7 @@ public class UsersService
         var existing = await _db.Users.FindAsync(model.Id)
             ?? throw new InvalidOperationException($"User with Id {model.Id} was not found.");
 
-        var duplicate = await _db.Users.AnyAsync(u =>
-            u.Username == model.Username && u.Id != model.Id);
-        if (duplicate)
-        {
-            throw new InvalidOperationException($"Username '{model.Username}' already exists.");
-        }
+        await _db.Users.EnsureUniqueAsync(u => u.Username.ToLower() == model.Username.ToLower() && u.Id != model.Id, "Username", model.Username);
 
         existing.Username = model.Username;
         existing.IsActive = model.IsActive;
@@ -86,7 +80,7 @@ public class UsersService
         existing.RoleId = model.RoleId;
 
         await _db.SaveChangesAsync();
-        return existing;
+        return new SaveResultDto { Id = existing.Id };
     }
 
     // --- User delete ---

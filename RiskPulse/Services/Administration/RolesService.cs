@@ -1,6 +1,10 @@
 using Microsoft.EntityFrameworkCore;
 using RiskPulse.Data;
 using RiskPulse.Data.Entries;
+using RiskPulse.Data.Extensions;
+using RiskPulse.Models.Dto;
+using RiskPulse.Models.ViewModel;
+using RiskPulse.Services.Login;
 
 namespace RiskPulse.Services.Administration;
 
@@ -14,7 +18,14 @@ public class RolesService
     }
 
     // --- Reads (page dropdowns + grid) ---
-    public async Task<List<Role>> GetAllRolesAsync()
+    public async Task<List<OptionViewModel>> GetAllPermissionsAsync()
+    {
+        return await _db.Permissions.AsNoTracking()
+            .OrderBy(p => p.PermissionId)
+            .ToOptionListAsync(p => p.PermissionId, p => p.PermissionDesc);
+    }
+
+    public async Task<List<RoleGridRowViewModel>> GetGridRowsAsync()
     {
         return await _db.Roles
             .Include(r => r.DefaultPermission)
@@ -22,35 +33,32 @@ public class RolesService
                 .ThenInclude(rp => rp.Permission)
             .AsNoTracking()
             .OrderBy(r => r.RoleId)
-            .ToListAsync();
-    }
-
-    public async Task<List<Permission>> GetAllPermissionsAsync()
-    {
-        return await _db.Permissions
-            .AsNoTracking()
-            .OrderBy(p => p.PermissionId)
+            .Select(r => new RoleGridRowViewModel
+            {
+                RoleId = r.RoleId,
+                RoleDesc = r.RoleDesc,
+                DefaultPermissionId = r.DefaultPermissionId,
+                DefaultPermissionDesc = r.DefaultPermission != null ? r.DefaultPermission.PermissionDesc : PermissionCatalog.Dashboard,
+                PermissionIds = r.RolePermissions.Select(rp => rp.PermissionId).ToList(),
+                PermissionDescs = r.RolePermissions.Select(rp => rp.Permission != null ? rp.Permission.PermissionDesc : null).ToList()
+            })
             .ToListAsync();
     }
 
     // --- Role create/update ---
-    public async Task<Role> CreateRoleAsync(string roleDesc, List<int> permissionIds, int? defaultPermissionId)
+    public async Task<SaveResultDto> CreateRoleAsync(RoleSaveDto model)
     {
-        roleDesc = roleDesc.Trim();
+        var roleDesc = model.RoleDesc.Trim();
 
-        ValidateDefaultPermission(defaultPermissionId, permissionIds);
+        ValidateDefaultPermission(model.DefaultPermissionId, model.PermissionIds);
 
-        var exists = await _db.Roles.AnyAsync(r => r.RoleDesc.ToLower() == roleDesc.ToLower());
-        if (exists)
-        {
-            throw new InvalidOperationException($"Role name '{roleDesc}' already exists.");
-        }
+        await _db.Roles.EnsureUniqueAsync(r => r.RoleDesc.ToLower() == roleDesc.ToLower(), "Role name", roleDesc);
 
         var role = new Role
         {
             RoleDesc = roleDesc,
-            DefaultPermissionId = defaultPermissionId,
-            RolePermissions = permissionIds
+            DefaultPermissionId = model.DefaultPermissionId,
+            RolePermissions = model.PermissionIds
                 .Distinct()
                 .Select(permissionId => new RolePermission { PermissionId = permissionId })
                 .ToList()
@@ -58,38 +66,33 @@ public class RolesService
 
         _db.Roles.Add(role);
         await _db.SaveChangesAsync();
-        return role;
+        return new SaveResultDto { Id = role.RoleId };
     }
 
-    public async Task<Role> UpdateRoleAsync(int roleId, string roleDesc, List<int> permissionIds, int? defaultPermissionId)
+    public async Task<SaveResultDto> UpdateRoleAsync(RoleSaveDto model)
     {
-        roleDesc = roleDesc.Trim();
+        var roleDesc = model.RoleDesc.Trim();
 
-        ValidateDefaultPermission(defaultPermissionId, permissionIds);
+        ValidateDefaultPermission(model.DefaultPermissionId, model.PermissionIds);
 
-        var exists = await _db.Roles.AnyAsync(r =>
-            r.RoleDesc.ToLower() == roleDesc.ToLower() && r.RoleId != roleId);
-        if (exists)
-        {
-            throw new InvalidOperationException($"Role name '{roleDesc}' already exists.");
-        }
+        await _db.Roles.EnsureUniqueAsync(r => r.RoleDesc.ToLower() == roleDesc.ToLower() && r.RoleId != model.RoleId, "Role name", roleDesc);
 
         var existing = await _db.Roles
             .Include(r => r.RolePermissions)
-            .FirstOrDefaultAsync(r => r.RoleId == roleId)
-            ?? throw new InvalidOperationException($"Role with Id {roleId} was not found.");
+            .FirstOrDefaultAsync(r => r.RoleId == model.RoleId)
+            ?? throw new InvalidOperationException($"Role with Id {model.RoleId} was not found.");
 
         existing.RoleDesc = roleDesc;
-        existing.DefaultPermissionId = defaultPermissionId;
+        existing.DefaultPermissionId = model.DefaultPermissionId;
         existing.RolePermissions.Clear();
 
-        foreach (var permissionId in permissionIds.Distinct())
+        foreach (var permissionId in model.PermissionIds.Distinct())
         {
             existing.RolePermissions.Add(new RolePermission { PermissionId = permissionId });
         }
 
         await _db.SaveChangesAsync();
-        return existing;
+        return new SaveResultDto { Id = existing.RoleId };
     }
 
     private static void ValidateDefaultPermission(int? defaultPermissionId, List<int> permissionIds)

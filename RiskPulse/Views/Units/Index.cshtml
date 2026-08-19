@@ -2,7 +2,7 @@
 @{
     ViewData["Title"] = "Unit Management";
 
-    var unitsJson = Json.Serialize(Model.Units.Select(u => new { unitId = u.UnitId, unitCode = u.UnitCode, unitDesc = u.UnitDesc }));
+    var unitsJson = Json.Serialize(Model.Units);
 }
 
 @section Styles {
@@ -245,7 +245,7 @@
             var deleteGroupUrl = '@Url.Action("DeleteGroup", "Units")';
 
             function unitOptions() {
-                return $.map(units, function (u) { return { value: u.unitId, label: u.unitCode + ' — ' + u.unitDesc }; });
+                return $.map(units, function (u) { return { value: u.value, label: u.label }; });
             }
 
             /* =================================================================

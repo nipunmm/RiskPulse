@@ -2,7 +2,7 @@
 @{
     ViewData["Title"] = "Role Management";
 
-    var permissionsJson = Json.Serialize(Model.Permissions.Select(p => new { permissionId = p.PermissionId, permissionDesc = p.PermissionDesc }));
+    var permissionsJson = Json.Serialize(Model.Permissions);
 }
 
 @section Styles {
@@ -139,12 +139,12 @@
                 $('#' + containerId).empty().append($.map(permissions, function (p) {
                     return $('<div class="form-check">').append(
                         $('<input class="form-check-input permission-check" type="checkbox" name="permissionIds">')
-                            .attr('id', containerId + '_' + p.permissionId)
-                            .val(p.permissionId)
-                            .prop('checked', $.inArray(p.permissionId, selectedIds) > -1),
+                            .attr('id', containerId + '_' + p.value)
+                            .val(p.value)
+                            .prop('checked', $.inArray(p.value, selectedIds) > -1),
                         $('<label class="form-check-label">')
-                            .attr('for', containerId + '_' + p.permissionId)
-                            .text(p.permissionDesc)
+                            .attr('for', containerId + '_' + p.value)
+                            .text(p.label)
                     );
                 }));
             }
@@ -157,14 +157,14 @@
                     return $select.append($('<option>').val('').text('Select a default page')).prop('disabled', true);
                 }
 
-                var allowed = $.grep(permissions, function (p) { return $.inArray(p.permissionId, checkedIds) > -1; });
-                if (!$.grep(allowed, function (p) { return p.permissionId === selectedId; }).length) {
-                    var dash = $.grep(allowed, function (p) { return p.permissionDesc.toLowerCase() === 'dashboard'; })[0];
-                    selectedId = (dash || allowed[0]).permissionId;
+                var allowed = $.grep(permissions, function (p) { return $.inArray(p.value, checkedIds) > -1; });
+                if (!$.grep(allowed, function (p) { return p.value === selectedId; }).length) {
+                    var dash = $.grep(allowed, function (p) { return p.label.toLowerCase() === 'dashboard'; })[0];
+                    selectedId = (dash || allowed[0]).value;
                 }
 
                 $select.append($.map(allowed, function (p) {
-                    return $('<option>').val(p.permissionId).text(p.permissionDesc).prop('selected', p.permissionId === selectedId);
+                    return $('<option>').val(p.value).text(p.label).prop('selected', p.value === selectedId);
                 })).prop('disabled', false);
             }
 

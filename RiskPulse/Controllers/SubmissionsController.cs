@@ -2,14 +2,13 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RiskPulse.Services.Login;
 
-namespace RiskPulse.Controllers
+namespace RiskPulse.Controllers;
+
+[Authorize(Policy = $"Permission:{PermissionCatalog.Submissions}")]
+public class SubmissionsController : Controller
 {
-    [Authorize(Policy = $"Permission:{PermissionCatalog.Submissions}")]
-    public class SubmissionsController : Controller
+    public IActionResult Index()
     {
-        public IActionResult Index()
-        {
-            return View();
-        }
+        return View();
     }
 }

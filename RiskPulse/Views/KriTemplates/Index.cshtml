@@ -6,7 +6,7 @@
     var unitGroupsJson = Json.Serialize(Model.UnitGroups);
     var unitsJson = Json.Serialize(Model.Units);
     var groupsJson = Json.Serialize(Model.KriGroups);
-    var colorsJson = Json.Serialize(Model.Colors.Select(c => new { colorId = c.ColorId, colorDesc = c.ColorDesc, hexCode = c.HexCode }));
+    var colorsJson = Json.Serialize(Model.Colors);
 }
 
 @section Styles {

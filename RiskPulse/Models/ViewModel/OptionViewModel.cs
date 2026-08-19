@@ -1,6 +1,6 @@
 namespace RiskPulse.Models.ViewModel
 {
-    public class UnitGroupOptionViewModel
+    public class OptionViewModel
     {
         public int Value { get; set; }
 

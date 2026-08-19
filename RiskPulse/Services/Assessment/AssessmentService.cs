@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using RiskPulse.Data;
 using RiskPulse.Data.Entries;
+using RiskPulse.Data.Extensions;
 using RiskPulse.Models.Dto;
+using RiskPulse.Models.Enum;
 using RiskPulse.Models.ViewModel;
 
 namespace RiskPulse.Services.Assessment;
@@ -36,7 +38,7 @@ public class AssessmentService
             .ToListAsync();
     }
 
-    public async Task<AssessmentHeader> CreateDraftAsync(string name)
+    public async Task<SaveResultDto> CreateDraftAsync(string name)
     {
         var trimmed = name.Trim();
         if (string.IsNullOrWhiteSpace(trimmed))
@@ -52,7 +54,7 @@ public class AssessmentService
 
         _db.AssessmentHeaders.Add(header);
         await _db.SaveChangesAsync();
-        return header;
+        return new SaveResultDto { Id = header.AssessmentHeaderId };
     }
 
     public async Task UpdateNameAsync(int assessmentHeaderId, string name)
@@ -232,23 +234,19 @@ public class AssessmentService
         return header;
     }
 
-    private async Task<List<SaqTemplateOptionViewModel>> GetSaqOptionsAsync()
+    private async Task<List<OptionViewModel>> GetSaqOptionsAsync()
     {
-        return await _db.SaqHeaders
-            .AsNoTracking()
+        return await _db.SaqHeaders.AsNoTracking()
             .Where(h => h.SaqStatus != SaqStatus.Locked)
             .OrderBy(h => h.SaqDesc)
-            .Select(h => new SaqTemplateOptionViewModel { Value = h.SaqHeaderId, Label = h.SaqDesc })
-            .ToListAsync();
+            .ToOptionListAsync(h => h.SaqHeaderId, h => h.SaqDesc);
     }
 
-    private async Task<List<KriTemplateOptionViewModel>> GetKriOptionsAsync()
+    private async Task<List<OptionViewModel>> GetKriOptionsAsync()
     {
-        return await _db.KriHeaders
-            .AsNoTracking()
+        return await _db.KriHeaders.AsNoTracking()
             .Where(h => h.KriStatus != KriStatus.Locked)
             .OrderBy(h => h.KriHeaderDesc)
-            .Select(h => new KriTemplateOptionViewModel { Value = h.KriHeaderId, Label = h.KriHeaderDesc })
-            .ToListAsync();
+            .ToOptionListAsync(h => h.KriHeaderId, h => h.KriHeaderDesc);
     }
 }

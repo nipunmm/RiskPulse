@@ -5,71 +5,63 @@ using Microsoft.AspNetCore.Mvc;
 using RiskPulse.Models.Dto;
 using RiskPulse.Services.Login;
 
-namespace RiskPulse.Controllers
+namespace RiskPulse.Controllers;
+
+public class LoginController : Controller
 {
-    public class LoginController : Controller
+    private readonly LoginOrchestratorService _loginService;
+
+    public LoginController(LoginOrchestratorService loginService)
     {
-        private readonly LoginOrchestratorService _loginService;
+        _loginService = loginService;
+    }
 
-        public LoginController(LoginOrchestratorService loginService)
+    // --- Login (page + submit) ---
+    [HttpGet]
+    [AllowAnonymous]
+    public IActionResult Index()
+    {
+        if (User.Identity?.IsAuthenticated == true)
         {
-            _loginService = loginService;
+            var defaultPage = User.FindFirst("DefaultPage")?.Value;
+            var (controller, action) = PermissionPageMapper.GetRouteForPermission(defaultPage);
+            return RedirectToAction(action, controller);
         }
 
-        // --- Login (page + submit) ---
-        [HttpGet]
-        [AllowAnonymous]
-        public IActionResult Index()
-        {
-            if (User.Identity?.IsAuthenticated == true)
-            {
-                var defaultPage = User.FindFirst("DefaultPage")?.Value;
-                var (controller, action) = PermissionPageMapper.GetRouteForPermission(defaultPage);
-                return RedirectToAction(action, controller);
-            }
+        return View();
+    }
 
-            return View();
+    [HttpPost]
+    [AllowAnonymous]
+    public async Task<IActionResult> Login([FromBody] LoginRequestDto request)
+    {
+        var error = ControllerHelpers.ValidateModel(request, ModelState);
+        if (error != null) return error;
+
+        var result = await _loginService.AuthenticateAsync(request.Username, request.Password);
+        if (!result.Success)
+        {
+            return Json(ApiResponse.Fail<object>(result.Message ?? "Authentication failed."));
         }
 
-        [HttpPost]
-        [AllowAnonymous]
-        public async Task<IActionResult> Login([FromBody] LoginRequestDto request)
-        {
-            if (request == null || !ModelState.IsValid)
-            {
-                var message = ModelState.Values
-                    .SelectMany(v => v.Errors)
-                    .Select(e => e.ErrorMessage)
-                    .FirstOrDefault() ?? "Please correct the form errors and try again.";
+        await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, result.Principal!);
 
-                return Json(ApiResponse.Fail<object>(message));
-            }
+        var redirectUrl = Url.Action(result.RedirectAction, result.RedirectController) ?? Url.Action("Index", "Dashboard");
+        return Json(ApiResponse.Ok(new { redirectUrl }));
+    }
 
-            var result = await _loginService.AuthenticateAsync(request.Username, request.Password);
-            if (!result.Success)
-            {
-                return Json(ApiResponse.Fail<object>(result.Message ?? "Authentication failed."));
-            }
+    // --- Logout + access denied ---
+    [AllowAnonymous]
+    public async Task<IActionResult> Logout()
+    {
+        await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+        return RedirectToAction("Index", "Login");
+    }
 
-            await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, result.Principal!);
-
-            var redirectUrl = Url.Action(result.RedirectAction, result.RedirectController) ?? Url.Action("Index", "Dashboard");
-            return Json(ApiResponse.Ok(new { redirectUrl }));
-        }
-
-        // --- Logout + access denied ---
-        [AllowAnonymous]
-        public async Task<IActionResult> Logout()
-        {
-            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-            return RedirectToAction("Index", "Login");
-        }
-
-        [AllowAnonymous]
-        public IActionResult AccessDenied()
-        {
-            ViewData["RequestId"] = HttpContext.TraceIdentifier;
-            return View();
-        }
+    [AllowAnonymous]
+    public IActionResult AccessDenied()
+    {
+        ViewData["RequestId"] = HttpContext.TraceIdentifier;
+        return View();
     }
 }

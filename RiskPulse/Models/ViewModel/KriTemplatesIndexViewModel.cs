@@ -1,17 +1,15 @@
-using RiskPulse.Data.Entries;
-
 namespace RiskPulse.Models.ViewModel
 {
     public class KriTemplatesIndexViewModel
     {
         public List<KriStatusOptionViewModel> KriStatuses { get; set; } = new List<KriStatusOptionViewModel>();
 
-        public List<UnitGroupOptionViewModel> UnitGroups { get; set; } = new List<UnitGroupOptionViewModel>();
+        public List<OptionViewModel> UnitGroups { get; set; } = new List<OptionViewModel>();
 
-        public List<UnitGroupOptionViewModel> Units { get; set; } = new List<UnitGroupOptionViewModel>();
+        public List<OptionViewModel> Units { get; set; } = new List<OptionViewModel>();
 
-        public List<KriGroupOptionViewModel> KriGroups { get; set; } = new List<KriGroupOptionViewModel>();
+        public List<OptionViewModel> KriGroups { get; set; } = new List<OptionViewModel>();
 
-        public List<KriThresholdColor> Colors { get; set; } = new List<KriThresholdColor>();
+        public List<KriColorOptionViewModel> Colors { get; set; } = new List<KriColorOptionViewModel>();
     }
 }

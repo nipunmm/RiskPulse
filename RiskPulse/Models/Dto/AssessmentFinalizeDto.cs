@@ -1,4 +1,4 @@
-using RiskPulse.Data.Entries;
+using RiskPulse.Models.Enum;
 
 namespace RiskPulse.Models.Dto
 {

@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using RiskPulse.Data;
 using RiskPulse.Data.Entries;
+using RiskPulse.Data.Extensions;
 using RiskPulse.Models.Dto;
+using RiskPulse.Models.Enum;
 using RiskPulse.Models.ViewModel;
 
 namespace RiskPulse.Services.Templates;
@@ -35,16 +37,11 @@ public class KriTemplatesService
             .ToListAsync();
     }
 
-    public async Task<KriHeader> SaveHeaderAsync(KriHeaderSaveDto model)
+    public async Task<SaveResultDto> SaveHeaderAsync(KriHeaderSaveDto model)
     {
         var desc = model.KriHeaderDesc.Trim();
 
-        var exists = await _db.KriHeaders.AnyAsync(h =>
-            h.KriHeaderDesc.ToLower() == desc.ToLower() && h.KriHeaderId != model.KriHeaderId);
-        if (exists)
-        {
-            throw new InvalidOperationException($"Template '{desc}' already exists.");
-        }
+        await _db.KriHeaders.EnsureUniqueAsync(h => h.KriHeaderDesc.ToLower() == desc.ToLower() && h.KriHeaderId != model.KriHeaderId, "Template", desc);
 
         var hasGroup = model.GroupId.HasValue && model.GroupId.Value > 0;
         var hasUnit = model.UnitId.HasValue && model.UnitId.Value > 0;
@@ -83,7 +80,7 @@ public class KriTemplatesService
 
             _db.KriHeaders.Add(header);
             await _db.SaveChangesAsync();
-            return header;
+            return new SaveResultDto { Id = header.KriHeaderId };
         }
 
         var existing = await _db.KriHeaders.FindAsync(model.KriHeaderId)
@@ -100,7 +97,7 @@ public class KriTemplatesService
         existing.KriStatus = model.KriStatus;
 
         await _db.SaveChangesAsync();
-        return existing;
+        return new SaveResultDto { Id = existing.KriHeaderId };
     }
 
     public async Task DeleteHeaderAsync(int kriHeaderId)
@@ -137,7 +134,7 @@ public class KriTemplatesService
             .ToListAsync();
     }
 
-    public async Task<Kri> SaveKriAsync(KriSaveDto model)
+    public async Task<SaveResultDto> SaveKriAsync(KriSaveDto model)
     {
         var header = await _db.KriHeaders.FindAsync(model.KriHeaderId)
             ?? throw new InvalidOperationException($"Template with Id {model.KriHeaderId} was not found.");
@@ -155,12 +152,7 @@ public class KriTemplatesService
 
         var desc = model.KriDesc.Trim();
 
-        var duplicate = await _db.Kris.AnyAsync(k =>
-            k.KriHeaderId == model.KriHeaderId && k.KriId != model.KriId && k.KriDesc.ToLower() == desc.ToLower());
-        if (duplicate)
-        {
-            throw new InvalidOperationException("The same KRI description already exists in this template.");
-        }
+        await _db.Kris.EnsureUniqueAsync(k => k.KriHeaderId == model.KriHeaderId && k.KriId != model.KriId && k.KriDesc.ToLower() == desc.ToLower(), "KRI description", desc);
 
         if (model.KriId == 0)
         {
@@ -174,7 +166,7 @@ public class KriTemplatesService
 
             _db.Kris.Add(kri);
             await _db.SaveChangesAsync();
-            return kri;
+            return new SaveResultDto { Id = kri.KriId };
         }
 
         var existing = await _db.Kris.FindAsync(model.KriId)
@@ -185,7 +177,7 @@ public class KriTemplatesService
         existing.KriThresholdGroupId = model.KriThresholdGroupId;
 
         await _db.SaveChangesAsync();
-        return existing;
+        return new SaveResultDto { Id = existing.KriId };
     }
 
     public async Task DeleteKriAsync(int kriId)
@@ -204,12 +196,11 @@ public class KriTemplatesService
     }
 
     // --- Threshold configuration (colors/groups/bands) ---
-    public async Task<List<KriThresholdGroup>> GetThresholdGroupsAsync()
+    public async Task<List<OptionViewModel>> GetThresholdGroupsAsync()
     {
-        return await _db.KriThresholdGroups
-            .AsNoTracking()
+        return await _db.KriThresholdGroups.AsNoTracking()
             .OrderBy(g => g.KriThresholdGroupId)
-            .ToListAsync();
+            .ToOptionListAsync(g => g.KriThresholdGroupId, g => g.KriThresholdGroupDesc);
     }
 
     public async Task<List<KriGroupGridRowViewModel>> GetGroupRowsAsync()
@@ -226,23 +217,18 @@ public class KriTemplatesService
             .ToListAsync();
     }
 
-    public async Task<KriThresholdGroup> SaveGroupAsync(KriThresholdGroupSaveDto model)
+    public async Task<SaveResultDto> SaveGroupAsync(KriThresholdGroupSaveDto model)
     {
         var desc = model.KriThresholdGroupDesc.Trim();
 
-        var exists = await _db.KriThresholdGroups.AnyAsync(g =>
-            g.KriThresholdGroupDesc.ToLower() == desc.ToLower() && g.KriThresholdGroupId != model.KriThresholdGroupId);
-        if (exists)
-        {
-            throw new InvalidOperationException($"Group '{desc}' already exists.");
-        }
+        await _db.KriThresholdGroups.EnsureUniqueAsync(g => g.KriThresholdGroupDesc.ToLower() == desc.ToLower() && g.KriThresholdGroupId != model.KriThresholdGroupId, "Group", desc);
 
         if (model.KriThresholdGroupId == 0)
         {
             var group = new KriThresholdGroup { KriThresholdGroupDesc = desc };
             _db.KriThresholdGroups.Add(group);
             await _db.SaveChangesAsync();
-            return group;
+            return new SaveResultDto { Id = group.KriThresholdGroupId };
         }
 
         var existing = await _db.KriThresholdGroups.FindAsync(model.KriThresholdGroupId)
@@ -251,7 +237,7 @@ public class KriTemplatesService
         existing.KriThresholdGroupDesc = desc;
 
         await _db.SaveChangesAsync();
-        return existing;
+        return new SaveResultDto { Id = existing.KriThresholdGroupId };
     }
 
     public async Task DeleteGroupAsync(int groupId)
@@ -265,17 +251,21 @@ public class KriTemplatesService
             throw new InvalidOperationException("Cannot delete a group that is assigned to a KRI.");
         }
 
-        await _db.KriThresholds.Where(t => t.KriThresholdGroupId == groupId).ExecuteDeleteAsync();
-
         _db.KriThresholdGroups.Remove(group);
         await _db.SaveChangesAsync();
     }
 
-    public async Task<List<KriThresholdColor>> GetColorsAsync()
+    public async Task<List<KriColorOptionViewModel>> GetColorsAsync()
     {
         return await _db.KriThresholdColors
             .AsNoTracking()
             .OrderBy(c => c.ColorId)
+            .Select(c => new KriColorOptionViewModel
+            {
+                ColorId = c.ColorId,
+                ColorDesc = c.ColorDesc,
+                HexCode = c.HexCode
+            })
             .ToListAsync();
     }
 
@@ -293,31 +283,20 @@ public class KriTemplatesService
             .ToListAsync();
     }
 
-    public async Task<KriThresholdColor> SaveColorAsync(KriColorSaveDto model)
+    public async Task<SaveResultDto> SaveColorAsync(KriColorSaveDto model)
     {
         var desc = model.ColorDesc.Trim();
         var hex = model.HexCode.Trim().ToUpper();
 
-        var exists = await _db.KriThresholdColors.AnyAsync(c =>
-            c.ColorDesc.ToLower() == desc.ToLower() && c.ColorId != model.ColorId);
-        if (exists)
-        {
-            throw new InvalidOperationException($"Color '{desc}' already exists.");
-        }
-
-        var hexExists = await _db.KriThresholdColors.AnyAsync(c =>
-            c.HexCode.ToLower() == hex.ToLower() && c.ColorId != model.ColorId);
-        if (hexExists)
-        {
-            throw new InvalidOperationException($"Color with hex code '{hex}' already exists.");
-        }
+        await _db.KriThresholdColors.EnsureUniqueAsync(c => c.ColorDesc.ToLower() == desc.ToLower() && c.ColorId != model.ColorId, "Color", desc);
+        await _db.KriThresholdColors.EnsureUniqueAsync(c => c.HexCode.ToLower() == hex.ToLower() && c.ColorId != model.ColorId, "Color", hex);
 
         if (model.ColorId == 0)
         {
             var color = new KriThresholdColor { ColorDesc = desc, HexCode = hex };
             _db.KriThresholdColors.Add(color);
             await _db.SaveChangesAsync();
-            return color;
+            return new SaveResultDto { Id = color.ColorId };
         }
 
         var existing = await _db.KriThresholdColors.FindAsync(model.ColorId)
@@ -327,7 +306,7 @@ public class KriTemplatesService
         existing.HexCode = hex;
 
         await _db.SaveChangesAsync();
-        return existing;
+        return new SaveResultDto { Id = existing.ColorId };
     }
 
     public async Task DeleteColorAsync(int colorId)

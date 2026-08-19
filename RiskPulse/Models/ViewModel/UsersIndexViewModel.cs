@@ -1,13 +1,11 @@
-using RiskPulse.Data.Entries;
-
 namespace RiskPulse.Models.ViewModel
 {
     public class UsersIndexViewModel
     {
         public int CurrentUserId { get; set; }
 
-        public List<Unit> Units { get; set; } = new List<Unit>();
+        public List<OptionViewModel> Units { get; set; } = new List<OptionViewModel>();
 
-        public List<Role> Roles { get; set; } = new List<Role>();
+        public List<OptionViewModel> Roles { get; set; } = new List<OptionViewModel>();
     }
 }

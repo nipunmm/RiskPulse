@@ -40,54 +40,15 @@ public class UnitsController : Controller
     [HttpPost]
     public async Task<IActionResult> SaveUnit([FromBody] UnitSaveDto model)
     {
-        if (model == null || !ModelState.IsValid)
-        {
-            var message = ModelState.Values
-                .SelectMany(v => v.Errors)
-                .Select(e => e.ErrorMessage)
-                .FirstOrDefault() ?? "Please correct the form errors and try again.";
-
-            return Json(ApiResponse.Fail<object>(message));
-        }
-
-        try
-        {
-            var isNew = model.UnitId == 0;
-            var saved = await _unitsService.SaveUnitAsync(model);
-
-            return Json(ApiResponse.Ok(new { id = saved.UnitId }, isNew ? "Unit created successfully." : "Unit updated successfully."));
-        }
-        catch (InvalidOperationException ex)
-        {
-            return Json(ApiResponse.Fail<object>(ex.Message));
-        }
-        catch (Exception)
-        {
-            return Json(ApiResponse.Fail<object>("An error occurred while saving. Please try again."));
-        }
+        return await ControllerHelpers.TrySave(model, ModelState, m => m.UnitId,
+            m => _unitsService.SaveUnitAsync(m), "Unit");
     }
 
     [HttpPost]
     public async Task<IActionResult> DeleteUnit([FromBody] DeleteRequestDto request)
     {
-        if (request == null || !ModelState.IsValid)
-        {
-            return Json(ApiResponse.Fail<object>("Please correct the form errors and try again."));
-        }
-
-        try
-        {
-            await _unitsService.DeleteUnitAsync(request.Id);
-            return Json(ApiResponse.Ok<object>(new { }, "Unit deleted successfully."));
-        }
-        catch (InvalidOperationException ex)
-        {
-            return Json(ApiResponse.Fail<object>(ex.Message));
-        }
-        catch (Exception)
-        {
-            return Json(ApiResponse.Fail<object>("An error occurred while deleting. Please try again."));
-        }
+        return await ControllerHelpers.TryDelete(request, ModelState,
+            id => _unitsService.DeleteUnitAsync(id), "Unit");
     }
 
     // --- Unit groups (grid/save/delete) ---
@@ -101,53 +62,14 @@ public class UnitsController : Controller
     [HttpPost]
     public async Task<IActionResult> SaveGroup([FromBody] GroupSaveDto model)
     {
-        if (model == null || !ModelState.IsValid)
-        {
-            var message = ModelState.Values
-                .SelectMany(v => v.Errors)
-                .Select(e => e.ErrorMessage)
-                .FirstOrDefault() ?? "Please correct the form errors and try again.";
-
-            return Json(ApiResponse.Fail<object>(message));
-        }
-
-        try
-        {
-            var isNew = model.GroupId == 0;
-            var saved = await _unitsService.SaveGroupAsync(model);
-
-            return Json(ApiResponse.Ok(new { id = saved.GroupId }, isNew ? "Group created successfully." : "Group updated successfully."));
-        }
-        catch (InvalidOperationException ex)
-        {
-            return Json(ApiResponse.Fail<object>(ex.Message));
-        }
-        catch (Exception)
-        {
-            return Json(ApiResponse.Fail<object>("An error occurred while saving. Please try again."));
-        }
+        return await ControllerHelpers.TrySave(model, ModelState, m => m.GroupId,
+            m => _unitsService.SaveGroupAsync(m), "Group");
     }
 
     [HttpPost]
     public async Task<IActionResult> DeleteGroup([FromBody] DeleteRequestDto request)
     {
-        if (request == null || !ModelState.IsValid)
-        {
-            return Json(ApiResponse.Fail<object>("Please correct the form errors and try again."));
-        }
-
-        try
-        {
-            await _unitsService.DeleteGroupAsync(request.Id);
-            return Json(ApiResponse.Ok<object>(new { }, "Group deleted successfully."));
-        }
-        catch (InvalidOperationException ex)
-        {
-            return Json(ApiResponse.Fail<object>(ex.Message));
-        }
-        catch (Exception)
-        {
-            return Json(ApiResponse.Fail<object>("An error occurred while deleting. Please try again."));
-        }
+        return await ControllerHelpers.TryDelete(request, ModelState,
+            id => _unitsService.DeleteGroupAsync(id), "Group");
     }
 }

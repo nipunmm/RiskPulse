@@ -2,8 +2,8 @@
 @{
     ViewData["Title"] = "User Management";
 
-    var unitsJson = Json.Serialize(Model.Units.Select(u => new { unitId = u.UnitId, unitCode = u.UnitCode, unitDesc = u.UnitDesc }));
-    var rolesJson = Json.Serialize(Model.Roles.Select(r => new { roleId = r.RoleId, roleDesc = r.RoleDesc }));
+    var unitsJson = Json.Serialize(Model.Units);
+    var rolesJson = Json.Serialize(Model.Roles);
     var currentUserId = Model.CurrentUserId;
 }
 
@@ -138,11 +138,11 @@
                SECTION 2 — UI RENDERERS (Unit/Role dropdowns)
                ================================================================= */
             function unitOptions() {
-                return $.map(units, function (u) { return { value: u.unitId, label: u.unitDesc }; });
+                return units;
             }
 
             function roleOptions() {
-                return $.map(roles, function (r) { return { value: r.roleId, label: r.roleDesc }; });
+                return roles;
             }
 
             /* =================================================================

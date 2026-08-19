@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using RiskPulse.Data;
 using RiskPulse.Data.Entries;
+using RiskPulse.Data.Extensions;
 using RiskPulse.Models.Dto;
+using RiskPulse.Models.Enum;
 using RiskPulse.Models.ViewModel;
 
 namespace RiskPulse.Services.Templates;
@@ -35,16 +37,11 @@ public class SaqTemplatesService
             .ToListAsync();
     }
 
-    public async Task<SaqHeader> SaveHeaderAsync(SaqHeaderSaveDto model)
+    public async Task<SaveResultDto> SaveHeaderAsync(SaqHeaderSaveDto model)
     {
         var desc = model.SaqDesc.Trim();
 
-        var exists = await _db.SaqHeaders.AnyAsync(h =>
-            h.SaqDesc.ToLower() == desc.ToLower() && h.SaqHeaderId != model.SaqHeaderId);
-        if (exists)
-        {
-            throw new InvalidOperationException($"Template '{desc}' already exists.");
-        }
+        await _db.SaqHeaders.EnsureUniqueAsync(h => h.SaqDesc.ToLower() == desc.ToLower() && h.SaqHeaderId != model.SaqHeaderId, "Template", desc);
 
         var hasGroup = model.GroupId.HasValue && model.GroupId.Value > 0;
         var hasUnit = model.UnitId.HasValue && model.UnitId.Value > 0;
@@ -83,7 +80,7 @@ public class SaqTemplatesService
 
             _db.SaqHeaders.Add(header);
             await _db.SaveChangesAsync();
-            return header;
+            return new SaveResultDto { Id = header.SaqHeaderId };
         }
 
         var existing = await _db.SaqHeaders.FindAsync(model.SaqHeaderId)
@@ -100,7 +97,7 @@ public class SaqTemplatesService
         existing.SaqStatus = model.SaqStatus;
 
         await _db.SaveChangesAsync();
-        return existing;
+        return new SaveResultDto { Id = existing.SaqHeaderId };
     }
 
     public async Task DeleteHeaderAsync(int saqHeaderId)
@@ -113,28 +110,12 @@ public class SaqTemplatesService
             throw new InvalidOperationException("Cannot delete a locked template.");
         }
 
-        var questionIds = await _db.SaqQuestions
-            .Where(q => q.SaqHeaderId == saqHeaderId)
-            .Select(q => q.QuestionId)
-            .ToListAsync();
-
-        if (questionIds.Count > 0)
-        {
-            await _db.SaqQuestionOptions
-                .Where(o => questionIds.Contains(o.QuestionId))
-                .ExecuteDeleteAsync();
-
-            await _db.SaqQuestions
-                .Where(q => q.SaqHeaderId == saqHeaderId)
-                .ExecuteDeleteAsync();
-        }
-
         _db.SaqHeaders.Remove(header);
         await _db.SaveChangesAsync();
     }
 
     // --- SAQ questions + options (grid/save/delete) ---
-    public async Task<List<SaqQuestion>> GetQuestionsAsync(int saqHeaderId)
+    public async Task<List<SaqQuestionGridRowViewModel>> GetQuestionRowsAsync(int saqHeaderId)
     {
         return await _db.SaqQuestions
             .Include(q => q.SaqQuestionOptions)
@@ -142,10 +123,26 @@ public class SaqTemplatesService
             .Where(q => q.SaqHeaderId == saqHeaderId)
             .OrderBy(q => q.DisplayOrder)
             .ThenBy(q => q.QuestionId)
+            .Select(q => new SaqQuestionGridRowViewModel
+            {
+                QuestionId = q.QuestionId,
+                QuestionText = q.QuestionText,
+                AllowComment = q.AllowComment,
+                DisplayOrder = q.DisplayOrder,
+                Options = q.SaqQuestionOptions
+                    .OrderBy(o => o.DisplayOrder)
+                    .ThenBy(o => o.OptionId)
+                    .Select(o => new SaqOptionGridRowViewModel
+                    {
+                        OptionId = o.OptionId,
+                        OptionText = o.OptionText
+                    })
+                    .ToList()
+            })
             .ToListAsync();
     }
 
-    public async Task<SaqQuestion> SaveQuestionAsync(SaqQuestionSaveDto model)
+    public async Task<SaveResultDto> SaveQuestionAsync(SaqQuestionSaveDto model)
     {
         var header = await _db.SaqHeaders.FindAsync(model.SaqHeaderId)
             ?? throw new InvalidOperationException($"Template with Id {model.SaqHeaderId} was not found.");
@@ -207,7 +204,7 @@ public class SaqTemplatesService
 
             _db.SaqQuestions.Add(question);
             await _db.SaveChangesAsync();
-            return question;
+            return new SaveResultDto { Id = question.QuestionId };
         }
 
         var existing = await _db.SaqQuestions
@@ -230,7 +227,7 @@ public class SaqTemplatesService
         }
 
         await _db.SaveChangesAsync();
-        return existing;
+        return new SaveResultDto { Id = existing.QuestionId };
     }
 
     public async Task DeleteQuestionAsync(int questionId)

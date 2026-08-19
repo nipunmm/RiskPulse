@@ -2,14 +2,13 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RiskPulse.Services.Login;
 
-namespace RiskPulse.Controllers
+namespace RiskPulse.Controllers;
+
+[Authorize(Policy = $"Permission:{PermissionCatalog.RiskRegister}")]
+public class RiskRegisterTemplatesController : Controller
 {
-    [Authorize(Policy = $"Permission:{PermissionCatalog.RiskRegister}")]
-    public class RiskRegisterTemplatesController : Controller
+    public IActionResult Index()
     {
-        public IActionResult Index()
-        {
-            return View();
-        }
+        return View();
     }
 }

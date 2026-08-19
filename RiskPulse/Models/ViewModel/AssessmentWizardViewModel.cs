@@ -16,9 +16,9 @@ namespace RiskPulse.Models.ViewModel
 
         public DateTime? EndDate { get; set; }
 
-        public List<SaqTemplateOptionViewModel> SaqOptions { get; set; } = new();
+        public List<OptionViewModel> SaqOptions { get; set; } = new();
 
-        public List<KriTemplateOptionViewModel> KriOptions { get; set; } = new();
+        public List<OptionViewModel> KriOptions { get; set; } = new();
 
         public bool CompletedSaq { get; set; }
 
