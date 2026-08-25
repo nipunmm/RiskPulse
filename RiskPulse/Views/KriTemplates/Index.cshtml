@@ -11,23 +11,12 @@
 
 @section Styles {
     <link rel="stylesheet" href="~/lib/datatables/dataTables.bootstrap5.min.css" />
-    <style>
-        .design-split { display: flex; min-height: 440px; max-height: 68vh; }
-        .design-left { width: 310px; min-width: 260px; border-right: 1px solid var(--outline-variant); display: flex; flex-direction: column; }
-        .design-left-list { flex: 1; overflow-y: auto; padding: 0.5rem; }
-        .design-right { flex: 1; overflow-y: auto; }
-        .kri-item { cursor: pointer; border-left: 3px solid transparent; transition: border-color 0.15s, background 0.15s; }
-        .kri-item:hover { background: rgba(27, 54, 93, 0.03); }
-        .kri-item.selected { border-left-color: var(--primary-container); background: rgba(27, 54, 93, 0.05); }
-        .kri-item .kri-delete-btn { opacity: 0; transition: opacity 0.15s; }
-        .kri-item:hover .kri-delete-btn { opacity: 1; }
-    </style>
 }
 
-<div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-end gap-2 mb-2">
+<div class="rp-page-header">
     <div>
-        <h2 class="font-display-lg" style="color: var(--on-background);">KRI Templates</h2>
-        <p class="font-body-md mt-1 mb-0" style="color: var(--on-surface-variant);">
+        <h2 class="rp-display-lg">KRI Templates</h2>
+        <p class="rp-body-md mt-1 mb-0 rp-text-muted">
             Manage Key Risk Indicator templates — build KRIs and configure the threshold colors and groups behind them.
         </p>
     </div>
@@ -36,7 +25,7 @@
 <!-- ============================================================
      TABS — KRI TEMPLATES | THRESHOLD COLORS | KRI GROUPS
      ============================================================ -->
-<div class="card-stasis p-2">
+<div class="rp-card p-2">
     <ul class="nav nav-tabs" id="kriTabs" role="tablist">
         <li class="nav-item" role="presentation">
             <button class="nav-link active" id="kriTemplatesTab" data-bs-toggle="tab" data-bs-target="#templatesPane" type="button" role="tab" aria-controls="templatesPane" aria-selected="true">
@@ -60,13 +49,13 @@
              KRI TEMPLATES PANE
              ============================================================ -->
         <div class="tab-pane fade show active" id="templatesPane" role="tabpanel" aria-labelledby="kriTemplatesTab">
-            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 px-2 pb-2">
-                <p class="mb-0 font-body-sm" style="color: var(--on-surface-variant);">Build KRI template headers and their KRIs.</p>
-                <button type="button" class="btn-stasis-primary" data-bs-toggle="modal" data-bs-target="#kriModal">
+            <div class="rp-grid-toolbar">
+                <p class="mb-0 rp-body-sm rp-text-muted">Build KRI template headers and their KRIs.</p>
+                <button type="button" class="rp-btn rp-btn-primary" data-bs-toggle="modal" data-bs-target="#addKriModal">
                     <i class="fas fa-plus"></i> Add Template
                 </button>
             </div>
-            <table id="kriTable" class="table table-stasis table-sm w-100 align-middle">
+            <table id="kriTable" class="table rp-table table-sm w-100 align-middle">
                 <thead>
                     <tr>
                         <th>ID</th>
@@ -84,13 +73,13 @@
              THRESHOLD COLORS PANE
              ============================================================ -->
         <div class="tab-pane fade" id="colorsPane" role="tabpanel" aria-labelledby="colorsTab">
-            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 px-2 pb-2">
-                <p class="mb-0 font-body-sm" style="color: var(--on-surface-variant);">Configure the color palette used to map KRI values to risk levels.</p>
-                <button type="button" class="btn-stasis-primary" data-bs-toggle="modal" data-bs-target="#colorModal">
+            <div class="rp-grid-toolbar">
+                <p class="mb-0 rp-body-sm rp-text-muted">Configure the color palette used to map KRI values to risk levels.</p>
+                <button type="button" class="rp-btn rp-btn-primary" data-bs-toggle="modal" data-bs-target="#colorModal">
                     <i class="fas fa-plus"></i> Add Color
                 </button>
             </div>
-            <table id="colorTable" class="table table-stasis table-sm w-100 align-middle">
+            <table id="colorTable" class="table rp-table table-sm w-100 align-middle">
                 <thead>
                     <tr>
                         <th>ID</th>
@@ -106,13 +95,13 @@
              KRI GROUPS PANE
              ============================================================ -->
         <div class="tab-pane fade" id="groupsPane" role="tabpanel" aria-labelledby="groupsTab">
-            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 px-2 pb-2">
-                <p class="mb-0 font-body-sm" style="color: var(--on-surface-variant);">Group threshold bands and attach them to KRIs.</p>
-                <button type="button" class="btn-stasis-primary" data-bs-toggle="modal" data-bs-target="#groupModal">
+            <div class="rp-grid-toolbar">
+                <p class="mb-0 rp-body-sm rp-text-muted">Group threshold bands and attach them to KRIs.</p>
+                <button type="button" class="rp-btn rp-btn-primary" data-bs-toggle="modal" data-bs-target="#groupModal">
                     <i class="fas fa-plus"></i> Add Group
                 </button>
             </div>
-            <table id="groupTable" class="table table-stasis table-sm w-100 align-middle">
+            <table id="groupTable" class="table rp-table table-sm w-100 align-middle">
                 <thead>
                     <tr>
                         <th>ID</th>
@@ -127,45 +116,90 @@
 </div>
 
 <!-- ============================================================
-     ADD / EDIT TEMPLATE MODAL
+     ADD TEMPLATE MODAL
      ============================================================ -->
-<div class="modal fade" id="kriModal" tabindex="-1" aria-labelledby="kriModalLabel" aria-hidden="true">
+<div class="modal fade" id="addKriModal" tabindex="-1" aria-labelledby="addKriModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
-            <form id="kriForm" novalidate>
-                <input type="hidden" id="kriHeaderId" name="kriHeaderId" value="0" />
+            <form id="addKriForm" novalidate>
                 <div class="modal-header">
-                    <h5 class="modal-title" id="kriModalLabel">Add Template</h5>
+                    <h5 class="modal-title" id="addKriModalLabel">Add Template</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label class="input-label" for="kriHeaderDesc">Description</label>
-                        <input type="text" id="kriHeaderDesc" name="kriHeaderDesc" class="input-stasis" required autocomplete="off" />
+                        <label class="rp-label" for="addKriDesc">Description</label>
+                        <input type="text" id="addKriDesc" name="kriHeaderDesc" class="rp-input" required autocomplete="off" />
                     </div>
                     <div class="mb-3">
-                        <label class="input-label" for="kriLinkType">Link Type</label>
-                        <select id="kriLinkType" class="input-stasis">
+                        <label class="rp-label" for="addKriLinkType">Link Type</label>
+                        <select id="addKriLinkType" class="rp-input">
                             <option value="group">Unit Group</option>
                             <option value="unit">Unit</option>
                         </select>
                     </div>
-                    <div class="mb-3" id="kriGroupRow">
-                        <label class="input-label" for="kriGroupId">Unit Group</label>
-                        <select id="kriGroupId" name="groupId" class="input-stasis"></select>
+                    <div class="mb-3" id="addKriGroupRow">
+                        <label class="rp-label" for="addKriGroupId">Unit Group</label>
+                        <select id="addKriGroupId" name="groupId" class="rp-input"></select>
                     </div>
-                    <div class="mb-3 d-none" id="kriUnitRow">
-                        <label class="input-label" for="kriUnitId">Unit</label>
-                        <select id="kriUnitId" name="unitId" class="input-stasis"></select>
+                    <div class="mb-3 d-none" id="addKriUnitRow">
+                        <label class="rp-label" for="addKriUnitId">Unit</label>
+                        <select id="addKriUnitId" name="unitId" class="rp-input"></select>
                     </div>
                     <div class="mb-3">
-                        <label class="input-label" for="kriStatus">Status</label>
-                        <select id="kriStatus" name="kriStatus" class="input-stasis"></select>
+                        <label class="rp-label" for="addKriStatus">Status</label>
+                        <select id="addKriStatus" name="kriStatus" class="rp-input"></select>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn-stasis-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn-stasis-primary"><i class="fas fa-check"></i> Save</button>
+                    <button type="button" class="rp-btn rp-btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="rp-btn rp-btn-primary"><i class="fas fa-check"></i> Create</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================
+     EDIT TEMPLATE MODAL
+     ============================================================ -->
+<div class="modal fade" id="editKriModal" tabindex="-1" aria-labelledby="editKriModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="editKriForm" novalidate>
+                <input type="hidden" id="editKriHeaderId" name="kriHeaderId" value="0" />
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editKriModalLabel">Edit Template</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="rp-label" for="editKriDesc">Description</label>
+                        <input type="text" id="editKriDesc" name="kriHeaderDesc" class="rp-input" required autocomplete="off" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="rp-label" for="editKriLinkType">Link Type</label>
+                        <select id="editKriLinkType" class="rp-input">
+                            <option value="group">Unit Group</option>
+                            <option value="unit">Unit</option>
+                        </select>
+                    </div>
+                    <div class="mb-3" id="editKriGroupRow">
+                        <label class="rp-label" for="editKriGroupId">Unit Group</label>
+                        <select id="editKriGroupId" name="groupId" class="rp-input"></select>
+                    </div>
+                    <div class="mb-3 d-none" id="editKriUnitRow">
+                        <label class="rp-label" for="editKriUnitId">Unit</label>
+                        <select id="editKriUnitId" name="unitId" class="rp-input"></select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="rp-label" for="editKriStatus">Status</label>
+                        <select id="editKriStatus" name="kriStatus" class="rp-input"></select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="rp-btn rp-btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="rp-btn rp-btn-primary"><i class="fas fa-check"></i> Save</button>
                 </div>
             </form>
         </div>
@@ -186,20 +220,20 @@
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label class="input-label" for="colorDesc">Description</label>
-                        <input type="text" id="colorDesc" name="colorDesc" class="input-stasis" required autocomplete="off" placeholder="e.g. Red" />
+                        <label class="rp-label" for="colorDesc">Description</label>
+                        <input type="text" id="colorDesc" name="colorDesc" class="rp-input" required autocomplete="off" placeholder="e.g. Red" />
                     </div>
                     <div class="mb-3">
-                        <label class="input-label" for="hexCode">Hex Code</label>
+                        <label class="rp-label" for="hexCode">Hex Code</label>
                         <div class="d-flex gap-2 align-items-center">
-                            <input type="text" id="hexCode" name="hexCode" class="input-stasis" required autocomplete="off" placeholder="#RRGGBB" />
-                            <span id="colorSwatch" style="width:28px;height:28px;border-radius:4px;border:1px solid var(--outline-variant);"></span>
+                            <input type="text" id="hexCode" name="hexCode" class="rp-input" required autocomplete="off" placeholder="#RRGGBB" />
+                            <span id="colorSwatch" class="rp-swatch"></span>
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn-stasis-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn-stasis-primary"><i class="fas fa-check"></i> Save</button>
+                    <button type="button" class="rp-btn rp-btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="rp-btn rp-btn-primary"><i class="fas fa-check"></i> Save</button>
                 </div>
             </form>
         </div>
@@ -220,13 +254,13 @@
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label class="input-label" for="groupDesc">Description</label>
-                        <input type="text" id="groupDesc" name="kriThresholdGroupDesc" class="input-stasis" required autocomplete="off" placeholder="e.g. Standard RAG bands" />
+                        <label class="rp-label" for="groupDesc">Description</label>
+                        <input type="text" id="groupDesc" name="kriThresholdGroupDesc" class="rp-input" required autocomplete="off" placeholder="e.g. Standard RAG bands" />
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn-stasis-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn-stasis-primary"><i class="fas fa-check"></i> Save</button>
+                    <button type="button" class="rp-btn rp-btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="rp-btn rp-btn-primary"><i class="fas fa-check"></i> Save</button>
                 </div>
             </form>
         </div>
@@ -242,20 +276,20 @@
             <div class="modal-header">
                 <div>
                     <h5 class="modal-title" id="bandsModalLabel">Threshold Bands</h5>
-                    <small class="text-muted font-body-sm" id="bandsGroupLabel"></small>
+                    <small class="text-muted rp-body-sm" id="bandsGroupLabel"></small>
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <div class="mb-2 d-flex justify-content-between align-items-center">
-                    <span class="text-muted font-body-sm">Each band maps a value range to a color.</span>
-                    <button type="button" class="btn-stasis-secondary" id="addBandBtn">
+                    <span class="text-muted rp-body-sm">Each band maps a value range to a color.</span>
+                    <button type="button" class="rp-btn rp-btn-secondary" id="addBandBtn">
                         <i class="fas fa-plus"></i> Add Band
                     </button>
                 </div>
                 <div id="bandRows"></div>
                 <div class="mt-3">
-                    <button type="button" class="btn-stasis-primary" id="saveBandsBtn">
+                    <button type="button" class="rp-btn rp-btn-primary" id="saveBandsBtn">
                         <i class="fas fa-check"></i> Save Bands
                     </button>
                 </div>
@@ -278,22 +312,22 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-0">
-                <div class="design-split">
+                <div class="rp-design-split">
                     <!-- LEFT PANEL: KRI List -->
-                    <div class="design-left">
+                    <div class="rp-design-left">
                         <div class="p-2 border-bottom d-flex justify-content-between align-items-center">
-                            <span class="font-label-md" style="color: var(--on-surface-variant);">KRIs (<span id="kriCount">0</span>)</span>
-                            <button type="button" class="btn-stasis-primary" id="addKriItemBtn">
+                            <span class="rp-label-md rp-text-muted">KRIs (<span id="kriCount">0</span>)</span>
+                            <button type="button" class="rp-btn rp-btn-primary" id="addKriItemBtn">
                                 <i class="fas fa-plus"></i> Add
                             </button>
                         </div>
-                        <div class="design-left-list" id="kriList"></div>
+                        <div class="rp-design-left-list" id="kriList"></div>
                     </div>
                     <!-- RIGHT PANEL: Editor -->
-                    <div class="design-right">
-                        <div id="editorEmptyState" class="d-flex flex-column align-items-center justify-content-center h-100 text-muted py-5">
-                            <i class="fas fa-gauge-high fa-2x mb-3" style="opacity:0.4;"></i>
-                            <p class="font-body-md mb-0">Select a KRI on the left, or click <strong>Add</strong> to create one.</p>
+                    <div class="rp-design-right">
+                        <div id="editorEmptyState" class="rp-empty-state">
+                            <i class="fas fa-gauge-high fa-2x mb-3 rp-empty-state-icon"></i>
+                            <p class="rp-body-md mb-0">Select a KRI on the left, or click <strong>Add</strong> to create one.</p>
                         </div>
                         <div id="kriEditor" class="p-3 d-none">
                             <div class="d-flex justify-content-between align-items-center mb-3">
@@ -301,32 +335,31 @@
                                 <input type="hidden" id="editorKriId" value="0" />
                             </div>
                             <div class="mb-2">
-                                <label class="input-label" for="editorKriDesc">KRI Description</label>
-                                <textarea id="editorKriDesc" class="input-stasis w-100" rows="2" autocomplete="off" placeholder="e.g. Number of late cash counts this month"></textarea>
+                                <label class="rp-label" for="editorKriDesc">KRI Description</label>
+                                <textarea id="editorKriDesc" class="rp-input w-100" rows="2" autocomplete="off" placeholder="e.g. Number of late cash counts this month"></textarea>
                             </div>
                             <div class="mb-2">
-                                <label class="input-label" for="editorGroupId">Threshold Group</label>
-                                <select id="editorGroupId" class="input-stasis w-100"></select>
+                                <label class="rp-label" for="editorGroupId">Threshold Group</label>
+                                <select id="editorGroupId" class="rp-input w-100"></select>
                             </div>
-                            <div class="form-check mb-2">
-                                <input class="form-check-input" type="checkbox" id="editorAllowComment" checked disabled />
-                                <label class="form-check-label font-body-md" for="editorAllowComment">Allow comments for this question</label>
+                            <div class="mb-2 rp-body-md rp-text-muted">
+                                <i class="fas fa-comment me-1"></i> Comments are always allowed for KRI items.
                             </div>
                             <div class="mt-3 d-flex gap-2">
-                                <button type="button" class="btn-stasis-primary" id="saveKriItemBtn">
+                                <button type="button" class="rp-btn rp-btn-primary" id="saveKriItemBtn">
                                     <i class="fas fa-check"></i> Save KRI
                                 </button>
-                                <button type="button" class="btn-stasis-secondary" id="cancelKriItemBtn">Cancel</button>
+                                <button type="button" class="rp-btn rp-btn-secondary" id="cancelKriItemBtn">Cancel</button>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
             <div class="modal-footer py-2">
-                <span class="text-muted font-body-sm me-auto" id="lockedNotice" style="display:none;">
+                <span class="rp-locked-note text-muted rp-body-sm me-auto" id="lockedNotice">
                     <i class="fas fa-lock me-1"></i> This template is locked and cannot be modified.
                 </span>
-                <button type="button" class="btn-stasis-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="rp-btn rp-btn-secondary" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>
@@ -371,16 +404,8 @@
             /* =================================================================
                SECTION 2 — UI RENDERERS
                ================================================================= */
-            function statusPill(status) {
-                switch (status) {
-                    case 'Active': return '<span class="status-pill rag-green">Active</span>';
-                    case 'Locked': return '<span class="status-pill rag-amber">Locked</span>';
-                    default: return '<span class="status-pill rag-red">Inactive</span>';
-                }
-            }
-
             function swatch(hex) {
-                return $('<span style="display:inline-block;width:16px;height:16px;border-radius:3px;border:1px solid var(--outline-variant);"></span>').css('background', hex);
+                return $('<span class="rp-swatch-sm"></span>').css('background', hex);
             }
 
             function renderKriList(kris) {
@@ -389,29 +414,29 @@
                 $('#kriCount').text(loadedKris.length);
 
                 if (!loadedKris.length) {
-                    $container.append('<div class="text-center text-muted font-body-sm py-4">No KRIs yet.</div>');
+                    $container.append('<div class="text-center text-muted rp-body-sm py-4">No KRIs yet.</div>');
                     return;
                 }
 
                 $.each(loadedKris, function (i, k) {
-                    var $item = $('<div class="kri-item card-stasis p-2 mb-1">').data('kri', k);
+                    var $item = $('<div class="rp-design-item rp-card p-2 mb-1" tabindex="0">').data('kri', k);
                     if (k.kriId === selectedKriId) $item.addClass('selected');
 
                     var $top = $('<div class="d-flex justify-content-between align-items-center gap-1">');
-                    var $label = $('<div class="font-body-md fw-semibold" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">');
+                    var $label = $('<div class="rp-body-md fw-semibold rp-truncate">');
                     $label.append($('<span>').text(k.kriDesc));
                     $top.append($label);
 
                     if (!currentKriLocked) {
                         $top.append(
-                            $('<button type="button" class="btn-stasis-secondary kri-delete-btn" title="Delete" style="padding:0.15rem 0.4rem;">')
+                            $('<button type="button" class="rp-btn rp-btn-delete rp-design-item-delete" title="Delete">')
                                 .append('<i class="fas fa-trash-can"></i>')
                                 .data('kri', k)
                         );
                     }
                     $item.append($top);
 
-                    var $meta = $('<div class="font-body-sm text-muted mt-1">');
+                    var $meta = $('<div class="rp-body-sm text-muted mt-1">');
                     $meta.text(k.kriThresholdGroupDesc ? k.kriThresholdGroupDesc : '');
                     $item.append($meta);
 
@@ -423,7 +448,6 @@
                 selectedKriId = kri ? kri.kriId : null;
                 $('#editorKriId').val(kri ? kri.kriId : 0);
                 $('#editorKriDesc').val(kri ? kri.kriDesc : '');
-                $('#editorAllowComment').prop('checked', true);
                 $('#editorGroupId').val(kri ? kri.kriThresholdGroupId : (groups.length ? groups[0].value : 0));
                 $('#editorTitle').text(kri ? 'Edit KRI #' + kri.kriId : 'New KRI');
 
@@ -441,9 +465,9 @@
             }
 
             function highlightSelected() {
-                $('#kriList .kri-item').removeClass('selected');
+                $('#kriList .rp-design-item').removeClass('selected');
                 if (selectedKriId !== null) {
-                    $('#kriList .kri-item').each(function () {
+                    $('#kriList .rp-design-item').each(function () {
                         if ($(this).data('kri').kriId === selectedKriId) {
                             $(this).addClass('selected');
                         }
@@ -454,29 +478,39 @@
             function bandRowHtml(band) {
                 band = band || {};
                 return $('<div class="band-row d-flex gap-2 mb-2 align-items-center">').append(
-                    $('<span class="font-body-sm text-muted" style="min-width:1.25rem;">').text('1.'),
-                    $('<select class="input-stasis band-color flex-fill">').append(
+                    $('<span class="rp-body-sm text-muted rp-item-num">').text('1.'),
+                    $('<select class="rp-input band-color flex-fill">').append(
                         $('<option value="0">').text('Select color...'),
                         $.map(colors, function (c) {
-                            return $('<option>').val(c.colorId).text(c.colorDesc).prop('selected', band.colorId === c.colorId);
+                            return $('<option>').val(c.colorId).text(c.colorDesc)
+                                .attr('data-color', c.hexCode)
+                                .prop('selected', band.colorId === c.colorId);
                         })
                     ),
-                    $('<input type="number" class="input-stasis band-min" style="max-width:110px;" placeholder="Min" autocomplete="off">').val(band.minValue != null ? band.minValue : ''),
-                    $('<input type="number" class="input-stasis band-max" style="max-width:110px;" placeholder="Max" autocomplete="off">').val(band.maxValue != null ? band.maxValue : ''),
-                    $('<button type="button" class="btn-stasis-secondary remove-band-btn" title="Remove"><i class="fas fa-xmark"></i></button>')
+                    $('<input type="number" class="rp-input rp-input-xs band-min" placeholder="Min" autocomplete="off">').val(band.minValue != null ? band.minValue : ''),
+                    $('<input type="number" class="rp-input rp-input-xs band-max" placeholder="Max" autocomplete="off">').val(band.maxValue != null ? band.maxValue : ''),
+                    $('<button type="button" class="rp-btn rp-btn-secondary remove-band-btn" title="Remove"><i class="fas fa-xmark"></i></button>')
                 );
+            }
+
+            // Appends a band row and enhances its color select (must run after
+            // insertion so the rp theme attaches the dropdown inside the modal).
+            function addBandRow(band) {
+                var $row = bandRowHtml(band);
+                $('#bandRows').append($row);
+                RiskPulse.initSelect2($row.find('.band-color'));
             }
 
             /* =================================================================
                SECTION 3 — FORM PAYLOAD BUILDERS
                ================================================================= */
-            function getHeaderPayload($form) {
+            function getHeaderPayload($form, prefix) {
                 var payload = RiskPulse.serializeForm($form, {
                     numbers: ['kriHeaderId']
                 });
-                var isGroup = $('#kriLinkType').val() === 'group';
-                payload.groupId = isGroup ? (+$('#kriGroupId').val() || null) : null;
-                payload.unitId = !isGroup ? (+$('#kriUnitId').val() || null) : null;
+                var isGroup = $('#' + prefix + 'LinkType').val() === 'group';
+                payload.groupId = isGroup ? (+$('#' + prefix + 'GroupId').val() || null) : null;
+                payload.unitId = !isGroup ? (+$('#' + prefix + 'UnitId').val() || null) : null;
                 return payload;
             }
 
@@ -522,41 +556,41 @@
             /* =================================================================
                SECTION 4 — VALIDATION
                ================================================================= */
-            function validateHeaderPayload(payload) {
-                if (!$.trim(payload.kriHeaderDesc)) { RiskPulse.toastError('Template description is required.'); return false; }
-                if (!payload.groupId && !payload.unitId) { RiskPulse.toastError('Please select a unit group or a unit.'); return false; }
-                if (payload.groupId && payload.unitId) { RiskPulse.toastError('Please select either a unit group or a unit, not both.'); return false; }
-                if (!payload.kriStatus) { RiskPulse.toastError('Please select a status.'); return false; }
+            function validateHeaderPayload(payload, $form) {
+                if (!$.trim(payload.kriHeaderDesc)) { return RiskPulse.validationError($form.find('[name="kriHeaderDesc"]'), 'Template description is required.'); }
+                if (!payload.groupId && !payload.unitId) { return RiskPulse.validationError($form.find('[name="groupId"], [name="unitId"]'), 'Please select a unit group or a unit.'); }
+                if (payload.groupId && payload.unitId) { return RiskPulse.validationError($form.find('[name="groupId"], [name="unitId"]'), 'Please select either a unit group or a unit, not both.'); }
+                if (!payload.kriStatus) { return RiskPulse.validationError($form.find('[name="kriStatus"]'), 'Please select a status.'); }
                 return true;
             }
 
             function validateKriPayload(payload) {
-                if (!payload.kriDesc) { RiskPulse.toastError('KRI description is required.'); return false; }
-                if (!payload.kriThresholdGroupId) { RiskPulse.toastError('Please select a threshold group.'); return false; }
+                if (!payload.kriDesc) { return RiskPulse.validationError($('#editorKriDesc'), 'KRI description is required.'); }
+                if (!payload.kriThresholdGroupId) { return RiskPulse.validationError($('#editorGroupId'), 'Please select a threshold group.'); }
                 return true;
             }
 
             function validateColorPayload(payload) {
-                if (!$.trim(payload.colorDesc)) { RiskPulse.toastError('Color description is required.'); return false; }
-                if (!/^#([0-9A-Fa-f]{6})$/.test($.trim(payload.hexCode))) { RiskPulse.toastError('Hex code must be in #RRGGBB format.'); return false; }
+                if (!$.trim(payload.colorDesc)) { return RiskPulse.validationError($('#colorDesc'), 'Color description is required.'); }
+                if (!/^#([0-9A-Fa-f]{6})$/.test($.trim(payload.hexCode))) { return RiskPulse.validationError($('#hexCode'), 'Hex code must be in #RRGGBB format.'); }
                 var hex = $.trim(payload.hexCode).toUpperCase();
                 var duplicate = colorTable.rows().data().toArray().filter(function (row) {
                     return row.colorId !== payload.colorId && (row.hexCode || '').toUpperCase() === hex;
                 });
-                if (duplicate.length) { RiskPulse.toastError("Color with hex code '" + hex + "' already exists."); return false; }
+                if (duplicate.length) { return RiskPulse.validationError($('#hexCode'), "Color with hex code '" + hex + "' already exists."); }
                 return true;
             }
 
             function validateGroupPayload(payload) {
-                if (!$.trim(payload.kriThresholdGroupDesc)) { RiskPulse.toastError('Group description is required.'); return false; }
+                if (!$.trim(payload.kriThresholdGroupDesc)) { return RiskPulse.validationError($('#groupDesc'), 'Group description is required.'); }
                 return true;
             }
 
             function validateBandsPayload(payload) {
-                if (!payload.bands.length) { RiskPulse.toastError('At least one band is required.'); return false; }
+                if (!payload.bands.length) { return RiskPulse.validationError(null, 'At least one band is required.'); }
                 for (var i = 0; i < payload.bands.length; i++) {
                     var b = payload.bands[i];
-                    if (b.minValue > b.maxValue) { RiskPulse.toastError('Minimum value cannot be greater than maximum value.'); return false; }
+                    if (b.minValue > b.maxValue) { return RiskPulse.validationError($('#bandRows .band-row').eq(i).find('.band-min'), 'Minimum value cannot be greater than maximum value.'); }
                 }
                 return true;
             }
@@ -705,7 +739,7 @@
                     success: function (res) {
                         $('#bandRows').empty();
                         var bands = (res.data && res.data.length) ? res.data : [{}];
-                        $.each(bands, function (i, b) { $('#bandRows').append(bandRowHtml(b)); });
+                        $.each(bands, function (i, b) { addBandRow(b); });
                     },
                     fail: function (res) {
                         RiskPulse.toastError(res.message || 'Unable to load bands.');
@@ -736,19 +770,19 @@
                 columns: [
                     { data: 'kriHeaderId' },
                     { data: 'kriHeaderDesc' },
-                    { data: 'groupDesc', render: function (d, type, row) { return '<span class="status-pill">' + (d || row.unitDesc || '') + '</span>'; } },
-                    { data: 'kriStatus', render: function (d) { return statusPill(d); } },
-                    { data: 'kriCount', render: function (d) { return '<span class="status-pill">' + (d || 0) + '</span>'; } },
+                    { data: 'groupDesc', render: function (d, type, row) { return RiskPulse.pill(d || row.unitDesc || ''); } },
+                    { data: 'kriStatus', render: function (d) { return RiskPulse.statusPill(d); } },
+                    { data: 'kriCount', render: function (d) { return RiskPulse.pill(d || 0); } },
                     { data: null, orderable: false, searchable: false, className: 'text-end', render: function (data, type, row) {
                         var locked = row.kriStatus === 'Locked';
                         return [
-                            '<button type="button" class="btn-stasis-secondary design-kri-btn"><i class="fas fa-pen-ruler"></i> Design</button>',
+                            '<button type="button" class="rp-btn rp-btn-secondary design-kri-btn"><i class="fas fa-pen-ruler"></i> Design</button>',
                             locked
-                                ? '<button type="button" class="btn-stasis-secondary" disabled title="Locked templates cannot be edited"><i class="fas fa-pen-to-square"></i> Edit</button>'
-                                : '<button type="button" class="btn-stasis-secondary edit-kri-btn"><i class="fas fa-pen-to-square"></i> Edit</button>',
+                                ? '<button type="button" class="rp-btn rp-btn-secondary" disabled title="Locked templates cannot be edited"><i class="fas fa-pen-to-square"></i> Edit</button>'
+                                : '<button type="button" class="rp-btn rp-btn-edit edit-kri-btn"><i class="fas fa-pen-to-square"></i> Edit</button>',
                             locked
-                                ? '<button type="button" class="btn-stasis-secondary" disabled title="Locked templates cannot be deleted"><i class="fas fa-trash-can"></i> Delete</button>'
-                                : '<button type="button" class="btn-stasis-secondary delete-kri-btn"><i class="fas fa-trash-can"></i> Delete</button>'
+                                ? '<button type="button" class="rp-btn rp-btn-secondary" disabled title="Locked templates cannot be deleted"><i class="fas fa-trash-can"></i> Delete</button>'
+                                : '<button type="button" class="rp-btn rp-btn-delete delete-kri-btn"><i class="fas fa-trash-can"></i> Delete</button>'
                         ].join(' ');
                     } }
                 ],
@@ -766,8 +800,8 @@
                             .append($('<span>').text(d)).prop('outerHTML');
                     } },
                     { data: null, orderable: false, searchable: false, className: 'text-end', render: function (data, type, row) {
-                        return '<button type="button" class="btn-stasis-secondary edit-color-btn"><i class="fas fa-pen-to-square"></i> Edit</button> ' +
-                               '<button type="button" class="btn-stasis-secondary delete-color-btn"><i class="fas fa-trash-can"></i> Delete</button>';
+                        return '<button type="button" class="rp-btn rp-btn-edit edit-color-btn"><i class="fas fa-pen-to-square"></i> Edit</button> ' +
+                               '<button type="button" class="rp-btn rp-btn-delete delete-color-btn"><i class="fas fa-trash-can"></i> Delete</button>';
                     } }
                 ],
                 order: [[0, 'asc']]
@@ -778,11 +812,11 @@
                 columns: [
                     { data: 'kriThresholdGroupId' },
                     { data: 'kriThresholdGroupDesc' },
-                    { data: 'bandCount', render: function (d) { return '<span class="status-pill">' + (d || 0) + '</span>'; } },
+                    { data: 'bandCount', render: function (d) { return RiskPulse.pill(d || 0); } },
                     { data: null, orderable: false, searchable: false, className: 'text-end', render: function (data, type, row) {
-                        return '<button type="button" class="btn-stasis-secondary bands-btn"><i class="fas fa-layer-group"></i> Bands</button> ' +
-                               '<button type="button" class="btn-stasis-secondary edit-group-btn"><i class="fas fa-pen-to-square"></i> Edit</button> ' +
-                               '<button type="button" class="btn-stasis-secondary delete-group-btn"><i class="fas fa-trash-can"></i> Delete</button>';
+                        return '<button type="button" class="rp-btn rp-btn-secondary bands-btn"><i class="fas fa-layer-group"></i> Bands</button> ' +
+                               '<button type="button" class="rp-btn rp-btn-edit edit-group-btn"><i class="fas fa-pen-to-square"></i> Edit</button> ' +
+                               '<button type="button" class="rp-btn rp-btn-delete delete-group-btn"><i class="fas fa-trash-can"></i> Delete</button>';
                     } }
                 ],
                 order: [[0, 'asc']]
@@ -791,56 +825,69 @@
             /* =================================================================
                SECTION 7 — EVENT WIRING & INIT
                ================================================================= */
-            RiskPulse.populateSelect($('#kriStatus'), statuses);
-            RiskPulse.populateSelect($('#editorGroupId'), groups);
-
-            function toggleKriLinkType() {
-                var isGroup = $('#kriLinkType').val() === 'group';
-                $('#kriGroupRow').toggleClass('d-none', !isGroup);
-                $('#kriUnitRow').toggleClass('d-none', isGroup);
-                if (isGroup) { $('#kriUnitId').val(0).trigger('change'); }
-                else { $('#kriGroupId').val(0).trigger('change'); }
+            function statusOptions(list) {
+                return $.map(list, function (o) {
+                    return { value: o.value, label: o.label, kind: RiskPulse.statusKind(o.value) };
+                });
             }
 
-            $('#kriGroupId').empty().append('<option value="0">Select a unit group...</option>');
-            RiskPulse.populateSelect($('#kriGroupId'), unitGroups);
+            RiskPulse.populateSelect($('#addKriStatus'), statusOptions(statuses));
+            RiskPulse.populateSelect($('#editKriStatus'), statusOptions(statuses));
+            RiskPulse.populateSelect($('#editorGroupId'), groups);
 
-            $('#kriUnitId').empty().append('<option value="0">Select a unit...</option>');
-            RiskPulse.populateSelect($('#kriUnitId'), units);
+            $('#addKriGroupId').empty();
+            RiskPulse.populateSelect($('#addKriGroupId'), unitGroups, '0', 'Select a unit group...');
+            $('#addKriUnitId').empty();
+            RiskPulse.populateSelect($('#addKriUnitId'), units, '0', 'Select a unit...');
+            $('#editKriGroupId').empty();
+            RiskPulse.populateSelect($('#editKriGroupId'), unitGroups, '0', 'Select a unit group...');
+            $('#editKriUnitId').empty();
+            RiskPulse.populateSelect($('#editKriUnitId'), units, '0', 'Select a unit...');
 
-            $('#kriLinkType').on('change', toggleKriLinkType);
+            function toggleKriLinkType(prefix) {
+                var isGroup = $('#' + prefix + 'LinkType').val() === 'group';
+                $('#' + prefix + 'GroupRow').toggleClass('d-none', !isGroup);
+                $('#' + prefix + 'UnitRow').toggleClass('d-none', isGroup);
+                if (isGroup) { $('#' + prefix + 'UnitId').val(0).trigger('change'); }
+                else { $('#' + prefix + 'GroupId').val(0).trigger('change'); }
+            }
+            $('#addKriLinkType').on('change', function () { toggleKriLinkType('addKri'); });
+            $('#editKriLinkType').on('change', function () { toggleKriLinkType('editKri'); });
 
             // Tabs — recalc DataTables widths once a pane becomes visible
             $('#kriTabs button[data-bs-toggle="tab"]').on('shown.bs.tab', function () {
                 $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
             });
 
-            $('#kriModal').on('shown.bs.modal', function () {
-                if ($('#kriHeaderId').val() == 0) {
-                    $('#kriHeaderDesc').val('').trigger('focus');
-                    $('#kriLinkType').val('group').trigger('change');
-                    $('#kriGroupId').val(0).trigger('change');
-                    $('#kriUnitId').val(0).trigger('change');
-                    $('#kriStatus').val('Active').trigger('change');
-                }
+            $('#addKriModal').on('shown.bs.modal', function () {
+                $('#addKriDesc').val('').trigger('focus');
+                $('#addKriLinkType').val('group').trigger('change');
+                $('#addKriGroupId').val(0).trigger('change');
+                $('#addKriUnitId').val(0).trigger('change');
+                $('#addKriStatus').val('Active').trigger('change');
+                RiskPulse.clearFieldErrors($('#addKriForm'));
+            });
+
+            $('#editKriModal').on('shown.bs.modal', function () {
+                $('#editKriDesc').focus();
+                RiskPulse.clearFieldErrors($('#editKriForm'));
             });
 
             $('#kriTable tbody').on('click', '.edit-kri-btn', function () {
                 var row = kriTable.row($(this).closest('tr')).data();
-                $('#kriHeaderId').val(row.kriHeaderId);
-                $('#kriHeaderDesc').val(row.kriHeaderDesc);
+                $('#editKriHeaderId').val(row.kriHeaderId);
+                $('#editKriDesc').val(row.kriHeaderDesc);
                 if (row.groupId) {
-                    $('#kriLinkType').val('group').trigger('change');
-                    $('#kriGroupId').val(row.groupId).trigger('change');
-                    $('#kriUnitId').val(0).trigger('change');
+                    $('#editKriLinkType').val('group').trigger('change');
+                    $('#editKriGroupId').val(row.groupId).trigger('change');
+                    $('#editKriUnitId').val(0).trigger('change');
                 } else {
-                    $('#kriLinkType').val('unit').trigger('change');
-                    $('#kriUnitId').val(row.unitId).trigger('change');
-                    $('#kriGroupId').val(0).trigger('change');
+                    $('#editKriLinkType').val('unit').trigger('change');
+                    $('#editKriUnitId').val(row.unitId).trigger('change');
+                    $('#editKriGroupId').val(0).trigger('change');
                 }
-                $('#kriStatus').val(row.kriStatus).trigger('change');
-                $('#kriModalLabel').text('Edit Template');
-                RiskPulse.showModal('kriModal');
+                $('#editKriStatus').val(row.kriStatus).trigger('change');
+                RiskPulse.showModal('editKriModal');
             });
 
             $('#kriTable tbody').on('click', '.delete-kri-btn', function () {
@@ -848,18 +895,16 @@
                 deleteHeader(row.kriHeaderId, row.kriHeaderDesc);
             });
 
-            $('#kriModal').on('hidden.bs.modal', function () {
-                $('#kriHeaderId').val(0);
-                $('#kriLinkType').val('group').trigger('change');
-                $('#kriGroupId').val(0).trigger('change');
-                $('#kriUnitId').val(0).trigger('change');
-                $('#kriModalLabel').text('Add Template');
+            $('#addKriForm').on('submit', function (e) {
+                e.preventDefault();
+                var payload = getHeaderPayload($(this), 'addKri');
+                if (validateHeaderPayload(payload, $(this))) submitHeader(payload, $(this));
             });
 
-            $('#kriForm').on('submit', function (e) {
+            $('#editKriForm').on('submit', function (e) {
                 e.preventDefault();
-                var payload = getHeaderPayload($(this));
-                if (validateHeaderPayload(payload)) submitHeader(payload, $(this));
+                var payload = getHeaderPayload($(this), 'editKri');
+                if (validateHeaderPayload(payload, $(this))) submitHeader(payload, $(this));
             });
 
             // Open Design modal
@@ -869,7 +914,7 @@
                 currentKriLocked = row.kriStatus === 'Locked';
 
                 $('#designModalLabel').text('Design: ' + row.kriHeaderDesc);
-                $('#designStatusPill').html(statusPill(row.kriStatus));
+                $('#designStatusPill').html(RiskPulse.statusPill(row.kriStatus));
 
                 if (currentKriLocked) {
                     $('#lockedNotice').show();
@@ -890,16 +935,32 @@
             });
 
             // Left panel: click KRI to edit
-            $('#kriList').on('click', '.kri-item', function (e) {
-                if ($(e.target).closest('.kri-delete-btn').length) return;
+            $('#kriList').on('click', '.rp-design-item', function (e) {
+                if ($(e.target).closest('.rp-design-item-delete').length) return;
                 if (currentKriLocked) return;
                 showEditor($(this).data('kri'));
             });
 
             // Left panel: delete button
-            $('#kriList').on('click', '.kri-delete-btn', function (e) {
+            $('#kriList').on('click', '.rp-design-item-delete', function (e) {
                 e.stopPropagation();
                 deleteKri($(this).data('kri'));
+            });
+
+            // Keyboard navigation for designer items
+            $('#kriList').on('keydown', '.rp-design-item', function (e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    if (currentKriLocked) return;
+                    showEditor($(this).data('kri'));
+                }
+            });
+            $('#kriList').on('keydown', '.rp-design-item-delete', function (e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    deleteKri($(this).data('kri'));
+                }
             });
 
             // Add KRI
@@ -920,6 +981,7 @@
             // Color form
             $('#colorModal').on('shown.bs.modal', function () {
                 $('#colorDesc').trigger('focus');
+                RiskPulse.clearFieldErrors($('#colorForm'));
             });
 
             $('#hexCode').on('input', function () {
@@ -947,6 +1009,7 @@
                 $('#hexCode').val('');
                 $('#colorModalLabel').text('Add Color');
                 $('#colorSwatch').css('background', 'transparent');
+                RiskPulse.clearFieldErrors($('#colorForm'));
             });
 
             $('#colorForm').on('submit', function (e) {
@@ -973,6 +1036,7 @@
                 $('#groupModalId').val(0);
                 $('#groupDesc').val('');
                 $('#groupModalLabel').text('Add Group');
+                RiskPulse.clearFieldErrors($('#groupForm'));
             });
 
             $('#groupForm').on('submit', function (e) {
@@ -987,6 +1051,7 @@
                 currentGroupId = row.kriThresholdGroupId;
                 $('#bandsModalLabel').text('Threshold Bands');
                 $('#bandsGroupLabel').text(row.kriThresholdGroupDesc);
+                RiskPulse.clearFieldErrors($('#bandRows'));
                 RiskPulse.getJson(colorsGridUrl, {}, {
                     success: function (res) {
                         colors = (res.data || []).map(function (c) {
@@ -1002,7 +1067,7 @@
             });
 
             $('#addBandBtn').on('click', function () {
-                $('#bandRows').append(bandRowHtml(null));
+                addBandRow(null);
             });
 
             $('#bandRows').on('click', '.remove-band-btn', function () {

@@ -1,28 +1,28 @@
 @model RiskPulse.Models.ViewModel.AssessmentWizardViewModel
 
-<section class="wizard-step-panel" data-step="4" style="display:none;">
-    <div class="card-stasis p-3">
-        <h6 class="font-display-md mb-1">Step 4 — Schedule</h6>
-        <p class="font-body-sm mb-3" style="color: var(--on-surface-variant);">
+<section class="rp-wizard-panel" data-step="4">
+    <div class="rp-card p-3">
+        <h6 class="rp-display-md mb-1">Step 4 — Schedule</h6>
+        <p class="rp-body-sm mb-3 rp-text-muted">
             Describe the assessment schedule. You can come back and change it later.
         </p>
         <div class="row g-3">
             <div class="col-lg-6">
-                <label class="input-label" for="wizardScheduleDesc">Schedule Description</label>
-                <input type="text" id="wizardScheduleDesc" class="input-stasis" value="@Model.ScheduleDesc" maxlength="200" placeholder="e.g. Quarterly review — Q1 2026" autocomplete="off" />
+                <label class="rp-label" for="wizardScheduleDesc">Schedule Description</label>
+                <input type="text" id="wizardScheduleDesc" class="rp-input" value="@Model.ScheduleDesc" maxlength="200" placeholder="e.g. Quarterly review — Q1 2026" autocomplete="off" />
             </div>
             <div class="col-lg-3">
-                <label class="input-label" for="wizardStartDate">Start Date</label>
-                <input type="date" id="wizardStartDate" class="input-stasis" value="@Model.StartDate?.ToString("yyyy-MM-dd")" />
+                <label class="rp-label" for="wizardStartDate">Start Date</label>
+                <input type="date" id="wizardStartDate" class="rp-input" value="@Model.StartDate?.ToString("yyyy-MM-dd")" />
             </div>
             <div class="col-lg-3">
-                <label class="input-label" for="wizardEndDate">End Date</label>
-                <input type="date" id="wizardEndDate" class="input-stasis" value="@Model.EndDate?.ToString("yyyy-MM-dd")" />
+                <label class="rp-label" for="wizardEndDate">End Date</label>
+                <input type="date" id="wizardEndDate" class="rp-input" value="@Model.EndDate?.ToString("yyyy-MM-dd")" />
             </div>
         </div>
     </div>
     <div class="d-flex justify-content-between gap-2 mt-3">
-        <button type="button" class="btn-stasis-secondary wizard-back-btn"><i class="fas fa-arrow-left"></i> Back</button>
-        <button type="button" class="btn-stasis-primary wizard-next-btn">Next <i class="fas fa-arrow-right"></i></button>
+        <button type="button" class="rp-btn rp-btn-secondary rp-wizard-back"><i class="fas fa-arrow-left"></i> Back</button>
+        <button type="button" class="rp-btn rp-btn-primary rp-wizard-next">Next <i class="fas fa-arrow-right"></i></button>
     </div>
 </section>

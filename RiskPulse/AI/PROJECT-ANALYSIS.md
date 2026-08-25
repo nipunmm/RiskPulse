@@ -27,7 +27,7 @@
 | Grid | DataTables | `jquery.dataTables.min.js` + `dataTables.bootstrap5.min.js` (client-side processing, AJAX JSON source) |
 | JS | jQuery | AJAX, DOM, form `serializeArray` |
 | UI Feedback | SweetAlert2 | `Swal.mixin` toast pattern on every page |
-| Dropdowns | Select2 | Bootstrap-5 theme, `dropdownParent` bound to modal |
+| Dropdowns | Select2 | First-party `rp` theme (`select2-container--rp` in `site.css`), search at ≥10 options, `dropdownParent` bound to modal, colored options via `data-color`/`data-kind` |
 | CSS | Bootstrap 5 + "Stasis Enterprise" | Custom design tokens in `wwwroot/css/site.css` |
 | Icons | Font Awesome 6 | `all.min.css` |
 | Fonts | Inter, JetBrains Mono | Self-hosted `.woff2` |
@@ -109,7 +109,7 @@ RiskPulse/
 │
 ├── Views/
 │   ├── _ViewImports.cshtml  _ViewStart.cshtml
-│   ├── Shared/_Layout.cshtml          # Sidebar (permission-gated links) + header + Toast mixin
+│   ├── Shared/_Layout.cshtml          # Sidebar (permission-gated links) + header
 │   ├── Login/Index.cshtml             # Standalone page (Layout=null), AJAX login
 │   ├── Login/AccessDenied.cshtml      # Standalone (Layout=null)
 │   ├── Users/Index.cshtml             # DataTables grid + Add/Edit modals (Select2 + SweetAlert)
@@ -128,8 +128,8 @@ RiskPulse/
 └── wwwroot/
     ├── css/site.css                   # Stasis Enterprise design system
     ├── js/site.js                     # Sidebar/collapse/flyout/keyboard logic
-    ├── js/modules/riskpulse.js        # Shared RiskPulse.* helpers (toast, postJson/getJson, serializeForm, populateSelect, showModal/hideModal, confirmDelete, initGrid)
-    └── lib/                           # bootstrap, datatables, font-awesome, jquery, jquery-validation(-unobtrusive), select2, sweetalert2
+    ├── js/modules/riskpulse.js        # Shared RiskPulse.* helpers (toast, postJson/getJson, serializeForm, populateSelect, initSelect2, statusKind, showModal/hideModal, confirmDelete, initGrid)
+    └── lib/                           # bootstrap, datatables, font-awesome, jquery, select2, sweetalert2
 ```
 
 ---
@@ -150,7 +150,7 @@ RiskPulse/
 | 8 | **DTO/result model** for service → controller | `LoginResultDto`, `*SaveDto`, `*DeleteRequestDto` (`Models/Dto`) |
 | 9 | **Orchestrator service** composing lower services | `LoginOrchestratorService` |
 | 10 | **Bootstrap 5 modal API** — programmatic open/close only through `RiskPulse.showModal(id)` / `RiskPulse.hideModal(formEl)` in the shared module; no raw `bootstrap.Modal.getOrCreateInstance` or jQuery `$.fn.modal` in views (the vendored bundle has no jQuery modal API) | All interactive view script sections |
-| 11 | **Shared JS module (`RiskPulse.*`)** — `wwwroot/js/modules/riskpulse.js` (loaded from `_Layout`) is the single home for cross-page helpers: `toastSuccess`/`toastError`/`toastGenericError`, `postJson`/`getJson`, `serializeForm`, `populateSelect`, `showModal`/`hideModal`, `confirmDelete`, `initGrid`. Views call the namespace and keep only validation/columns/wiring. | Users/Roles/SAQ/KRI/KRI-Config view script sections |
+| 11 | **Shared JS module (`RiskPulse.*`)** — `wwwroot/js/modules/riskpulse.js` (loaded from `_Layout`) is the single home for cross-page helpers: `toastSuccess`/`toastError`/`toastGenericError`, `postJson`/`getJson`, `serializeForm`, `populateSelect`, `initSelect2`, `statusKind`, `showModal`/`hideModal`, `confirmDelete`, `initGrid`. Views call the namespace and keep only validation/columns/wiring. | Users/Roles/SAQ/KRI/KRI-Config view script sections |
 
 ### 4.2 Request Pipeline (in order)
 
@@ -372,6 +372,7 @@ Seed.sql inserts the 9 permissions, 2 roles, 1 unit, and 1 test user. **However*
 | # | Mismatch | Evidence | Recommended fix |
 |---|---|---|---|
 | _(none open)_ | Hygiene items resolved — dead zero-FK fallbacks in `UsersService`, unused `UsersIndexViewModel.Users` / `RolesIndexViewModel.Roles`, dead `KriBandSaveDto.KriThresholdId`, unreferenced `_ValidationScriptsPartial`, empty `Infrastructure/` + `Validation/`, dead `Models\Auth\**` csproj exclusion, undefined `status-active`/`login-icon-circle` classes, and the tri-spelled brand name were all removed in the hygiene pass. | (removed) | (done) |
+| _(resolved)_ | `Specs/layout/DESIGN.md` lacked the teal accent family that `Specs/login/DESIGN.md` and `site.css` already had, and had no "Layout shell polish" section documenting the sidebar gradient, sonar brandmark, teal active rail, frosted topbar, or canvas gradient. | `Specs/layout/DESIGN.md` YAML block ended at `surface-variant` (line 50); no shell polish section existed | Updated `Specs/layout/DESIGN.md` to include the full accent family YAML block + a "Layout shell polish" section covering sidebar gradient/sonar, teal nav states, frosted topbar, canvas gradient/ambient, cards, typography, and `prefers-reduced-motion` |
 
 ---
 

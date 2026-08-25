@@ -1,4 +1,4 @@
-@{
+﻿@{
     Layout = null;
     ViewData["Title"] = "Login";
 }
@@ -12,168 +12,35 @@
     <link rel="stylesheet" href="~/lib/font-awesome/css/all.min.css" />
     <link rel="stylesheet" href="~/lib/sweetalert2/sweetalert2.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <style>
-        .login-page {
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background-color: var(--background);
-            padding: 24px;
-            position: relative;
-            overflow: hidden;
-            margin: 0;
-        }
-
-        .login-bg-pattern {
-            position: absolute;
-            inset: 0;
-            z-index: 0;
-            opacity: 0.06;
-            background-image:
-                radial-gradient(circle at 20% 30%, var(--primary-container) 1px, transparent 1px),
-                radial-gradient(circle at 80% 70%, var(--primary-container) 1px, transparent 1px),
-                radial-gradient(circle at 50% 50%, var(--outline) 0.5px, transparent 0.5px);
-            background-size: 60px 60px, 80px 80px, 40px 40px;
-            pointer-events: none;
-        }
-
-        .login-card {
-            position: relative;
-            z-index: 1;
-            width: 100%;
-            max-width: 420px;
-            background: var(--surface-container-lowest);
-            border: 1px solid var(--outline-variant);
-            border-radius: 8px;
-            padding: 32px;
-            box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.03);
-            display: flex;
-            flex-direction: column;
-            gap: 32px;
-        }
-
-        .login-header {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-            gap: 8px;
-        }
-
-        .login-header h1 {
-            margin: 0;
-        }
-
-        .login-header p {
-            margin: 0;
-        }
-
-        .login-icon-circle {
-            width: 64px;
-            height: 64px;
-            background-color: var(--surface-container);
-            border: 1px solid var(--outline-variant);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 8px;
-        }
-
-        .login-icon-circle i {
-            font-size: 32px;
-            color: var(--primary-container);
-        }
-
-        .login-form {
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-        }
-
-        .login-field {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-
-        .login-input-wrapper {
-            position: relative;
-        }
-
-        .login-input-icon {
-            position: absolute;
-            left: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--outline);
-            font-size: 14px;
-            pointer-events: none;
-        }
-
-        .login-input {
-            padding-left: 40px;
-        }
-
-        .login-submit {
-            width: 100%;
-            justify-content: center;
-            padding: 10px 16px;
-            border: none;
-            border-radius: 4px;
-            margin-top: 8px;
-        }
-
-        .login-footer {
-            border-top: 1px solid var(--outline-variant);
-            padding-top: 16px;
-            text-align: center;
-        }
-
-        .login-footer p {
-            margin: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-
-        .login-submit .fa-spinner {
-            animation: spin 1s linear infinite;
-        }
-
-        @@keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-    </style>
 </head>
-<body class="login-page">
+<body class="rp-shell-centered rp-login-page">
 
-    <!-- Subtle geometric background pattern -->
-    <div class="login-bg-pattern"></div>
+    <div class="rp-bg-pattern"></div>
 
-    <main class="login-card">
+    <!-- DECORATIVE: breathing glow behind the panel -->
+    <div class="rp-login-ambient" aria-hidden="true"></div>
 
-        <!-- Header & Logo -->
-        <div class="login-header">
-            <div class="login-icon-circle">
-                <i class="fas fa-shield-halved"></i>
+    <main class="rp-panel rp-panel-login">
+
+        <div class="rp-login-header">
+            <div class="rp-login-brandmark" aria-hidden="true">
+                <span class="rp-login-sonar"></span>
+                <div class="rp-mark-hero">
+                    <i class="fas fa-shield-halved"></i>
+                </div>
             </div>
-            <h1 class="font-headline-md" style="color: var(--primary-container);">Risk Pulse</h1>
-            <p class="font-body-sm" style="color: var(--on-surface-variant);">Secure Authentication</p>
+            <p class="rp-login-eyebrow">Secure Access</p>
+            <h1 class="rp-headline-md rp-text-primary">Risk Pulse</h1>
+            <p class="rp-body-sm rp-text-muted">Collect, assess, and monitor organizational risk data</p>
         </div>
 
-        <!-- Form -->
-        <form class="login-form" id="loginForm" novalidate>
+        <form class="rp-login-form" id="loginForm" novalidate>
 
-            <!-- Username -->
-            <div class="login-field">
-                <label class="input-label" for="username">Username</label>
-                <div class="login-input-wrapper">
-                    <i class="fas fa-user login-input-icon"></i>
-                    <input class="input-stasis login-input"
+            <div class="rp-login-field">
+                <label class="rp-label" for="username">Username</label>
+                <div class="rp-login-input-wrapper">
+                    <i class="fas fa-user rp-login-input-icon"></i>
+                    <input class="rp-input rp-login-input"
                            type="text"
                            id="username"
                            name="username"
@@ -181,30 +48,27 @@
                 </div>
             </div>
 
-            <!-- Password -->
-            <div class="login-field">
-                <label class="input-label" for="password">Password</label>
-                <div class="login-input-wrapper">
-                    <i class="fas fa-key login-input-icon"></i>
-                    <input class="input-stasis login-input"
+            <div class="rp-login-field">
+                <label class="rp-label" for="password">Password</label>
+                <div class="rp-login-input-wrapper">
+                    <i class="fas fa-key rp-login-input-icon"></i>
+                    <input class="rp-input rp-login-input"
                            type="password"
                            id="password"
                            name="password"
-                           placeholder="&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;" />
+                           placeholder="Enter your password" />
                 </div>
             </div>
 
-            <!-- Submit -->
-            <button class="btn-stasis-primary login-submit" type="submit" id="loginBtn">
+            <button class="rp-btn rp-btn-primary rp-login-submit" type="submit" id="loginBtn">
                 <span class="btn-text">Authenticate</span>
             </button>
 
         </form>
 
-        <!-- Footer -->
-        <div class="login-footer">
-            <p class="font-body-sm" style="color: var(--outline);">
-                <i class="fas fa-circle-info" style="font-size: 12px;"></i>
+        <div class="rp-login-footer">
+            <p class="rp-body-sm rp-text-outline">
+                <i class="fas fa-circle-info"></i>
                 Authorized personnel only.
             </p>
         </div>
@@ -213,81 +77,57 @@
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/sweetalert2/sweetalert2.min.js"></script>
+    <script src="~/js/modules/riskpulse.js" asp-append-version="true"></script>
     <script>
         /* =================================================================
-           SECTION 1 — PAGE SETUP (shared toast)
+           SECTION 1 — VALIDATION (client-side rules)
            ================================================================= */
-        const Toast = Swal.mixin({
-            toast: true,
-            position: 'top-end',
-            showConfirmButton: false,
-            timer: 3000,
-            timerProgressBar: true
-        });
-
-        /* =================================================================
-           SECTION 2 — VALIDATION (client-side rules)
-           ================================================================= */
-        function resetBtn() {
-            $('#loginBtn').prop('disabled', false)
-                .find('.btn-text').text('Authenticate');
-        }
-
         function validateLoginForm() {
-            // Rule 1 — username is required
             var username = $.trim($('#username').val());
             if (!username) {
-                Toast.fire({ icon: 'error', title: 'Username is required.' });
-                $('#username').focus();
-                return false;
+                return RiskPulse.validationError($('#username'), 'Username is required.');
             }
 
-            // Rule 2 — username must be lowercase a-z only
             if (!/^[a-z]+$/.test(username)) {
-                Toast.fire({ icon: 'error', title: 'Username must be lowercase letters only (a-z), no numbers, spaces, or special characters.' });
-                $('#username').focus();
-                return false;
+                return RiskPulse.validationError($('#username'), 'Username must be lowercase letters only (a-z).');
             }
 
-            // Rule 3 — password is required
             if (!$('#password').val()) {
-                Toast.fire({ icon: 'error', title: 'Password is required.' });
-                $('#password').focus();
-                return false;
+                return RiskPulse.validationError($('#password'), 'Password is required.');
             }
 
             return true;
         }
 
         /* =================================================================
-           SECTION 3 — CONTROLLER CALLS (AJAX) — the ONLY server touchpoint
+           SECTION 2 — CONTROLLER CALLS (AJAX) — uses shared transport
            ================================================================= */
         function submitLogin(username, password) {
-            $('#loginBtn').prop('disabled', true)
-                .find('.btn-text').html('<i class="fas fa-spinner"></i> Authenticating...');
+            var $btn = $('#loginBtn');
+            // Swap label only — the shared transport owns the disable/re-enable
+            // lock; pre-disabling here trips its "already in flight" guard and
+            // silently cancels the request.
+            $btn.find('.btn-text').html('<i class="fas fa-spinner"></i> Authenticating...');
 
-            $.ajax({
-                url: '@Url.Action("Login", "Login")',
-                type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify({ username: username, password: password }),
-                success: function (response) {
-                    if (response.success) {
-                        window.location.href = response.data.redirectUrl;
-                    } else {
-                        Toast.fire({ icon: 'error', title: response.message || 'Login failed.' });
-                        resetBtn();
+            RiskPulse.postJson('@Url.Action("Login", "Login")',
+                { username: username, password: password },
+                {
+                    success: function (res) {
+                        window.location.href = res.data.redirectUrl;
+                    },
+                    fail: function (res) {
+                        RiskPulse.toastError(res.message || 'Login failed.');
+                    },
+                    complete: function () {
+                        $btn.prop('disabled', false).find('.btn-text').text('Authenticate');
                     }
                 },
-                error: function () {
-                    Toast.fire({ icon: 'error', title: 'An error occurred. Please try again.' });
-                    resetBtn();
-                }
-            });
+                $btn
+            );
         }
 
         /* =================================================================
-           SECTION 4 — EVENT WIRING
+           SECTION 3 — EVENT WIRING
            ================================================================= */
         $('#loginForm').on('submit', function (e) {
             e.preventDefault();

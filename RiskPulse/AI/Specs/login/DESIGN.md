@@ -2,7 +2,6 @@
 name: Stasis Enterprise
 colors:
   surface: '#f7f9fb'
-  surface-dim: '#d8dadc'
   surface-bright: '#f7f9fb'
   surface-container-lowest: '#ffffff'
   surface-container-low: '#f2f4f6'
@@ -14,8 +13,7 @@ colors:
   inverse-surface: '#2d3133'
   inverse-on-surface: '#eff1f3'
   outline: '#74777f'
-  outline-variant: '#c4c6cf'
-  surface-tint: '#465f88'
+  outline-variant: '#e0e3e5'
   primary: '#002046'
   on-primary: '#ffffff'
   primary-container: '#1b365d'
@@ -24,27 +22,31 @@ colors:
   secondary: '#505f76'
   on-secondary: '#ffffff'
   secondary-container: '#d0e1fb'
-  on-secondary-container: '#54647a'
-  tertiary: '#182033'
-  on-tertiary: '#ffffff'
-  tertiary-container: '#2d354a'
-  on-tertiary-container: '#969eb7'
-  error: '#ba1a1a'
-  on-error: '#ffffff'
   error-container: '#ffdad6'
   on-error-container: '#93000a'
-  primary-fixed: '#d6e3ff'
-  primary-fixed-dim: '#aec7f7'
-  on-primary-fixed: '#001b3d'
-  on-primary-fixed-variant: '#2e476f'
-  secondary-fixed: '#d3e4fe'
-  secondary-fixed-dim: '#b7c8e1'
-  on-secondary-fixed: '#0b1c30'
-  on-secondary-fixed-variant: '#38485d'
-  tertiary-fixed: '#dae2fd'
-  tertiary-fixed-dim: '#bec6e0'
-  on-tertiary-fixed: '#131b2e'
-  on-tertiary-fixed-variant: '#3f465c'
+  accent: '#0f766e'
+  accent-strong: '#115e59'
+  accent-container: '#ccfbf1'
+  on-accent-container: '#134e4a'
+  accent-soft: '#f0fdfa'
+  accent-border: '#14b8a6'
+  accent-connector: '#0d9488'
+  accent-ring: 'rgba(15, 118, 110, 0.14)'
+  accent-on-dark: '#5eead4'
+  gold: '#b45309'
+  gold-container: '#fef3c7'
+  on-gold-container: '#78350f'
+  gold-border: '#fcd34d'
+  success: '#15803d'
+  success-container: '#dcfce7'
+  on-success-container: '#14532d'
+  success-border: '#86efac'
+  danger: '#dc2626'
+  danger-hover: '#b91c1c'
+  danger-container: '#fee2e2'
+  on-danger-container: '#991b1b'
+  neutral-container: '#f1f5f9'
+  on-neutral-container: '#475569'
   background: '#f7f9fb'
   on-background: '#191c1e'
   surface-variant: '#e0e3e5'
@@ -115,12 +117,15 @@ The design system is engineered for high-stakes financial environments where cla
 The aesthetic follows a **refined Corporate Minimalism** approach. It utilizes a structured grid and a high-contrast interface to reduce cognitive load during complex risk assessment tasks. The emotional goal is to evoke a sense of "calm authority," ensuring users feel in control of volatile data through a rigorous and predictable UI language.
 
 ## Colors
-The palette is rooted in a deep corporate blue to establish trust and stability. 
+The palette is rooted in a deep corporate blue to establish trust and stability. A teal accent family harmonizes with the navy (blue+green) and supplies the modern interaction layer without becoming "more blue."
 
 - **Primary:** Used for navigational headers, primary actions, and branding elements.
+- **Accent (Teal):** Reserved for modify/in-progress interactivity — Edit buttons, input/checkbox focus rings, wizard active step, grid header underline, active pagination, active tab underline, sidebar active icon, modal top stripe, selected designer items. It never appears on status pills or RAG cells.
+- **Semantic Accents:** Gold (warning/pending/locked), Green (success/active), Red (destructive only), Slate (inactive/neutral).
 - **Surface & Backgrounds:** The main canvas is pure white (#FFFFFF) to maximize contrast for data readability. Subtle slate gray (#F8FAFC) is used exclusively for structural panels, sidebars, and grouping containers.
 - **RAG System:** Functional colors (Red, Amber, Green) are strictly reserved for risk thresholds and status indicators. These colors must maintain high accessibility standards against white and light gray backgrounds.
 - **Typography Colors:** Use a near-black (#0F172A) for headings and a slate gray (#475569) for body text to create a clear visual hierarchy.
+- **Contrast baseline:** text-on-tint ≥ 7:1, text-on-white ≥ 5:1, non-text boundaries ≥ 3:1.
 
 ## Typography
 This design system prioritizes legibility in data-dense environments. 
@@ -140,14 +145,14 @@ The layout employs a **fixed-fluid hybrid grid**. On desktop, the main content i
 ## Elevation & Depth
 In alignment with the minimalist professional style, this design system avoids heavy shadows. 
 
-- **Tonal Layering:** Depth is primarily communicated through color. The base background is white, while interactive components or sidebars sit on $neutral-color-hex (#F8FAFC).
+- **Tonal Layering:** Depth is primarily communicated through color. The base background is white, while interactive components or sidebars sit on surface containers (#F2F4F6).
 - **Outlines:** Instead of shadows, use 1px solid borders (#E2E8F0) to define sections. 
 - **Active Elevation:** A very subtle, high-diffusion shadow (0px 4px 12px rgba(0, 0, 0, 0.05)) is reserved only for temporary floating elements like dropdown menus, tooltips, or modal dialogs. This keeps the main interface feeling flat and structurally sound.
 
 ## Shapes
 The shape language is conservative and geometric. 
 
-- **Corner Radius:** A consistent 4px (Soft) radius is applied to buttons, input fields, and cards. This softens the "industrial" feel of the interface without appearing informal or consumer-grade.
+- **Corner Radius:** 4px (Soft) for buttons and input fields. 0.5rem (8px) for cards and panels.
 - **Icons:** Use 2px stroke weight icons with slightly rounded caps to match the component radius.
 - **Status Pills:** Status badges use a 100px (full pill) radius to clearly differentiate them from interactive buttons.
 
@@ -159,5 +164,6 @@ The shape language is conservative and geometric.
   - *Destructive:* Solid #DC2626 for irreversible risk actions.
 - **Risk Indicators (RAG):** Small circular indicators or full-width subtle background tints (10% opacity) within table cells.
 - **Analytical Widgets:** White cards with a 1px border. Charts should use a refined color palette that avoids clashing with RAG status colors (use blues and grays for non-risk data).
-- **Input Fields:** Use "Internal Labels" where the label sits above the field. Inputs have a 1px #CBD5E1 border, which turns #1B365D on focus with a 2px outer "halo" of 10% opacity primary color.
-- **Search:** A prominent, global search bar in the header with a `/` keyboard shortcut hint.
+- **Input Fields:** Use "Internal Labels" where the label sits above the field. Inputs have a 1px #CBD5E1 border, which turns #0f766e (teal) on focus with a 2px outer "halo" of `rgba(15, 118, 110, 0.14)`. Error state: `#dc2626` border + red halo.
+- **Standalone Pages (Login / Access Denied / Error):** Centered `.rp-shell-centered` on a soft cool gradient (#F0FDFA → #F7F9FB → #EFF6FF) with a faint teal/navy dot pattern (`.rp-bg-pattern`). The `.rp-panel` card gets a 3px teal top stripe; brand/mark icons use `accent-strong`. Access Denied uses a gold warning mark; the Error page keeps the red error mark. Login loads `jquery + sweetalert2 + riskpulse.js` (no Bootstrap bundle — don't call modal helpers there).
+- **Login Transport:** Uses `RiskPulse.postJson()` for AJAX and `RiskPulse.toastError()` for error display. The button label is swapped via `handlers.complete` — the view must NOT manually disable `$trigger` before calling `postJson` (the module owns the flight lock).

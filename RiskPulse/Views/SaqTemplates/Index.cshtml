@@ -9,36 +9,25 @@
 
 @section Styles {
     <link rel="stylesheet" href="~/lib/datatables/dataTables.bootstrap5.min.css" />
-    <style>
-        .design-split { display: flex; min-height: 440px; max-height: 68vh; }
-        .design-left { width: 310px; min-width: 260px; border-right: 1px solid var(--outline-variant); display: flex; flex-direction: column; }
-        .design-left-list { flex: 1; overflow-y: auto; padding: 0.5rem; }
-        .design-right { flex: 1; overflow-y: auto; }
-        .q-item { cursor: pointer; border-left: 3px solid transparent; transition: border-color 0.15s, background 0.15s; }
-        .q-item:hover { background: rgba(27, 54, 93, 0.03); }
-        .q-item.selected { border-left-color: var(--primary-container); background: rgba(27, 54, 93, 0.05); }
-        .q-item .q-delete-btn { opacity: 0; transition: opacity 0.15s; }
-        .q-item:hover .q-delete-btn { opacity: 1; }
-        .preset-btn { font-size: 0.625rem; padding: 0.2rem 0.5rem; }
-        .option-row { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem; }
-        .option-row .option-num { min-width: 1.25rem; font-size: 0.75rem; color: var(--on-surface-variant); font-weight: 600; }
-    </style>
 }
 
-<div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-end gap-2 mb-2">
+<div class="rp-page-header">
     <div>
-        <h2 class="font-display-lg" style="color: var(--on-background);">SAQ Templates</h2>
-        <p class="font-body-md mt-1 mb-0" style="color: var(--on-surface-variant);">
+        <h2 class="rp-display-lg">SAQ Templates</h2>
+        <p class="rp-body-md mt-1 mb-0 rp-text-muted">
             Manage Self Assessment Questionnaire templates — build questions and their dropdown answers.
         </p>
     </div>
-    <button type="button" class="btn-stasis-primary" data-bs-toggle="modal" data-bs-target="#addSaqModal">
-        <i class="fas fa-plus"></i> Add Template
-    </button>
 </div>
 
-<div class="card-stasis p-2">
-    <table id="saqTable" class="table table-stasis table-sm w-100 align-middle">
+<div class="rp-card p-2">
+    <div class="rp-grid-toolbar">
+        <p class="mb-0 rp-body-sm rp-text-muted">Build questions and their dropdown answers.</p>
+        <button type="button" class="rp-btn rp-btn-primary" data-bs-toggle="modal" data-bs-target="#addSaqModal">
+            <i class="fas fa-plus"></i> Add Template
+        </button>
+    </div>
+    <table id="saqTable" class="table rp-table table-sm w-100 align-middle">
         <thead>
             <tr>
                 <th>ID</th>
@@ -65,32 +54,32 @@
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label class="input-label" for="addSaqDesc">Description</label>
-                        <input type="text" id="addSaqDesc" name="saqDesc" class="input-stasis" required autocomplete="off" />
+                        <label class="rp-label" for="addSaqDesc">Description</label>
+                        <input type="text" id="addSaqDesc" name="saqDesc" class="rp-input" required autocomplete="off" />
                     </div>
                     <div class="mb-3">
-                        <label class="input-label" for="addSaqLinkType">Link Type</label>
-                        <select id="addSaqLinkType" class="input-stasis">
+                        <label class="rp-label" for="addSaqLinkType">Link Type</label>
+                        <select id="addSaqLinkType" class="rp-input">
                             <option value="group">Unit Group</option>
                             <option value="unit">Unit</option>
                         </select>
                     </div>
                     <div class="mb-3" id="addSaqGroupRow">
-                        <label class="input-label" for="addSaqGroup">Unit Group</label>
-                        <select id="addSaqGroup" name="groupId" class="input-stasis"></select>
+                        <label class="rp-label" for="addSaqGroup">Unit Group</label>
+                        <select id="addSaqGroup" name="groupId" class="rp-input"></select>
                     </div>
                     <div class="mb-3 d-none" id="addSaqUnitRow">
-                        <label class="input-label" for="addSaqUnit">Unit</label>
-                        <select id="addSaqUnit" name="unitId" class="input-stasis"></select>
+                        <label class="rp-label" for="addSaqUnit">Unit</label>
+                        <select id="addSaqUnit" name="unitId" class="rp-input"></select>
                     </div>
                     <div class="mb-3">
-                        <label class="input-label" for="addSaqStatus">Status</label>
-                        <select id="addSaqStatus" name="saqStatus" class="input-stasis"></select>
+                        <label class="rp-label" for="addSaqStatus">Status</label>
+                        <select id="addSaqStatus" name="saqStatus" class="rp-input"></select>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn-stasis-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn-stasis-primary"><i class="fas fa-check"></i> Create</button>
+                    <button type="button" class="rp-btn rp-btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="rp-btn rp-btn-primary"><i class="fas fa-check"></i> Create</button>
                 </div>
             </form>
         </div>
@@ -111,32 +100,32 @@
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label class="input-label" for="editSaqDesc">Description</label>
-                        <input type="text" id="editSaqDesc" name="saqDesc" class="input-stasis" required autocomplete="off" />
+                        <label class="rp-label" for="editSaqDesc">Description</label>
+                        <input type="text" id="editSaqDesc" name="saqDesc" class="rp-input" required autocomplete="off" />
                     </div>
                     <div class="mb-3">
-                        <label class="input-label" for="editSaqLinkType">Link Type</label>
-                        <select id="editSaqLinkType" class="input-stasis">
+                        <label class="rp-label" for="editSaqLinkType">Link Type</label>
+                        <select id="editSaqLinkType" class="rp-input">
                             <option value="group">Unit Group</option>
                             <option value="unit">Unit</option>
                         </select>
                     </div>
                     <div class="mb-3" id="editSaqGroupRow">
-                        <label class="input-label" for="editSaqGroup">Unit Group</label>
-                        <select id="editSaqGroup" name="groupId" class="input-stasis"></select>
+                        <label class="rp-label" for="editSaqGroup">Unit Group</label>
+                        <select id="editSaqGroup" name="groupId" class="rp-input"></select>
                     </div>
                     <div class="mb-3 d-none" id="editSaqUnitRow">
-                        <label class="input-label" for="editSaqUnit">Unit</label>
-                        <select id="editSaqUnit" name="unitId" class="input-stasis"></select>
+                        <label class="rp-label" for="editSaqUnit">Unit</label>
+                        <select id="editSaqUnit" name="unitId" class="rp-input"></select>
                     </div>
                     <div class="mb-3">
-                        <label class="input-label" for="editSaqStatus">Status</label>
-                        <select id="editSaqStatus" name="saqStatus" class="input-stasis"></select>
+                        <label class="rp-label" for="editSaqStatus">Status</label>
+                        <select id="editSaqStatus" name="saqStatus" class="rp-input"></select>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn-stasis-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn-stasis-primary"><i class="fas fa-check"></i> Save</button>
+                    <button type="button" class="rp-btn rp-btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="rp-btn rp-btn-primary"><i class="fas fa-check"></i> Save</button>
                 </div>
             </form>
         </div>
@@ -157,22 +146,22 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-0">
-                <div class="design-split">
+                <div class="rp-design-split">
                     <!-- LEFT PANEL: Question List -->
-                    <div class="design-left">
+                    <div class="rp-design-left">
                         <div class="p-2 border-bottom d-flex justify-content-between align-items-center">
-                            <span class="font-label-md" style="color: var(--on-surface-variant);">Questions (<span id="questionCount">0</span>)</span>
-                            <button type="button" class="btn-stasis-primary" id="addQuestionBtn">
+                            <span class="rp-label-md rp-text-muted">Questions (<span id="questionCount">0</span>)</span>
+                            <button type="button" class="rp-btn rp-btn-primary" id="addQuestionBtn">
                                 <i class="fas fa-plus"></i> Add
                             </button>
                         </div>
-                        <div class="design-left-list" id="questionList"></div>
+                        <div class="rp-design-left-list" id="questionList"></div>
                     </div>
                     <!-- RIGHT PANEL: Editor -->
-                    <div class="design-right">
-                        <div id="editorEmptyState" class="d-flex flex-column align-items-center justify-content-center h-100 text-muted py-5">
-                            <i class="fas fa-clipboard-question fa-2x mb-3" style="opacity:0.4;"></i>
-                            <p class="font-body-md mb-0">Select a question on the left, or click <strong>Add</strong> to create one.</p>
+                    <div class="rp-design-right">
+                        <div id="editorEmptyState" class="rp-empty-state">
+                            <i class="fas fa-clipboard-question fa-2x mb-3 rp-empty-state-icon"></i>
+                            <p class="rp-body-md mb-0">Select a question on the left, or click <strong>Add</strong> to create one.</p>
                         </div>
                         <div id="questionEditor" class="p-3 d-none">
                             <div class="d-flex justify-content-between align-items-center mb-3">
@@ -180,45 +169,45 @@
                                 <input type="hidden" id="editorQuestionId" value="0" />
                             </div>
                             <div class="mb-2">
-                                <label class="input-label" for="editorQuestionText">Question Text</label>
-                                <textarea id="editorQuestionText" class="input-stasis w-100" rows="2" autocomplete="off" placeholder="e.g. Are cash drawer limits strictly observed?"></textarea>
+                                <label class="rp-label" for="editorQuestionText">Question Text</label>
+                                <textarea id="editorQuestionText" class="rp-input w-100" rows="2" autocomplete="off" placeholder="e.g. Are cash drawer limits strictly observed?"></textarea>
                             </div>
                             <div class="form-check mb-2">
                                 <input class="form-check-input" type="checkbox" id="editorAllowComment" checked />
-                                <label class="form-check-label font-body-md" for="editorAllowComment">Allow comments for this question</label>
+                                <label class="form-check-label rp-body-md" for="editorAllowComment">Allow comments for this question</label>
                             </div>
                             <div class="mb-2 d-flex justify-content-between align-items-center">
-                                <label class="input-label mb-0">Answer Options</label>
+                                <label class="rp-label mb-0">Answer Options</label>
                                 <div class="d-flex gap-1">
-                                    <button type="button" class="btn-stasis-secondary" id="resetOptionsBtn" title="Clear all options">
+                                    <button type="button" class="rp-btn rp-btn-secondary" id="resetOptionsBtn" title="Clear all options">
                                         <i class="fas fa-rotate-left"></i> Reset
                                     </button>
-                                    <button type="button" class="btn-stasis-secondary" id="addOptionBtn">
+                                    <button type="button" class="rp-btn rp-btn-secondary" id="addOptionBtn">
                                         <i class="fas fa-plus"></i> Add Option
                                     </button>
                                 </div>
                             </div>
                             <div class="mb-2">
                                 <div class="d-flex gap-1 flex-wrap">
-                                    <button type="button" class="btn-stasis-secondary preset-btn" data-preset="yesno"><i class="fas fa-bolt me-1"></i>Yes / No</button>
+                                    <button type="button" class="rp-btn rp-btn-secondary rp-preset-btn" data-preset="yesno"><i class="fas fa-bolt me-1"></i>Yes / No</button>
                                 </div>
                             </div>
                             <div id="optionRows"></div>
                             <div class="mt-3 d-flex gap-2">
-                                <button type="button" class="btn-stasis-primary" id="saveQuestionBtn">
+                                <button type="button" class="rp-btn rp-btn-primary" id="saveQuestionBtn">
                                     <i class="fas fa-check"></i> Save Question
                                 </button>
-                                <button type="button" class="btn-stasis-secondary" id="cancelQuestionBtn">Cancel</button>
+                                <button type="button" class="rp-btn rp-btn-secondary" id="cancelQuestionBtn">Cancel</button>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
             <div class="modal-footer py-2">
-                <span class="text-muted font-body-sm me-auto" id="lockedNotice" style="display:none;">
+                <span class="rp-locked-note text-muted rp-body-sm me-auto" id="lockedNotice">
                     <i class="fas fa-lock me-1"></i> This template is locked and cannot be modified.
                 </span>
-                <button type="button" class="btn-stasis-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="rp-btn rp-btn-secondary" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>
@@ -258,21 +247,13 @@
             /* =================================================================
                SECTION 2 — UI RENDERERS
                ================================================================= */
-            function statusPill(status) {
-                switch (status) {
-                    case 'Active': return '<span class="status-pill rag-green">Active</span>';
-                    case 'Locked': return '<span class="status-pill rag-amber">Locked</span>';
-                    default: return '<span class="status-pill rag-red">Inactive</span>';
-                }
-            }
-
             function optionRowHtml(option, index) {
                 option = option || {};
-                return $('<div class="option-row">').append(
-                    $('<span class="option-num">').text((index + 1) + '.'),
+                return $('<div class="rp-option-row">').append(
+                    $('<span class="rp-item-num">').text((index + 1) + '.'),
                     $('<input type="hidden" class="option-id">').val(option.optionId || 0),
-                    $('<input type="text" class="input-stasis flex-fill option-text" placeholder="Option text" autocomplete="off">').val(option.optionText || ''),
-                    $('<button type="button" class="btn-stasis-secondary remove-option-btn" title="Remove"><i class="fas fa-xmark"></i></button>')
+                    $('<input type="text" class="rp-input flex-fill option-text" placeholder="Option text" autocomplete="off">').val(option.optionText || ''),
+                    $('<button type="button" class="rp-btn rp-btn-secondary remove-option-btn" title="Remove"><i class="fas fa-xmark"></i></button>')
                 );
             }
 
@@ -282,30 +263,30 @@
                 $('#questionCount').text(loadedQuestions.length);
 
                 if (!loadedQuestions.length) {
-                    $container.append('<div class="text-center text-muted font-body-sm py-4">No questions yet.</div>');
+                    $container.append('<div class="text-center text-muted rp-body-sm py-4">No questions yet.</div>');
                     return;
                 }
 
                 $.each(loadedQuestions, function (i, q) {
-                    var $item = $('<div class="q-item card-stasis p-2 mb-1">').data('question', q);
+                    var $item = $('<div class="rp-design-item rp-card p-2 mb-1" tabindex="0">').data('question', q);
                     if (q.questionId === selectedQuestionId) $item.addClass('selected');
 
                     var $top = $('<div class="d-flex justify-content-between align-items-center gap-1">');
-                    var $label = $('<div class="font-body-md fw-semibold" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">');
+                    var $label = $('<div class="rp-body-md fw-semibold rp-truncate">');
                     $label.append($('<span class="text-muted me-1">').text('Q' + q.displayOrder + '.'));
                     $label.append($('<span>').text(q.questionText));
                     $top.append($label);
 
                     if (!currentSaqLocked) {
                         $top.append(
-                            $('<button type="button" class="btn-stasis-secondary q-delete-btn" title="Delete" style="padding:0.15rem 0.4rem;">')
+                            $('<button type="button" class="rp-btn rp-btn-delete rp-design-item-delete" title="Delete">')
                                 .append('<i class="fas fa-trash-can"></i>')
                                 .data('question', q)
                         );
                     }
                     $item.append($top);
 
-                    var $meta = $('<div class="font-body-sm text-muted mt-1">');
+                    var $meta = $('<div class="rp-body-sm text-muted mt-1">');
                     $meta.text('Dropdown \u2022 ' + (q.options ? q.options.length : 0) + ' options');
                     if (q.allowComment) $meta.append(' \u2022 Comments allowed');
                     $item.append($meta);
@@ -346,9 +327,9 @@
             }
 
             function highlightSelected() {
-                $('#questionList .q-item').removeClass('selected');
+                $('#questionList .rp-design-item').removeClass('selected');
                 if (selectedQuestionId !== null) {
-                    $('#questionList .q-item').each(function () {
+                    $('#questionList .rp-design-item').each(function () {
                         if ($(this).data('question').questionId === selectedQuestionId) {
                             $(this).addClass('selected');
                         }
@@ -357,8 +338,8 @@
             }
 
             function renumberOptions() {
-                $('#optionRows .option-row').each(function (i) {
-                    $(this).find('.option-num').text((i + 1) + '.');
+                $('#optionRows .rp-option-row').each(function (i) {
+                    $(this).find('.rp-item-num').text((i + 1) + '.');
                 });
             }
 
@@ -383,7 +364,7 @@
                 payload.allowComment = $('#editorAllowComment').is(':checked');
 
                 payload.options = [];
-                $('#optionRows .option-row').each(function () {
+                $('#optionRows .rp-option-row').each(function () {
                     var $row = $(this);
                     var text = $.trim($row.find('.option-text').val());
                     if (!text) return;
@@ -398,17 +379,17 @@
             /* =================================================================
                SECTION 4 — VALIDATION
                ================================================================= */
-            function validateHeaderPayload(payload) {
-                if (!$.trim(payload.saqDesc)) { RiskPulse.toastError('Template description is required.'); return false; }
-                if (!payload.groupId && !payload.unitId) { RiskPulse.toastError('Please select a unit group or a unit.'); return false; }
-                if (payload.groupId && payload.unitId) { RiskPulse.toastError('Please select either a unit group or a unit, not both.'); return false; }
-                if (!payload.saqStatus) { RiskPulse.toastError('Please select a status.'); return false; }
+            function validateHeaderPayload(payload, $form) {
+                if (!$.trim(payload.saqDesc)) { return RiskPulse.validationError($form.find('[name="saqDesc"]'), 'Template description is required.'); }
+                if (!payload.groupId && !payload.unitId) { return RiskPulse.validationError($form.find('[name="groupId"], [name="unitId"]'), 'Please select a unit group or a unit.'); }
+                if (payload.groupId && payload.unitId) { return RiskPulse.validationError($form.find('[name="groupId"], [name="unitId"]'), 'Please select either a unit group or a unit, not both.'); }
+                if (!payload.saqStatus) { return RiskPulse.validationError($form.find('[name="saqStatus"]'), 'Please select a status.'); }
                 return true;
             }
 
             function validateQuestionPayload(payload) {
-                if (!payload.questionText) { RiskPulse.toastError('Question text is required.'); return false; }
-                if (!payload.options.length) { RiskPulse.toastError('At least one option is required.'); return false; }
+                if (!payload.questionText) { return RiskPulse.validationError($('#editorQuestionText'), 'Question text is required.'); }
+                if (!payload.options.length) { return RiskPulse.validationError(null, 'At least one option is required.'); }
                 return true;
             }
 
@@ -497,19 +478,19 @@
                 columns: [
                     { data: 'saqHeaderId' },
                     { data: 'saqDesc' },
-                    { data: 'groupDesc', render: function (d, type, row) { return '<span class="status-pill">' + (d || row.unitDesc || '') + '</span>'; } },
-                    { data: 'saqStatus', render: function (d) { return statusPill(d); } },
-                    { data: 'questionCount', render: function (d) { return '<span class="status-pill">' + (d || 0) + '</span>'; } },
+                    { data: 'groupDesc', render: function (d, type, row) { return RiskPulse.pill(d || row.unitDesc || ''); } },
+                    { data: 'saqStatus', render: function (d) { return RiskPulse.statusPill(d); } },
+                    { data: 'questionCount', render: function (d) { return RiskPulse.pill(d || 0); } },
                     { data: null, orderable: false, searchable: false, className: 'text-end', render: function (data, type, row) {
                         var locked = row.saqStatus === 'Locked';
                         return [
-                            '<button type="button" class="btn-stasis-secondary design-saq-btn"><i class="fas fa-pen-ruler"></i> Design</button>',
+                            '<button type="button" class="rp-btn rp-btn-secondary design-saq-btn"><i class="fas fa-pen-ruler"></i> Design</button>',
                             locked
-                                ? '<button type="button" class="btn-stasis-secondary" disabled title="Locked templates cannot be edited"><i class="fas fa-pen-to-square"></i> Edit</button>'
-                                : '<button type="button" class="btn-stasis-secondary edit-saq-btn"><i class="fas fa-pen-to-square"></i> Edit</button>',
+                                ? '<button type="button" class="rp-btn rp-btn-secondary" disabled title="Locked templates cannot be edited"><i class="fas fa-pen-to-square"></i> Edit</button>'
+                                : '<button type="button" class="rp-btn rp-btn-edit edit-saq-btn"><i class="fas fa-pen-to-square"></i> Edit</button>',
                             locked
-                                ? '<button type="button" class="btn-stasis-secondary" disabled title="Locked templates cannot be deleted"><i class="fas fa-trash-can"></i> Delete</button>'
-                                : '<button type="button" class="btn-stasis-secondary delete-saq-btn"><i class="fas fa-trash-can"></i> Delete</button>'
+                                ? '<button type="button" class="rp-btn rp-btn-secondary" disabled title="Locked templates cannot be deleted"><i class="fas fa-trash-can"></i> Delete</button>'
+                                : '<button type="button" class="rp-btn rp-btn-delete delete-saq-btn"><i class="fas fa-trash-can"></i> Delete</button>'
                         ].join(' ');
                     } }
                 ],
@@ -519,8 +500,14 @@
             /* =================================================================
                SECTION 7 — EVENT WIRING & INIT
                ================================================================= */
-            RiskPulse.populateSelect($('#addSaqStatus'), statuses);
-            RiskPulse.populateSelect($('#editSaqStatus'), statuses);
+            function statusOptions(list) {
+                return $.map(list, function (o) {
+                    return { value: o.value, label: o.label, kind: RiskPulse.statusKind(o.value) };
+                });
+            }
+
+            RiskPulse.populateSelect($('#addSaqStatus'), statusOptions(statuses));
+            RiskPulse.populateSelect($('#editSaqStatus'), statusOptions(statuses));
 
             function toggleSaqLinkType(linkTypeSelect, groupRowId, unitRowId, groupSelect, unitSelect) {
                 var isGroup = $(linkTypeSelect).val() === 'group';
@@ -532,12 +519,12 @@
 
             function initSaqSelects() {
                 $.each(['#addSaqGroup', '#editSaqGroup'], function (i, selector) {
-                    $(selector).empty().append('<option value="0">Select a unit group...</option>');
-                    RiskPulse.populateSelect($(selector), unitGroups);
+                    $(selector).empty();
+                    RiskPulse.populateSelect($(selector), unitGroups, '0', 'Select a unit group...');
                 });
                 $.each(['#addSaqUnit', '#editSaqUnit'], function (i, selector) {
-                    $(selector).empty().append('<option value="0">Select a unit...</option>');
-                    RiskPulse.populateSelect($(selector), units);
+                    $(selector).empty();
+                    RiskPulse.populateSelect($(selector), units, '0', 'Select a unit...');
                 });
             }
             initSaqSelects();
@@ -555,6 +542,7 @@
                 $('#addSaqGroup').val(0).trigger('change');
                 $('#addSaqUnit').val(0).trigger('change');
                 $('#addSaqStatus').val('Active').trigger('change');
+                RiskPulse.clearFieldErrors($('#addSaqForm'));
             });
 
             $('#saqTable tbody').on('click', '.edit-saq-btn', function () {
@@ -571,6 +559,7 @@
                     $('#editSaqGroup').val(0).trigger('change');
                 }
                 $('#editSaqStatus').val(row.saqStatus).trigger('change');
+                RiskPulse.clearFieldErrors($('#editSaqForm'));
                 RiskPulse.showModal('editSaqModal');
             });
 
@@ -586,7 +575,7 @@
                 currentSaqLocked = row.saqStatus === 'Locked';
 
                 $('#designModalLabel').text('Design: ' + row.saqDesc);
-                $('#designStatusPill').html(statusPill(row.saqStatus));
+                $('#designStatusPill').html(RiskPulse.statusPill(row.saqStatus));
 
                 if (currentSaqLocked) {
                     $('#lockedNotice').show();
@@ -607,16 +596,32 @@
             });
 
             // Left panel: click question to edit
-            $('#questionList').on('click', '.q-item', function (e) {
-                if ($(e.target).closest('.q-delete-btn').length) return;
+            $('#questionList').on('click', '.rp-design-item', function (e) {
+                if ($(e.target).closest('.rp-design-item-delete').length) return;
                 if (currentSaqLocked) return;
                 showEditor($(this).data('question'));
             });
 
             // Left panel: delete button
-            $('#questionList').on('click', '.q-delete-btn', function (e) {
+            $('#questionList').on('click', '.rp-design-item-delete', function (e) {
                 e.stopPropagation();
                 deleteQuestion($(this).data('question'));
+            });
+
+            // Keyboard navigation for designer items
+            $('#questionList').on('keydown', '.rp-design-item', function (e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    if (currentSaqLocked) return;
+                    showEditor($(this).data('question'));
+                }
+            });
+            $('#questionList').on('keydown', '.rp-design-item-delete', function (e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    deleteQuestion($(this).data('question'));
+                }
             });
 
             // Add Question
@@ -626,7 +631,7 @@
 
             // Option rows
             $('#addOptionBtn').on('click', function () {
-                var count = $('#optionRows .option-row').length;
+                var count = $('#optionRows .rp-option-row').length;
                 $('#optionRows').append(optionRowHtml(null, count));
             });
 
@@ -636,12 +641,12 @@
             });
 
             $('#optionRows').on('click', '.remove-option-btn', function () {
-                $(this).closest('.option-row').remove();
+                $(this).closest('.rp-option-row').remove();
                 renumberOptions();
             });
 
             // Quick Presets
-            $('.preset-btn').on('click', function () {
+            $('.rp-preset-btn').on('click', function () {
                 var preset = PRESETS[$(this).data('preset')];
                 if (!preset) return;
                 $('#optionRows').empty();
@@ -662,7 +667,7 @@
             $('#addSaqForm, #editSaqForm').on('submit', function (e) {
                 e.preventDefault();
                 var payload = getHeaderPayload($(this));
-                if (validateHeaderPayload(payload)) submitHeader(payload, $(this));
+                if (validateHeaderPayload(payload, $(this))) submitHeader(payload, $(this));
             });
         })(jQuery);
     </script>

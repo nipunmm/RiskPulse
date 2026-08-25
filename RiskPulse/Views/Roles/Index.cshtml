@@ -9,20 +9,23 @@
     <link rel="stylesheet" href="~/lib/datatables/dataTables.bootstrap5.min.css" />
 }
 
-<div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-end gap-2 mb-2">
+<div class="rp-page-header">
     <div>
-        <h2 class="font-display-lg" style="color: var(--on-background);">Role Management</h2>
-        <p class="font-body-md mt-1 mb-0" style="color: var(--on-surface-variant);">
+        <h2 class="rp-display-lg">Role Management</h2>
+        <p class="rp-body-md mt-1 mb-0 rp-text-muted">
             Define roles, set their landing page, and assign system permissions.
         </p>
     </div>
-    <button type="button" class="btn-stasis-primary" data-bs-toggle="modal" data-bs-target="#addRoleModal">
-        <i class="fas fa-plus"></i> Add Role
-    </button>
 </div>
 
-<div class="card-stasis p-2">
-    <table id="roleTable" class="table table-stasis table-sm w-100 align-middle">
+<div class="rp-card p-2">
+    <div class="rp-grid-toolbar">
+        <p class="mb-0 rp-body-sm rp-text-muted">Define roles and assign system permissions.</p>
+        <button type="button" class="rp-btn rp-btn-primary" data-bs-toggle="modal" data-bs-target="#addRoleModal">
+            <i class="fas fa-plus"></i> Add Role
+        </button>
+    </div>
+    <table id="roleTable" class="table rp-table table-sm w-100 align-middle">
         <thead>
             <tr>
                 <th>ID</th>
@@ -48,27 +51,27 @@
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label class="input-label" for="addRoleDesc">Role Name</label>
-                        <input type="text" id="addRoleDesc" name="roleDesc" class="input-stasis" required autocomplete="off" />
+                        <label class="rp-label" for="addRoleDesc">Role Name</label>
+                        <input type="text" id="addRoleDesc" name="roleDesc" class="rp-input" required autocomplete="off" />
                     </div>
 
                     <div class="mb-3">
-                        <label class="input-label" for="addDefaultPermissionId">Default Landing Page</label>
-                        <select id="addDefaultPermissionId" name="defaultPermissionId" class="input-stasis">
+                        <label class="rp-label" for="addDefaultPermissionId">Default Landing Page</label>
+                        <select id="addDefaultPermissionId" name="defaultPermissionId" class="rp-input">
                         </select>
-                        <small class="text-muted font-body-xs mt-1 d-block">
+                        <small class="text-muted rp-body-xs mt-1 d-block">
                             Users with this role will be automatically redirected to this page after login. Enabled once at least one permission is assigned.
                         </small>
                     </div>
 
                     <div class="mb-3">
-                        <label class="input-label d-block mb-2">Permissions</label>
+                        <label class="rp-label d-block mb-2">Permissions</label>
                         <div class="permission-checkboxes" id="addPermissionList"></div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn-stasis-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn-stasis-primary"><i class="fas fa-check"></i> Create</button>
+                    <button type="button" class="rp-btn rp-btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="rp-btn rp-btn-primary"><i class="fas fa-check"></i> Create</button>
                 </div>
             </form>
         </div>
@@ -89,27 +92,27 @@
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label class="input-label" for="editRoleDesc">Role Name</label>
-                        <input type="text" id="editRoleDesc" name="roleDesc" class="input-stasis" required autocomplete="off" />
+                        <label class="rp-label" for="editRoleDesc">Role Name</label>
+                        <input type="text" id="editRoleDesc" name="roleDesc" class="rp-input" required autocomplete="off" />
                     </div>
 
                     <div class="mb-3">
-                        <label class="input-label" for="editDefaultPermissionId">Default Landing Page</label>
-                        <select id="editDefaultPermissionId" name="defaultPermissionId" class="input-stasis">
+                        <label class="rp-label" for="editDefaultPermissionId">Default Landing Page</label>
+                        <select id="editDefaultPermissionId" name="defaultPermissionId" class="rp-input">
                         </select>
-                        <small class="text-muted font-body-xs mt-1 d-block">
+                        <small class="text-muted rp-body-xs mt-1 d-block">
                             Users with this role will be automatically redirected to this page after login. Enabled once at least one permission is assigned.
                         </small>
                     </div>
 
                     <div class="mb-3">
-                        <label class="input-label d-block mb-2">Permissions</label>
+                        <label class="rp-label d-block mb-2">Permissions</label>
                         <div class="permission-checkboxes" id="editPermissionList"></div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn-stasis-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn-stasis-primary"><i class="fas fa-check"></i> Save</button>
+                    <button type="button" class="rp-btn rp-btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="rp-btn rp-btn-primary"><i class="fas fa-check"></i> Save</button>
                 </div>
             </form>
         </div>
@@ -154,18 +157,21 @@
                 var $select = $('#' + selectId).empty();
 
                 if (!$.isArray(checkedIds) || checkedIds.length === 0) {
-                    return $select.append($('<option>').val('').text('Select a default page')).prop('disabled', true);
+                    $select.append($('<option>').val('').text('Select a default page')).prop('disabled', true);
+                } else {
+                    var allowed = $.grep(permissions, function (p) { return $.inArray(p.value, checkedIds) > -1; });
+                    if (!$.grep(allowed, function (p) { return p.value === selectedId; }).length) {
+                        var dash = $.grep(allowed, function (p) { return p.label.toLowerCase() === 'dashboard'; })[0];
+                        selectedId = (dash || allowed[0]).value;
+                    }
+
+                    $select.append($.map(allowed, function (p) {
+                        return $('<option>').val(p.value).text(p.label).prop('selected', p.value === selectedId);
+                    })).prop('disabled', false);
                 }
 
-                var allowed = $.grep(permissions, function (p) { return $.inArray(p.value, checkedIds) > -1; });
-                if (!$.grep(allowed, function (p) { return p.value === selectedId; }).length) {
-                    var dash = $.grep(allowed, function (p) { return p.label.toLowerCase() === 'dashboard'; })[0];
-                    selectedId = (dash || allowed[0]).value;
-                }
-
-                $select.append($.map(allowed, function (p) {
-                    return $('<option>').val(p.value).text(p.label).prop('selected', p.value === selectedId);
-                })).prop('disabled', false);
+                $select.trigger('change.select2');
+                return $select;
             }
 
             // Syncs the default-page dropdown to the currently checked permissions
@@ -189,13 +195,13 @@
             /* =================================================================
                SECTION 4 — VALIDATION
                ================================================================= */
-            function validateRolePayload(payload) {
+            function validateRolePayload(payload, $form) {
                 // Rule 1 — role name is required
-                if (!$.trim(payload.roleDesc)) { RiskPulse.toastError('Role name is required.'); return false; }
+                if (!$.trim(payload.roleDesc)) { return RiskPulse.validationError($form.find('[name="roleDesc"]'), 'Role name is required.'); }
                 // Rule 2 — at least one permission must be assigned
-                if (!payload.permissionIds.length) { RiskPulse.toastError('At least one permission is required.'); return false; }
+                if (!payload.permissionIds.length) { return RiskPulse.validationError(null, 'At least one permission is required.'); }
                 // Rule 3 — default page must be one of the assigned permissions
-                if (payload.defaultPermissionId && $.inArray(payload.defaultPermissionId, payload.permissionIds) === -1) { RiskPulse.toastError('The default page must be one of the assigned permissions.'); return false; }
+                if (payload.defaultPermissionId && $.inArray(payload.defaultPermissionId, payload.permissionIds) === -1) { return RiskPulse.validationError($form.find('[name="defaultPermissionId"]'), 'The default page must be one of the assigned permissions.'); }
                 return true;
             }
 
@@ -224,15 +230,15 @@
                     { data: 'roleId' },
                     { data: 'roleDesc' },
                     { data: 'defaultPermissionDesc', render: function (d) {
-                        return '<span class="status-pill"><i class="fas fa-house me-1"></i>' + (d || 'Dashboard') + '</span>';
+                        return RiskPulse.pill(d || 'Dashboard', null, 'house');
                     } },
                     { data: 'permissionDescs', orderable: false, searchable: false, render: function (d) {
-                        var badges = (d || []).map(function (desc) { return '<span class="status-pill">' + desc + '</span>'; });
+                        var badges = (d || []).map(function (desc) { return RiskPulse.pill(desc); });
                         return badges.length ? badges.join(' ') : '<span class="text-muted">None</span>';
                     } },
                     { data: null, orderable: false, searchable: false, className: 'text-end', render: function () {
-                        return '<button type="button" class="btn-stasis-secondary edit-role-btn"><i class="fas fa-pen-to-square"></i> Edit</button> ' +
-                               '<button type="button" class="btn-stasis-secondary delete-role-btn"><i class="fas fa-trash-can"></i> Delete</button>';
+                        return '<button type="button" class="rp-btn rp-btn-edit edit-role-btn"><i class="fas fa-pen-to-square"></i> Edit</button> ' +
+                               '<button type="button" class="rp-btn rp-btn-delete delete-role-btn"><i class="fas fa-trash-can"></i> Delete</button>';
                     } }
                 ],
                 order: [[0, 'asc']]
@@ -252,6 +258,7 @@
                 $('#addRoleDesc').val('').trigger('focus');
                 renderPermissionList('addPermissionList', []);
                 syncDefaultPageDropdown($('#addRoleForm'), $('#addRoleForm').data('default-select'));
+                RiskPulse.clearFieldErrors($('#addRoleForm'));
             });
 
             // Load a role's values into the Edit modal
@@ -261,6 +268,7 @@
                 $('#editRoleDesc').val(row.roleDesc);
                 renderPermissionList('editPermissionList', row.permissionIds || []);
                 renderDefaultPermissionOptions('editDefaultPermissionId', row.defaultPermissionId, row.permissionIds || []);
+                RiskPulse.clearFieldErrors($('#editRoleForm'));
                 RiskPulse.showModal('editRoleModal');
             });
 
@@ -288,7 +296,7 @@
             $('#addRoleForm, #editRoleForm').on('submit', function (e) {
                 e.preventDefault();
                 var payload = getFormPayload($(this));
-                if (validateRolePayload(payload)) submitRole(payload, $(this));
+                if (validateRolePayload(payload, $(this))) submitRole(payload, $(this));
             });
         })(jQuery);
     </script>

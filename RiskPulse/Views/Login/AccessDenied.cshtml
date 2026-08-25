@@ -12,139 +12,43 @@
     <title>Access Denied - Risk Pulse</title>
     <link rel="stylesheet" href="~/lib/font-awesome/css/all.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <style>
-        .accessdenied-page {
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background-color: var(--background);
-            padding: 24px;
-            position: relative;
-            overflow: hidden;
-            margin: 0;
-        }
-
-        .accessdenied-bg-pattern {
-            position: absolute;
-            inset: 0;
-            z-index: 0;
-            opacity: 0.06;
-            background-image:
-                radial-gradient(circle at 20% 30%, var(--primary-container) 1px, transparent 1px),
-                radial-gradient(circle at 80% 70%, var(--primary-container) 1px, transparent 1px),
-                radial-gradient(circle at 50% 50%, var(--outline) 0.5px, transparent 0.5px);
-            background-size: 60px 60px, 80px 80px, 40px 40px;
-            pointer-events: none;
-        }
-
-        .accessdenied-card {
-            position: relative;
-            z-index: 1;
-            width: 100%;
-            max-width: 480px;
-            background: var(--surface-container-lowest);
-            border: 1px solid var(--outline-variant);
-            border-radius: 8px;
-            padding: 48px;
-            box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.03);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-            gap: 8px;
-        }
-
-        .accessdenied-brand {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 24px;
-        }
-
-        .accessdenied-brand h2 {
-            margin: 0;
-        }
-
-        .accessdenied-icon-circle {
-            width: 64px;
-            height: 64px;
-            background-color: var(--error-container);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 24px;
-        }
-
-        .accessdenied-icon-circle i {
-            font-size: 32px;
-            color: var(--on-error-container);
-        }
-
-        .accessdenied-headline {
-            margin: 0 0 8px;
-        }
-
-        .accessdenied-message {
-            margin: 0 0 24px;
-        }
-
-        .accessdenied-request-id {
-            background-color: var(--surface-container-low);
-            border-radius: 4px;
-            padding: 8px 16px;
-            width: 100%;
-            margin-bottom: 32px;
-        }
-
-        .accessdenied-request-id span {
-            user-select: all;
-        }
-    </style>
 </head>
-<body class="accessdenied-page">
+<body class="rp-shell-centered">
 
-    <!-- Subtle geometric background pattern -->
-    <div class="accessdenied-bg-pattern"></div>
+    <div class="rp-bg-pattern"></div>
 
-    <main class="accessdenied-card">
+    <main class="rp-panel rp-panel-message">
 
-        <!-- Branding -->
-        <div class="accessdenied-brand">
-            <div style="width: 48px; height: 48px; background-color: var(--surface-container); border: 1px solid var(--outline-variant); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 0;">
-                <i class="fas fa-shield-halved" style="font-size: 22px; color: var(--primary-container);"></i>
+        <div class="d-flex flex-column align-items-center gap-2 mb-3">
+            <div class="rp-mark-brand">
+                <i class="fas fa-shield-halved"></i>
             </div>
-            <h2 class="font-headline-md" style="color: var(--primary-container); margin: 0;">Risk Pulse</h2>
-            <p class="font-body-sm" style="color: var(--on-surface-variant); margin: 0;">Access Control</p>
+            <h2 class="rp-headline-md rp-text-primary">Risk Pulse</h2>
+            <p class="rp-body-sm rp-text-muted m-0">Access Control</p>
         </div>
 
-        <!-- Visual Indicator -->
-        <div class="accessdenied-icon-circle">
+        <div class="rp-mark-warning mb-3">
             <i class="fas fa-lock"></i>
         </div>
 
-        <!-- Messaging -->
-        <h1 class="font-display-lg accessdenied-headline" style="color: var(--on-surface);">Access Denied</h1>
-        <p class="font-body-lg accessdenied-message" style="color: var(--on-surface-variant);">
+        <h1 class="rp-display-lg">Access Denied</h1>
+        <p class="rp-body-lg rp-text-muted">
             You don't have permission to access this page. If you believe this is a mistake, please contact your administrator.
         </p>
 
-        <!-- Request ID -->
-        <div class="accessdenied-request-id">
-            <span class="font-data-mono" style="color: var(--on-surface-variant);">
+        <div class="rp-request-chip">
+            <span class="rp-mono rp-text-muted">
                 Request ID: @ViewData["RequestId"]
             </span>
         </div>
 
         <div class="d-flex flex-column gap-2 w-100">
             <a href="@Url.Action(returnAction, returnController)"
-               class="btn-stasis-primary w-100 d-inline-flex justify-content-center">
+               class="rp-btn rp-btn-primary w-100 d-inline-flex justify-content-center">
                 Return to Home
             </a>
             <a asp-controller="Login" asp-action="Logout"
-               class="btn-stasis-secondary w-100 d-inline-flex justify-content-center">
+               class="rp-btn rp-btn-secondary w-100 d-inline-flex justify-content-center">
                 Logout
             </a>
         </div>

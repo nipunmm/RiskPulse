@@ -1,20 +1,20 @@
 @model RiskPulse.Models.ViewModel.AssessmentWizardViewModel
 
-<section class="wizard-step-panel" data-step="1">
-    <div class="card-stasis p-3">
-        <h6 class="font-display-md mb-1">Step 1 — Assessment name</h6>
-        <p class="font-body-sm mb-3" style="color: var(--on-surface-variant);">
+<section class="rp-wizard-panel" data-step="1">
+    <div class="rp-card p-3">
+        <h6 class="rp-display-md mb-1">Step 1 — Assessment name</h6>
+        <p class="rp-body-sm mb-3 rp-text-muted">
             Name the assessment. You can rename it later while it is still a draft.
         </p>
         <div class="row">
             <div class="col-lg-6">
-                <label class="input-label" for="wizardName">Assessment Name</label>
-                <input type="text" id="wizardName" class="input-stasis" value="@Model.AssessmentName" maxlength="200" placeholder="e.g. 2026 Annual Operational Risk Assessment" autocomplete="off" />
+                <label class="rp-label" for="wizardName">Assessment Name</label>
+                <input type="text" id="wizardName" class="rp-input" value="@Model.AssessmentName" maxlength="200" placeholder="e.g. 2026 Annual Operational Risk Assessment" autocomplete="off" />
             </div>
         </div>
     </div>
     <div class="d-flex justify-content-end gap-2 mt-3">
-        <a href="@Url.Action("Index", "Assessment")" class="btn-stasis-secondary d-inline-flex align-items-center gap-2">Cancel</a>
-        <button type="button" class="btn-stasis-primary wizard-next-btn"><i class="fas fa-arrow-right"></i> Next</button>
+        <a href="@Url.Action("Index", "Assessment")" class="rp-btn rp-btn-secondary d-inline-flex align-items-center gap-2">Cancel</a>
+        <button type="button" class="rp-btn rp-btn-primary rp-wizard-next"><i class="fas fa-arrow-right"></i> Next</button>
     </div>
 </section>

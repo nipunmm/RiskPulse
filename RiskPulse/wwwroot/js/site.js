@@ -4,8 +4,8 @@
 
 // Sidebar Collapse / Expand Toggle (Desktop & Mobile)
 function toggleSidebar() {
-    var sidebar = document.querySelector('.sidebar');
-    var mainContent = document.querySelector('.main-content');
+    var sidebar = document.querySelector('.rp-sidebar');
+    var mainContent = document.querySelector('.rp-main');
     var toggleBtn = document.getElementById('sidebarToggle');
     var isMobile = window.innerWidth < 768;
 
@@ -40,16 +40,16 @@ function toggleSidebar() {
 function toggleSubmenu(parentBtn) {
     if (!parentBtn) return;
 
-    var sidebar = document.querySelector('.sidebar');
+    var sidebar = document.querySelector('.rp-sidebar');
     if (sidebar && sidebar.classList.contains('collapsed')) {
         toggleFlyout(parentBtn);
         return;
     }
 
-    var sidebarGroup = parentBtn.closest('.sidebar-group');
+    var sidebarGroup = parentBtn.closest('.rp-sidebar-group');
     if (!sidebarGroup) return;
 
-    var submenu = sidebarGroup.querySelector('.sidebar-submenu');
+    var submenu = sidebarGroup.querySelector('.rp-sidebar-submenu');
     if (!submenu) return;
 
     var isOpen = submenu.classList.contains('open');
@@ -66,11 +66,15 @@ function toggleSubmenu(parentBtn) {
 }
 
 // Collapsed-sidebar flyout submenu (appended to body to escape sidebar clipping)
+function findFlyout() {
+    return document.querySelector('.rp-flyout');
+}
+
 function getFlyout() {
-    var flyout = document.querySelector('.sidebar-flyout');
+    var flyout = findFlyout();
     if (!flyout) {
         flyout = document.createElement('div');
-        flyout.className = 'sidebar-flyout';
+        flyout.className = 'rp-flyout';
         flyout.setAttribute('role', 'menu');
         document.body.appendChild(flyout);
     }
@@ -78,13 +82,14 @@ function getFlyout() {
 }
 
 function closeFlyout() {
-    var flyout = getFlyout();
+    var flyout = findFlyout();
+    if (!flyout) return;
     var wasShown = flyout.classList.contains('show');
     flyout.classList.remove('show');
     flyout.innerHTML = '';
     if (wasShown) {
-        var parent = document.querySelector('.sidebar-parent[aria-expanded="true"]');
-        if (parent && parent.closest('.sidebar.collapsed')) {
+        var parent = document.querySelector('.rp-sidebar-toggle[aria-expanded="true"]');
+        if (parent && parent.closest('.rp-sidebar.collapsed')) {
             parent.setAttribute('aria-expanded', 'false');
         }
     }
@@ -98,14 +103,14 @@ function toggleFlyout(parentBtn) {
         return;
     }
 
-    var sidebarGroup = parentBtn.closest('.sidebar-group');
+    var sidebarGroup = parentBtn.closest('.rp-sidebar-group');
     if (!sidebarGroup) return;
 
     var label = parentBtn.querySelector('span') ? parentBtn.querySelector('span').textContent.trim() : '';
-    var submenu = sidebarGroup.querySelector('.sidebar-submenu');
+    var submenu = sidebarGroup.querySelector('.rp-sidebar-submenu');
     var links = submenu ? submenu.querySelectorAll('a') : [];
 
-    var html = label ? '<div class="sidebar-flyout-title">' + label + '</div>' : '';
+    var html = label ? '<div class="rp-flyout-title">' + label + '</div>' : '';
     for (var i = 0; i < links.length; i++) {
         var link = links[i];
         var active = link.classList.contains('active') ? ' active' : '';
@@ -130,8 +135,8 @@ function toggleFlyout(parentBtn) {
 document.addEventListener('DOMContentLoaded', function () {
     if (window.innerWidth >= 768) {
         var isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
-        var sidebar = document.querySelector('.sidebar');
-        var mainContent = document.querySelector('.main-content');
+        var sidebar = document.querySelector('.rp-sidebar');
+        var mainContent = document.querySelector('.rp-main');
         var toggleBtn = document.getElementById('sidebarToggle');
 
         if (isCollapsed) {
@@ -144,11 +149,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
 // Close sidebar on mobile when clicking outside
 document.addEventListener('click', function (e) {
-    var sidebar = document.querySelector('.sidebar');
+    var sidebar = document.querySelector('.rp-sidebar');
 
-    var flyout = document.querySelector('.sidebar-flyout');
+    var flyout = findFlyout();
     if (flyout && flyout.classList.contains('show')) {
-        if (!flyout.contains(e.target) && !e.target.closest('.sidebar-group')) {
+        if (!flyout.contains(e.target) && !e.target.closest('.rp-sidebar-group')) {
             closeFlyout();
         }
     }
@@ -165,21 +170,14 @@ document.addEventListener('click', function (e) {
 });
 
 // Close flyout when the sidebar scrolls (it stays fixed relative to the viewport)
-document.querySelector('.sidebar-nav').addEventListener('scroll', function () {
-    closeFlyout();
-});
+var sidebarNav = document.querySelector('.rp-sidebar-nav');
+if (sidebarNav) {
+    sidebarNav.addEventListener('scroll', closeFlyout);
+}
 
-// Keyboard shortcuts: "/" focuses the top search bar, "Escape" closes the flyout
+// Keyboard shortcuts: "Escape" closes the flyout
 document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') {
         closeFlyout();
-        return;
-    }
-    if (e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey) {
-        var searchInput = document.querySelector('.search-input');
-        if (searchInput && document.activeElement !== searchInput) {
-            e.preventDefault();
-            searchInput.focus();
-        }
     }
 });

@@ -1,15 +1,15 @@
 @model RiskPulse.Models.ViewModel.AssessmentWizardViewModel
 
-<section class="wizard-step-panel" data-step="2" style="display:none;">
-    <div class="card-stasis p-3">
-        <h6 class="font-display-md mb-1">Step 2 — SAQ template</h6>
-        <p class="font-body-sm mb-3" style="color: var(--on-surface-variant);">
+<section class="rp-wizard-panel" data-step="2">
+    <div class="rp-card p-3">
+        <h6 class="rp-display-md mb-1">Step 2 — SAQ template</h6>
+        <p class="rp-body-sm mb-3 rp-text-muted">
             Pick the self-assessment questionnaire that will drive this assessment.
         </p>
         <div class="row">
             <div class="col-lg-6">
-                <label class="input-label" for="wizardSaqId">SAQ Template</label>
-                <select id="wizardSaqId" class="input-stasis">
+                <label class="rp-label" for="wizardSaqId">SAQ Template</label>
+                <select id="wizardSaqId" class="rp-input">
                     <option value="0">Select an SAQ template...</option>
                     @foreach (var opt in Model.SaqOptions)
                     {
@@ -20,7 +20,7 @@
         </div>
     </div>
     <div class="d-flex justify-content-between gap-2 mt-3">
-        <button type="button" class="btn-stasis-secondary wizard-back-btn"><i class="fas fa-arrow-left"></i> Back</button>
-        <button type="button" class="btn-stasis-primary wizard-next-btn">Next <i class="fas fa-arrow-right"></i></button>
+        <button type="button" class="rp-btn rp-btn-secondary rp-wizard-back"><i class="fas fa-arrow-left"></i> Back</button>
+        <button type="button" class="rp-btn rp-btn-primary rp-wizard-next">Next <i class="fas fa-arrow-right"></i></button>
     </div>
 </section>

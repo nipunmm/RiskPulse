@@ -11,20 +11,23 @@
     <link rel="stylesheet" href="~/lib/datatables/dataTables.bootstrap5.min.css" />
 }
 
-<div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-end gap-2 mb-2">
+<div class="rp-page-header">
     <div>
-        <h2 class="font-display-lg" style="color: var(--on-background);">User Management</h2>
-        <p class="font-body-md mt-1 mb-0" style="color: var(--on-surface-variant);">
+        <h2 class="rp-display-lg">User Management</h2>
+        <p class="rp-body-md mt-1 mb-0 rp-text-muted">
             Manage system users.
         </p>
     </div>
-    <button type="button" class="btn-stasis-primary" data-bs-toggle="modal" data-bs-target="#addUserModal">
-        <i class="fas fa-user-plus"></i> Add User
-    </button>
 </div>
 
-<div class="card-stasis p-2">
-    <table id="userTable" class="table table-stasis table-sm w-100 align-middle">
+<div class="rp-card p-2">
+    <div class="rp-grid-toolbar">
+        <p class="mb-0 rp-body-sm rp-text-muted">Add, edit, or deactivate users.</p>
+        <button type="button" class="rp-btn rp-btn-primary" data-bs-toggle="modal" data-bs-target="#addUserModal">
+            <i class="fas fa-user-plus"></i> Add User
+        </button>
+    </div>
+    <table id="userTable" class="table rp-table table-sm w-100 align-middle">
         <thead>
             <tr>
                 <th>ID</th>
@@ -51,23 +54,23 @@
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label class="input-label" for="addUsername">Username</label>
-                        <input type="text" id="addUsername" name="username" class="input-stasis" required autocomplete="off" />
+                        <label class="rp-label" for="addUsername">Username</label>
+                        <input type="text" id="addUsername" name="username" class="rp-input" required autocomplete="off" />
                     </div>
 
                     <div class="mb-3">
-                        <label class="input-label" for="addUnitId">Unit</label>
-                        <select id="addUnitId" name="unitId" class="input-stasis" required></select>
+                        <label class="rp-label" for="addUnitId">Unit</label>
+                        <select id="addUnitId" name="unitId" class="rp-input" required></select>
                     </div>
 
                     <div class="mb-3">
-                        <label class="input-label" for="addRoleId">Role</label>
-                        <select id="addRoleId" name="roleId" class="input-stasis" required></select>
+                        <label class="rp-label" for="addRoleId">Role</label>
+                        <select id="addRoleId" name="roleId" class="rp-input" required></select>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn-stasis-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn-stasis-primary"><i class="fas fa-check"></i> Create</button>
+                    <button type="button" class="rp-btn rp-btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="rp-btn rp-btn-primary"><i class="fas fa-check"></i> Create</button>
                 </div>
             </form>
         </div>
@@ -90,18 +93,18 @@
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label class="input-label" for="editUsername">Username</label>
-                        <input type="text" id="editUsername" name="username" class="input-stasis" required autocomplete="off" />
+                        <label class="rp-label" for="editUsername">Username</label>
+                        <input type="text" id="editUsername" name="username" class="rp-input" required autocomplete="off" />
                     </div>
 
                     <div class="mb-3">
-                        <label class="input-label" for="editUnitId">Unit</label>
-                        <select id="editUnitId" name="unitId" class="input-stasis" required></select>
+                        <label class="rp-label" for="editUnitId">Unit</label>
+                        <select id="editUnitId" name="unitId" class="rp-input" required></select>
                     </div>
 
                     <div class="mb-3">
-                        <label class="input-label" for="editRoleId">Role</label>
-                        <select id="editRoleId" name="roleId" class="input-stasis" required></select>
+                        <label class="rp-label" for="editRoleId">Role</label>
+                        <select id="editRoleId" name="roleId" class="rp-input" required></select>
                     </div>
 
                     <div class="form-check">
@@ -110,8 +113,8 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn-stasis-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn-stasis-primary"><i class="fas fa-check"></i> Save</button>
+                    <button type="button" class="rp-btn rp-btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="rp-btn rp-btn-primary"><i class="fas fa-check"></i> Save</button>
                 </div>
             </form>
         </div>
@@ -159,16 +162,16 @@
             /* =================================================================
                SECTION 4 — VALIDATION
                ================================================================= */
-            function validateUserPayload(payload) {
+            function validateUserPayload(payload, $form) {
                 // Rule 1 — username is required
                 var username = $.trim(payload.username);
-                if (!username) { RiskPulse.toastError('Username is required.'); return false; }
+                if (!username) { return RiskPulse.validationError($form.find('[name="username"]'), 'Username is required.'); }
                 // Rule 2 — username must be lowercase a-z only
-                if (!/^[a-z]+$/.test(username)) { RiskPulse.toastError('Username must be lowercase letters only (a-z), no numbers, spaces, or special characters.'); return false; }
+                if (!/^[a-z]+$/.test(username)) { return RiskPulse.validationError($form.find('[name="username"]'), 'Username must be lowercase letters only (a-z), no numbers, spaces, or special characters.'); }
                 // Rule 3 — unit must be selected
-                if (!payload.unitId || payload.unitId === 0) { RiskPulse.toastError('Please select a unit.'); return false; }
+                if (!payload.unitId || payload.unitId === 0) { return RiskPulse.validationError($form.find('[name="unitId"]'), 'Please select a unit.'); }
                 // Rule 4 — role must be selected
-                if (!payload.roleId || payload.roleId === 0) { RiskPulse.toastError('Please select a role.'); return false; }
+                if (!payload.roleId || payload.roleId === 0) { return RiskPulse.validationError($form.find('[name="roleId"]'), 'Please select a role.'); }
                 return true;
             }
 
@@ -199,15 +202,15 @@
                     { data: 'unitDesc' },
                     { data: 'roleDesc' },
                     { data: 'isActive', render: function (d) {
-                        return d ? '<span class="status-pill rag-green">Active</span>' : '<span class="status-pill rag-red">Inactive</span>';
+                        return RiskPulse.statusPill(d ? 'Active' : 'Inactive');
                     } },
                     { data: null, orderable: false, searchable: false, className: 'text-end', render: function (data, type, row) {
                         if (row.id === currentUserId) {
-                            return '<button type="button" class="btn-stasis-secondary" disabled title="You cannot edit your own record"><i class="fas fa-pen-to-square"></i> Edit</button> ' +
-                                   '<button type="button" class="btn-stasis-secondary" disabled title="You cannot delete your own record"><i class="fas fa-trash-can"></i> Delete</button>';
+                            return '<button type="button" class="rp-btn rp-btn-edit" disabled title="You cannot edit your own record"><i class="fas fa-pen-to-square"></i> Edit</button> ' +
+                                   '<button type="button" class="rp-btn rp-btn-delete" disabled title="You cannot delete your own record"><i class="fas fa-trash-can"></i> Delete</button>';
                         }
-                        return '<button type="button" class="btn-stasis-secondary edit-user-btn"><i class="fas fa-pen-to-square"></i> Edit</button> ' +
-                               '<button type="button" class="btn-stasis-secondary delete-user-btn"><i class="fas fa-trash-can"></i> Delete</button>';
+                        return '<button type="button" class="rp-btn rp-btn-edit edit-user-btn"><i class="fas fa-pen-to-square"></i> Edit</button> ' +
+                               '<button type="button" class="rp-btn rp-btn-delete delete-user-btn"><i class="fas fa-trash-can"></i> Delete</button>';
                     } }
                 ],
                 order: [[0, 'asc']]
@@ -219,8 +222,11 @@
             // Reset the Add form each time its modal opens
             $('#addUserModal').on('shown.bs.modal', function () {
                 $('#addUsername').val('').trigger('focus');
-                $('#addUnitId').val(unitOptions()[0].value).trigger('change');
-                $('#addRoleId').val(roleOptions()[0].value).trigger('change');
+                var units = unitOptions();
+                if (units.length) $('#addUnitId').val(units[0].value);
+                var roles = roleOptions();
+                if (roles.length) $('#addRoleId').val(roles[0].value);
+                RiskPulse.clearFieldErrors($('#addUserForm'));
             });
 
             // Load a user's values into the Edit modal
@@ -228,9 +234,10 @@
                 var row = $('#userTable').DataTable().row($(this).closest('tr')).data();
                 $('#editUserId').val(row.id);
                 $('#editUsername').val(row.username);
-                $('#editUnitId').val(row.unitId).trigger('change');
-                $('#editRoleId').val(row.roleId).trigger('change');
+                $('#editUnitId').val(row.unitId);
+                $('#editRoleId').val(row.roleId);
                 $('#editIsActive').prop('checked', !!row.isActive);
+                RiskPulse.clearFieldErrors($('#editUserForm'));
                 RiskPulse.showModal('editUserModal');
             });
 
@@ -254,17 +261,16 @@
                 );
             });
 
-            // Populate and initialize the Unit/Role dropdowns with Select2 (kept inside their modal)
+            // Populate the Unit/Role dropdowns (native selects)
             $.each({ addUnitId: unitOptions, editUnitId: unitOptions, addRoleId: roleOptions, editRoleId: roleOptions }, function (id, optionsFn) {
                 RiskPulse.populateSelect($('#' + id), optionsFn());
-                $('#' + id).select2({ width: '100%', theme: 'bootstrap-5', dropdownParent: $('#' + id).closest('.modal') });
             });
 
             // Bind submit for both Add and Edit forms
             $('#addUserForm, #editUserForm').on('submit', function (e) {
                 e.preventDefault();
                 var payload = getFormPayload($(this));
-                if (validateUserPayload(payload)) submitUser(payload, $(this));
+                if (validateUserPayload(payload, $(this))) submitUser(payload, $(this));
             });
         })(jQuery);
     </script>
