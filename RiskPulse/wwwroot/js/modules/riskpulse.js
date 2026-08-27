@@ -141,9 +141,10 @@ window.RiskPulse = (function ($, Swal) {
     }
 
     // Enhances selects with the rp-themed select2. Search appears only at
-    // >=10 options; dropdowns inside modals attach to the modal so they can
-    // never be clipped or hidden behind its stacking context.
-    function initSelect2(selector) {
+    // >=10 options by default; pass { minimumResultsForSearch: 0 } in
+    // overrides to always show it. Dropdowns inside modals attach to the
+    // modal so they can never be clipped or hidden behind its stacking context.
+    function initSelect2(selector, overrides) {
         $(selector).each(function () {
             var $select = $(this);
             if ($select.data('select2')) return;
@@ -162,6 +163,8 @@ window.RiskPulse = (function ($, Swal) {
 
             var placeholder = $select.attr('data-placeholder');
             if (placeholder) opts.placeholder = placeholder;
+
+            if (overrides) $.extend(opts, overrides);
 
             $select.select2(opts);
         });

@@ -166,7 +166,7 @@
      ADD GROUP MODAL
      ============================================================ -->
 <div class="modal fade" id="addGroupModal" tabindex="-1" aria-labelledby="addGroupModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <form id="addGroupForm" novalidate>
                 <div class="modal-header">
@@ -182,7 +182,7 @@
                     <div class="mb-3">
                         <label class="rp-label" for="addGroupUnitIds">Units</label>
                         <select id="addGroupUnitIds" name="unitIds" class="rp-input" multiple data-placeholder="Select units..."></select>
-                        <small class="text-muted rp-body-xs mt-1 d-block">Select at least 2 units to create a group.</small>
+                        <small id="addGroupUnitCount" class="rp-body-xs mt-1 d-block rp-unit-count">0 units selected — at least 2 required</small>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -198,7 +198,7 @@
      EDIT GROUP MODAL
      ============================================================ -->
 <div class="modal fade" id="editGroupModal" tabindex="-1" aria-labelledby="editGroupModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <form id="editGroupForm" novalidate>
                 <input type="hidden" id="editGroupId" name="groupId" value="0" />
@@ -215,7 +215,7 @@
                     <div class="mb-3">
                         <label class="rp-label" for="editGroupUnitIds">Units</label>
                         <select id="editGroupUnitIds" name="unitIds" class="rp-input" multiple data-placeholder="Select units..."></select>
-                        <small class="text-muted rp-body-xs mt-1 d-block">Select at least 2 units.</small>
+                        <small id="editGroupUnitCount" class="rp-body-xs mt-1 d-block rp-unit-count">0 units selected — at least 2 required</small>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -360,7 +360,8 @@
 
             $('#addGroupModal').on('shown.bs.modal', function () {
                 $('#addGroupDesc').val('').trigger('focus');
-                $('#addGroupUnitIds').val([]);
+                $('#addGroupUnitIds').val([]).trigger('change.select2');
+                updateUnitCount('#addGroupUnitIds', '#addGroupUnitCount');
                 RiskPulse.clearFieldErrors($('#addGroupForm'));
             });
 
@@ -380,7 +381,8 @@
                 var row = groupTable.row($(this).closest('tr')).data();
                 $('#editGroupId').val(row.groupId);
                 $('#editGroupDesc').val(row.groupDesc);
-                $('#editGroupUnitIds').val(row.unitIds || []);
+                $('#editGroupUnitIds').val(row.unitIds || []).trigger('change.select2');
+                updateUnitCount('#editGroupUnitIds', '#editGroupUnitCount');
                 RiskPulse.clearFieldErrors($('#editGroupForm'));
                 RiskPulse.showModal('editGroupModal');
             });
@@ -416,10 +418,36 @@
                 });
             });
 
+            // --- Unit selection counter ---
+            function updateUnitCount(selectSel, countSel) {
+                var n = ($(selectSel).val() || []).length;
+                var valid = n >= 2;
+                $(countSel)
+                    .text(n + ' unit' + (n !== 1 ? 's' : '') + ' selected' +
+                          (valid ? '' : ' — at least 2 required'))
+                    .toggleClass('rp-unit-count-ok', valid)
+                    .toggleClass('rp-unit-count-warn', !valid);
+            }
+
+            $('#addGroupUnitIds, #editGroupUnitIds').on('change', function () {
+                var id = $(this).attr('id');
+                updateUnitCount('#' + id, '#' + id + 'UnitCount');
+            });
+
+            // --- Force search always visible on unit selects ---
+            $('#addGroupUnitIds, #editGroupUnitIds').each(function () {
+                if ($(this).data('select2')) $(this).select2('destroy');
+            });
+            RiskPulse.initSelect2('#addGroupUnitIds', { minimumResultsForSearch: 0 });
+            RiskPulse.initSelect2('#editGroupUnitIds', { minimumResultsForSearch: 0 });
+
             // Populate the Unit multi-selects (native selects)
             $.each({ addGroupUnitIds: unitOptions, editGroupUnitIds: unitOptions }, function (id, optionsFn) {
                 RiskPulse.populateSelect($('#' + id), optionsFn());
             });
+
+            updateUnitCount('#addGroupUnitIds', '#addGroupUnitCount');
+            updateUnitCount('#editGroupUnitIds', '#editGroupUnitCount');
 
             // Bind submits
             $('#addUnitForm, #editUnitForm').on('submit', function (e) {
