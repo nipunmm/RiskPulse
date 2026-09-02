@@ -59,6 +59,7 @@
                 <thead>
                     <tr>
                         <th>ID</th>
+                        <th>Code</th>
                         <th>Description</th>
                         <th>Assigned To</th>
                         <th>Status</th>
@@ -129,7 +130,7 @@
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="rp-label" for="addKriDesc">Description</label>
-                        <input type="text" id="addKriDesc" name="kriHeaderDesc" class="rp-input" required autocomplete="off" />
+                        <input type="text" id="addKriDesc" name="kriHeaderDesc" class="rp-input" autocomplete="off" />
                     </div>
                     <div class="mb-3">
                         <label class="rp-label" for="addKriLinkType">Link Type</label>
@@ -174,8 +175,12 @@
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
+                        <label class="rp-label" for="editKriCode">Code</label>
+                        <input type="text" id="editKriCode" name="kriCode" class="rp-input" readonly />
+                    </div>
+                    <div class="mb-3">
                         <label class="rp-label" for="editKriDesc">Description</label>
-                        <input type="text" id="editKriDesc" name="kriHeaderDesc" class="rp-input" required autocomplete="off" />
+                        <input type="text" id="editKriDesc" name="kriHeaderDesc" class="rp-input" autocomplete="off" />
                     </div>
                     <div class="mb-3">
                         <label class="rp-label" for="editKriLinkType">Link Type</label>
@@ -557,7 +562,6 @@
                SECTION 4 — VALIDATION
                ================================================================= */
             function validateHeaderPayload(payload, $form) {
-                if (!$.trim(payload.kriHeaderDesc)) { return RiskPulse.validationError($form.find('[name="kriHeaderDesc"]'), 'Template description is required.'); }
                 if (!payload.groupId && !payload.unitId) { return RiskPulse.validationError($form.find('[name="groupId"], [name="unitId"]'), 'Please select a unit group or a unit.'); }
                 if (payload.groupId && payload.unitId) { return RiskPulse.validationError($form.find('[name="groupId"], [name="unitId"]'), 'Please select either a unit group or a unit, not both.'); }
                 if (!payload.kriStatus) { return RiskPulse.validationError($form.find('[name="kriStatus"]'), 'Please select a status.'); }
@@ -611,10 +615,11 @@
                 });
             }
 
-            function deleteHeader(kriHeaderId, desc) {
+            function deleteHeader(kriHeaderId, desc, code) {
+                var display = desc || code;
                 RiskPulse.confirmDelete(
                     'Delete template?',
-                    'This will permanently delete "' + desc + '" and all of its KRIs.',
+                    'This will permanently delete "' + display + '" and all of its KRIs.',
                     function () {
                         RiskPulse.postJson(deleteUrl, { id: kriHeaderId }, {
                             success: function (res) {
@@ -769,6 +774,7 @@
                 ajax: { url: gridUrl },
                 columns: [
                     { data: 'kriHeaderId' },
+                    { data: 'kriCode' },
                     { data: 'kriHeaderDesc' },
                     { data: 'groupDesc', render: function (d, type, row) { return RiskPulse.pill(d || row.unitDesc || ''); } },
                     { data: 'kriStatus', render: function (d) { return RiskPulse.statusPill(d); } },
@@ -786,7 +792,7 @@
                         ].join(' ');
                     } }
                 ],
-                order: [[0, 'asc']]
+                order: [[0, 'desc']]
             });
 
             var colorTable = RiskPulse.initGrid($('#colorTable'), {
@@ -825,14 +831,8 @@
             /* =================================================================
                SECTION 7 — EVENT WIRING & INIT
                ================================================================= */
-            function statusOptions(list) {
-                return $.map(list, function (o) {
-                    return { value: o.value, label: o.label, kind: RiskPulse.statusKind(o.value) };
-                });
-            }
-
-            RiskPulse.populateSelect($('#addKriStatus'), statusOptions(statuses));
-            RiskPulse.populateSelect($('#editKriStatus'), statusOptions(statuses));
+            RiskPulse.populateSelect($('#addKriStatus'), statuses);
+            RiskPulse.populateSelect($('#editKriStatus'), statuses);
             RiskPulse.populateSelect($('#editorGroupId'), groups);
 
             $('#addKriGroupId').empty();
@@ -876,6 +876,7 @@
             $('#kriTable tbody').on('click', '.edit-kri-btn', function () {
                 var row = kriTable.row($(this).closest('tr')).data();
                 $('#editKriHeaderId').val(row.kriHeaderId);
+                $('#editKriCode').val(row.kriCode);
                 $('#editKriDesc').val(row.kriHeaderDesc);
                 if (row.groupId) {
                     $('#editKriLinkType').val('group').trigger('change');
@@ -892,7 +893,7 @@
 
             $('#kriTable tbody').on('click', '.delete-kri-btn', function () {
                 var row = kriTable.row($(this).closest('tr')).data();
-                deleteHeader(row.kriHeaderId, row.kriHeaderDesc);
+                deleteHeader(row.kriHeaderId, row.kriHeaderDesc, row.kriCode);
             });
 
             $('#addKriForm').on('submit', function (e) {
@@ -913,7 +914,8 @@
                 currentKriId = row.kriHeaderId;
                 currentKriLocked = row.kriStatus === 'Locked';
 
-                $('#designModalLabel').text('Design: ' + row.kriHeaderDesc);
+                var displayDesc = row.kriHeaderDesc || row.kriCode;
+                $('#designModalLabel').text('Design: ' + displayDesc);
                 $('#designStatusPill').html(RiskPulse.statusPill(row.kriStatus));
 
                 if (currentKriLocked) {

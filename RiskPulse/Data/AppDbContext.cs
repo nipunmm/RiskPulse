@@ -46,6 +46,12 @@ namespace RiskPulse.Data
                     .HasConversion<string>()
                     .HasMaxLength(32);
 
+                entity.Property(s => s.SaqCode)
+                    .HasMaxLength(50);
+
+                entity.HasIndex(s => s.SaqCode)
+                    .IsUnique();
+
                 entity.HasOne(h => h.Group)
                     .WithMany(g => g.SaqHeaders)
                     .HasForeignKey(h => h.GroupId)
@@ -85,6 +91,12 @@ namespace RiskPulse.Data
                 entity.Property(h => h.KriStatus)
                     .HasConversion<string>()
                     .HasMaxLength(32);
+
+                entity.Property(h => h.KriCode)
+                    .HasMaxLength(50);
+
+                entity.HasIndex(h => h.KriCode)
+                    .IsUnique();
 
                 entity.HasOne(h => h.Group)
                     .WithMany(g => g.KriHeaders)

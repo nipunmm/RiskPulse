@@ -11,6 +11,7 @@ namespace RiskPulse.Models.ViewModel
         public static List<KriStatusOptionViewModel> GetAll()
         {
             return System.Enum.GetValues<KriStatus>()
+                .Where(s => s != KriStatus.Locked)
                 .Select(s => new KriStatusOptionViewModel { Value = s.ToString(), Label = s.ToString() })
                 .ToList();
         }

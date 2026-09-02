@@ -27,8 +27,12 @@ public class AssessmentService
             {
                 AssessmentHeaderId = a.AssessmentHeaderId,
                 AssessmentName = a.AssessmentName,
-                SaqDesc = a.SaqHeader != null ? a.SaqHeader.SaqDesc : string.Empty,
-                KriHeaderDesc = a.KriHeader != null ? a.KriHeader.KriHeaderDesc : string.Empty,
+                SaqDesc = a.SaqHeader != null
+                    ? (string.IsNullOrWhiteSpace(a.SaqHeader.SaqDesc) ? a.SaqHeader.SaqCode ?? string.Empty : a.SaqHeader.SaqDesc)
+                    : string.Empty,
+                KriHeaderDesc = a.KriHeader != null
+                    ? (string.IsNullOrWhiteSpace(a.KriHeader.KriHeaderDesc) ? a.KriHeader.KriCode ?? string.Empty : a.KriHeader.KriHeaderDesc)
+                    : string.Empty,
                 ScheduleDesc = a.ScheduleHeaders
                     .OrderBy(s => s.ScheduleHeaderId)
                     .Select(s => s.ScheduleDesc)
@@ -236,17 +240,35 @@ public class AssessmentService
 
     private async Task<List<OptionViewModel>> GetSaqOptionsAsync()
     {
-        return await _db.SaqHeaders.AsNoTracking()
+        var headers = await _db.SaqHeaders.AsNoTracking()
             .Where(h => h.SaqStatus != SaqStatus.Locked)
-            .OrderBy(h => h.SaqDesc)
-            .ToOptionListAsync(h => h.SaqHeaderId, h => h.SaqDesc);
+            .OrderBy(h => h.SaqCode)
+            .Select(h => new { h.SaqHeaderId, h.SaqDesc, h.SaqCode })
+            .ToListAsync();
+
+        return headers
+            .Select(h => new OptionViewModel
+            {
+                Value = h.SaqHeaderId,
+                Label = string.IsNullOrWhiteSpace(h.SaqDesc) ? h.SaqCode ?? string.Empty : h.SaqDesc
+            })
+            .ToList();
     }
 
     private async Task<List<OptionViewModel>> GetKriOptionsAsync()
     {
-        return await _db.KriHeaders.AsNoTracking()
+        var headers = await _db.KriHeaders.AsNoTracking()
             .Where(h => h.KriStatus != KriStatus.Locked)
-            .OrderBy(h => h.KriHeaderDesc)
-            .ToOptionListAsync(h => h.KriHeaderId, h => h.KriHeaderDesc);
+            .OrderBy(h => h.KriCode)
+            .Select(h => new { h.KriHeaderId, h.KriHeaderDesc, h.KriCode })
+            .ToListAsync();
+
+        return headers
+            .Select(h => new OptionViewModel
+            {
+                Value = h.KriHeaderId,
+                Label = string.IsNullOrWhiteSpace(h.KriHeaderDesc) ? h.KriCode ?? string.Empty : h.KriHeaderDesc
+            })
+            .ToList();
     }
 }

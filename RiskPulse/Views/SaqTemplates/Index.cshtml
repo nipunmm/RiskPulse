@@ -31,6 +31,7 @@
         <thead>
             <tr>
                 <th>ID</th>
+                <th>Code</th>
                 <th>Description</th>
                 <th>Assigned To</th>
                 <th>Status</th>
@@ -55,7 +56,7 @@
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="rp-label" for="addSaqDesc">Description</label>
-                        <input type="text" id="addSaqDesc" name="saqDesc" class="rp-input" required autocomplete="off" />
+                        <input type="text" id="addSaqDesc" name="saqDesc" class="rp-input" autocomplete="off" />
                     </div>
                     <div class="mb-3">
                         <label class="rp-label" for="addSaqLinkType">Link Type</label>
@@ -100,8 +101,12 @@
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
+                        <label class="rp-label" for="editSaqCode">Code</label>
+                        <input type="text" id="editSaqCode" name="saqCode" class="rp-input" readonly />
+                    </div>
+                    <div class="mb-3">
                         <label class="rp-label" for="editSaqDesc">Description</label>
-                        <input type="text" id="editSaqDesc" name="saqDesc" class="rp-input" required autocomplete="off" />
+                        <input type="text" id="editSaqDesc" name="saqDesc" class="rp-input" autocomplete="off" />
                     </div>
                     <div class="mb-3">
                         <label class="rp-label" for="editSaqLinkType">Link Type</label>
@@ -380,7 +385,6 @@
                SECTION 4 — VALIDATION
                ================================================================= */
             function validateHeaderPayload(payload, $form) {
-                if (!$.trim(payload.saqDesc)) { return RiskPulse.validationError($form.find('[name="saqDesc"]'), 'Template description is required.'); }
                 if (!payload.groupId && !payload.unitId) { return RiskPulse.validationError($form.find('[name="groupId"], [name="unitId"]'), 'Please select a unit group or a unit.'); }
                 if (payload.groupId && payload.unitId) { return RiskPulse.validationError($form.find('[name="groupId"], [name="unitId"]'), 'Please select either a unit group or a unit, not both.'); }
                 if (!payload.saqStatus) { return RiskPulse.validationError($form.find('[name="saqStatus"]'), 'Please select a status.'); }
@@ -409,10 +413,11 @@
                 });
             }
 
-            function deleteHeader(saqHeaderId, desc) {
+            function deleteHeader(saqHeaderId, desc, code) {
+                var display = desc || code;
                 RiskPulse.confirmDelete(
                     'Delete template?',
-                    'This will permanently delete "' + desc + '" and all of its questions.',
+                    'This will permanently delete "' + display + '" and all of its questions.',
                     function () {
                         RiskPulse.postJson(deleteUrl, { id: saqHeaderId }, {
                             success: function (res) {
@@ -477,6 +482,7 @@
                 ajax: { url: gridUrl },
                 columns: [
                     { data: 'saqHeaderId' },
+                    { data: 'saqCode' },
                     { data: 'saqDesc' },
                     { data: 'groupDesc', render: function (d, type, row) { return RiskPulse.pill(d || row.unitDesc || ''); } },
                     { data: 'saqStatus', render: function (d) { return RiskPulse.statusPill(d); } },
@@ -494,20 +500,14 @@
                         ].join(' ');
                     } }
                 ],
-                order: [[0, 'asc']]
+                order: [[0, 'desc']]
             });
 
             /* =================================================================
                SECTION 7 — EVENT WIRING & INIT
                ================================================================= */
-            function statusOptions(list) {
-                return $.map(list, function (o) {
-                    return { value: o.value, label: o.label, kind: RiskPulse.statusKind(o.value) };
-                });
-            }
-
-            RiskPulse.populateSelect($('#addSaqStatus'), statusOptions(statuses));
-            RiskPulse.populateSelect($('#editSaqStatus'), statusOptions(statuses));
+            RiskPulse.populateSelect($('#addSaqStatus'), statuses);
+            RiskPulse.populateSelect($('#editSaqStatus'), statuses);
 
             function toggleSaqLinkType(linkTypeSelect, groupRowId, unitRowId, groupSelect, unitSelect) {
                 var isGroup = $(linkTypeSelect).val() === 'group';
@@ -548,6 +548,7 @@
             $('#saqTable tbody').on('click', '.edit-saq-btn', function () {
                 var row = saqTable.row($(this).closest('tr')).data();
                 $('#editSaqHeaderId').val(row.saqHeaderId);
+                $('#editSaqCode').val(row.saqCode);
                 $('#editSaqDesc').val(row.saqDesc);
                 if (row.groupId) {
                     $('#editSaqLinkType').val('group').trigger('change');
@@ -565,7 +566,7 @@
 
             $('#saqTable tbody').on('click', '.delete-saq-btn', function () {
                 var row = saqTable.row($(this).closest('tr')).data();
-                deleteHeader(row.saqHeaderId, row.saqDesc);
+                deleteHeader(row.saqHeaderId, row.saqDesc, row.saqCode);
             });
 
             // Open Design modal
@@ -574,7 +575,8 @@
                 currentSaqId = row.saqHeaderId;
                 currentSaqLocked = row.saqStatus === 'Locked';
 
-                $('#designModalLabel').text('Design: ' + row.saqDesc);
+                var displayDesc = row.saqDesc || row.saqCode;
+                $('#designModalLabel').text('Design: ' + displayDesc);
                 $('#designStatusPill').html(RiskPulse.statusPill(row.saqStatus));
 
                 if (currentSaqLocked) {

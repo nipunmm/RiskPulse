@@ -4,6 +4,8 @@ namespace RiskPulse.Models.ViewModel
     {
         public int KriHeaderId { get; set; }
 
+        public string KriCode { get; set; } = string.Empty;
+
         public string KriHeaderDesc { get; set; } = string.Empty;
 
         public int? GroupId { get; set; }

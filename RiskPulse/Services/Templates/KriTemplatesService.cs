@@ -11,10 +11,12 @@ namespace RiskPulse.Services.Templates;
 public class KriTemplatesService
 {
     private readonly AppDbContext _db;
+    private readonly TemplateCodeService _codeService;
 
-    public KriTemplatesService(AppDbContext db)
+    public KriTemplatesService(AppDbContext db, TemplateCodeService codeService)
     {
         _db = db;
+        _codeService = codeService;
     }
 
     // --- KRI template headers (grid/save/delete) ---
@@ -22,10 +24,11 @@ public class KriTemplatesService
     {
         return await _db.KriHeaders
             .AsNoTracking()
-            .OrderBy(h => h.KriHeaderId)
+            .OrderByDescending(h => h.KriHeaderId)
             .Select(h => new KriGridRowViewModel
             {
                 KriHeaderId = h.KriHeaderId,
+                KriCode = h.KriCode ?? string.Empty,
                 KriHeaderDesc = h.KriHeaderDesc,
                 GroupId = h.GroupId,
                 GroupDesc = h.Group != null ? h.Group.GroupDesc : string.Empty,
@@ -39,9 +42,7 @@ public class KriTemplatesService
 
     public async Task<SaveResultDto> SaveHeaderAsync(KriHeaderSaveDto model)
     {
-        var desc = model.KriHeaderDesc.Trim();
-
-        await _db.KriHeaders.EnsureUniqueAsync(h => h.KriHeaderDesc.ToLower() == desc.ToLower() && h.KriHeaderId != model.KriHeaderId, "Template", desc);
+        var desc = model.KriHeaderDesc?.Trim() ?? string.Empty;
 
         var hasGroup = model.GroupId.HasValue && model.GroupId.Value > 0;
         var hasUnit = model.UnitId.HasValue && model.UnitId.Value > 0;
@@ -70,12 +71,15 @@ public class KriTemplatesService
 
         if (model.KriHeaderId == 0)
         {
+            var code = await _codeService.GenerateKriCodeAsync();
+
             var header = new KriHeader
             {
                 KriHeaderDesc = desc,
                 GroupId = hasGroup ? model.GroupId : null,
                 UnitId = hasUnit ? model.UnitId : null,
-                KriStatus = model.KriStatus
+                KriStatus = model.KriStatus,
+                KriCode = code
             };
 
             _db.KriHeaders.Add(header);

@@ -11,10 +11,12 @@ namespace RiskPulse.Services.Templates;
 public class SaqTemplatesService
 {
     private readonly AppDbContext _db;
+    private readonly TemplateCodeService _codeService;
 
-    public SaqTemplatesService(AppDbContext db)
+    public SaqTemplatesService(AppDbContext db, TemplateCodeService codeService)
     {
         _db = db;
+        _codeService = codeService;
     }
 
     // --- SAQ template headers (grid/save/delete) ---
@@ -22,10 +24,11 @@ public class SaqTemplatesService
     {
         return await _db.SaqHeaders
             .AsNoTracking()
-            .OrderBy(h => h.SaqHeaderId)
+            .OrderByDescending(h => h.SaqHeaderId)
             .Select(h => new SaqGridRowViewModel
             {
                 SaqHeaderId = h.SaqHeaderId,
+                SaqCode = h.SaqCode ?? string.Empty,
                 SaqDesc = h.SaqDesc,
                 GroupId = h.GroupId,
                 GroupDesc = h.Group != null ? h.Group.GroupDesc : string.Empty,
@@ -39,9 +42,7 @@ public class SaqTemplatesService
 
     public async Task<SaveResultDto> SaveHeaderAsync(SaqHeaderSaveDto model)
     {
-        var desc = model.SaqDesc.Trim();
-
-        await _db.SaqHeaders.EnsureUniqueAsync(h => h.SaqDesc.ToLower() == desc.ToLower() && h.SaqHeaderId != model.SaqHeaderId, "Template", desc);
+        var desc = model.SaqDesc?.Trim() ?? string.Empty;
 
         var hasGroup = model.GroupId.HasValue && model.GroupId.Value > 0;
         var hasUnit = model.UnitId.HasValue && model.UnitId.Value > 0;
@@ -70,12 +71,15 @@ public class SaqTemplatesService
 
         if (model.SaqHeaderId == 0)
         {
+            var code = await _codeService.GenerateSaqCodeAsync();
+
             var header = new SaqHeader
             {
                 SaqDesc = desc,
                 GroupId = hasGroup ? model.GroupId : null,
                 UnitId = hasUnit ? model.UnitId : null,
-                SaqStatus = model.SaqStatus
+                SaqStatus = model.SaqStatus,
+                SaqCode = code
             };
 
             _db.SaqHeaders.Add(header);

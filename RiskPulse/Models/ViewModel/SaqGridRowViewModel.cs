@@ -4,6 +4,8 @@ namespace RiskPulse.Models.ViewModel
     {
         public int SaqHeaderId { get; set; }
 
+        public string SaqCode { get; set; } = string.Empty;
+
         public string SaqDesc { get; set; } = string.Empty;
 
         public int? GroupId { get; set; }

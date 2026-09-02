@@ -29,6 +29,7 @@ builder.Services.AddScoped<UnitsService>();
 builder.Services.AddScoped<SaqTemplatesService>();
 builder.Services.AddScoped<KriTemplatesService>();
 builder.Services.AddScoped<AssessmentService>();
+builder.Services.AddScoped<TemplateCodeService>();
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
