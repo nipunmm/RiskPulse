@@ -7,9 +7,5 @@ namespace RiskPulse.Models.ViewModel
         public List<OptionViewModel> UnitGroups { get; set; } = new List<OptionViewModel>();
 
         public List<OptionViewModel> Units { get; set; } = new List<OptionViewModel>();
-
-        public List<OptionViewModel> KriGroups { get; set; } = new List<OptionViewModel>();
-
-        public List<KriColorOptionViewModel> Colors { get; set; } = new List<KriColorOptionViewModel>();
     }
 }

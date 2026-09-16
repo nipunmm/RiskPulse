@@ -14,7 +14,13 @@ namespace RiskPulse.Models.Dto
 
         public bool AllowComment { get; set; } = true;
 
-        [Range(1, int.MaxValue, ErrorMessage = "Please select a threshold group.")]
-        public int KriThresholdGroupId { get; set; }
+        [Range(0, int.MaxValue, ErrorMessage = "Green limit must be a non-negative number.")]
+        public int GreenLimit { get; set; }
+
+        [Range(0, int.MaxValue, ErrorMessage = "Amber limit must be a non-negative number.")]
+        public int AmberLimit { get; set; }
+
+        [Range(0, int.MaxValue, ErrorMessage = "Red limit must be a non-negative number.")]
+        public int RedLimit { get; set; }
     }
 }

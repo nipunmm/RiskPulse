@@ -8,8 +8,10 @@ namespace RiskPulse.Models.ViewModel
 
         public bool AllowComment { get; set; }
 
-        public int KriThresholdGroupId { get; set; }
+        public int GreenLimit { get; set; }
 
-        public string? KriThresholdGroupDesc { get; set; }
+        public int AmberLimit { get; set; }
+
+        public int RedLimit { get; set; }
     }
 }

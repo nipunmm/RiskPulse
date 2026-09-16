@@ -1012,6 +1012,18 @@ body {
   color: var(--on-surface-variant);
 }
 
+/* --- Threshold Level Dots (Green / Amber / Red) --- */
+.rp-level-dot {
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.rp-level-dot.rp-level-success { background-color: var(--success); }
+.rp-level-dot.rp-level-warning { background-color: var(--gold); }
+.rp-level-dot.rp-level-danger { background-color: var(--danger); }
+
 /* --- Input Fields --- */
 .rp-input {
   width: 100%;

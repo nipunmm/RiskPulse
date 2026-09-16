@@ -15,8 +15,10 @@ namespace RiskPulse.Data.Entries
 
         public bool AllowComment { get; set; } = true;
 
-        public int KriThresholdGroupId { get; set; }
+        public int GreenLimit { get; set; }
 
-        public KriThresholdGroup? KriThresholdGroup { get; set; }
+        public int AmberLimit { get; set; }
+
+        public int RedLimit { get; set; }
     }
 }

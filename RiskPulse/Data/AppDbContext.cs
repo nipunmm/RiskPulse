@@ -142,25 +142,6 @@ namespace RiskPulse.Data
                     .WithMany(h => h.Kris)
                     .HasForeignKey(k => k.KriHeaderId)
                     .OnDelete(DeleteBehavior.Cascade);
-
-                entity.HasOne(k => k.KriThresholdGroup)
-                    .WithMany(g => g.Kris)
-                    .HasForeignKey(k => k.KriThresholdGroupId)
-                    .OnDelete(DeleteBehavior.Restrict);
-            });
-
-            //KriThreshold relationships
-            modelBuilder.Entity<KriThreshold>(entity =>
-            {
-                entity.HasOne(t => t.KriThresholdGroup)
-                    .WithMany(g => g.KriThresholds)
-                    .HasForeignKey(t => t.KriThresholdGroupId)
-                    .OnDelete(DeleteBehavior.Cascade);
-
-                entity.HasOne(t => t.Color)
-                    .WithMany(c => c.KriThresholds)
-                    .HasForeignKey(t => t.ColorId)
-                    .OnDelete(DeleteBehavior.Restrict);
             });
         }
 
@@ -187,12 +168,6 @@ namespace RiskPulse.Data
         public DbSet<KriHeader> KriHeaders { get; set; }
 
         public DbSet<Kri> Kris { get; set; }
-
-        public DbSet<KriThresholdGroup> KriThresholdGroups { get; set; }
-
-        public DbSet<KriThresholdColor> KriThresholdColors { get; set; }
-
-        public DbSet<KriThreshold> KriThresholds { get; set; }
 
         public DbSet<AssessmentHeader> AssessmentHeaders { get; set; }
 
