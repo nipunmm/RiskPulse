@@ -6,5 +6,7 @@ namespace RiskPulse.Models.Dto
     {
         [Range(1, int.MaxValue, ErrorMessage = "A valid assessment is required.")]
         public int AssessmentUnitId { get; set; }
+
+        public string? Remarks { get; set; }
     }
 }

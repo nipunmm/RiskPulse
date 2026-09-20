@@ -39,6 +39,7 @@ public class RolesService
                 RoleDesc = r.RoleDesc,
                 DefaultPermissionId = r.DefaultPermissionId,
                 DefaultPermissionDesc = r.DefaultPermission != null ? r.DefaultPermission.PermissionDesc : PermissionCatalog.Dashboard,
+                IsSystemRole = r.IsSystemRole,
                 PermissionIds = r.RolePermissions.Select(rp => rp.PermissionId).ToList(),
                 PermissionDescs = r.RolePermissions.Select(rp => rp.Permission != null ? rp.Permission.PermissionDesc : null).ToList()
             })
@@ -58,6 +59,7 @@ public class RolesService
         {
             RoleDesc = roleDesc,
             DefaultPermissionId = model.DefaultPermissionId,
+            IsSystemRole = false,
             RolePermissions = model.PermissionIds
                 .Distinct()
                 .Select(permissionId => new RolePermission { PermissionId = permissionId })
@@ -75,12 +77,17 @@ public class RolesService
 
         ValidateDefaultPermission(model.DefaultPermissionId, model.PermissionIds);
 
-        await _db.Roles.EnsureUniqueAsync(r => r.RoleDesc.ToLower() == roleDesc.ToLower() && r.RoleId != model.RoleId, "Role name", roleDesc);
-
         var existing = await _db.Roles
             .Include(r => r.RolePermissions)
             .FirstOrDefaultAsync(r => r.RoleId == model.RoleId)
             ?? throw new InvalidOperationException($"Role with Id {model.RoleId} was not found.");
+
+        if (existing.IsSystemRole)
+        {
+            throw new InvalidOperationException("System default roles are protected and cannot be modified.");
+        }
+
+        await _db.Roles.EnsureUniqueAsync(r => r.RoleDesc.ToLower() == roleDesc.ToLower() && r.RoleId != model.RoleId, "Role name", roleDesc);
 
         existing.RoleDesc = roleDesc;
         existing.DefaultPermissionId = model.DefaultPermissionId;
@@ -108,6 +115,11 @@ public class RolesService
     {
         var role = await _db.Roles.FindAsync(roleId)
             ?? throw new InvalidOperationException($"Role with Id {roleId} was not found.");
+
+        if (role.IsSystemRole)
+        {
+            throw new InvalidOperationException("System default roles are protected and cannot be deleted.");
+        }
 
         var inUseByUsers = await _db.Users.AnyAsync(u => u.RoleId == roleId);
         if (inUseByUsers)

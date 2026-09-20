@@ -13,8 +13,9 @@ namespace RiskPulse.Data.Entries
 
         public Permission? DefaultPermission { get; set; }
 
-        public ICollection<User> Users { get; set; } = new List<User>();
+        public bool IsSystemRole { get; set; }
 
+        public ICollection<User> Users { get; set; } = new List<User>();
         public ICollection<RolePermission> RolePermissions { get; set; } = new List<RolePermission>();
     }
 }

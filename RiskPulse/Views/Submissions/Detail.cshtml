@@ -30,9 +30,82 @@
     </div>
 </div>
 
+<div class="rp-card p-3 mb-3">
+    <h6 class="rp-display-md mb-2"><i class="fas fa-timeline me-2 text-primary"></i>Assessment Approval Trail</h6>
+    <div class="row g-3">
+        <!-- Level 2: Unit Approval -->
+        <div class="col-md-4">
+            <div class="border rounded p-2 h-100 bg-light">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="rp-body-sm fw-semibold">Level 2: Unit Sign-off</span>
+                    @if (!string.IsNullOrEmpty(Model.UnitApprovedBy))
+                    {
+                        <span class="rp-pill rp-pill-success"><i class="fas fa-check"></i> Approved</span>
+                    }
+                    else
+                    {
+                        <span class="rp-pill rp-pill-neutral">Pending</span>
+                    }
+                </div>
+                <p class="rp-body-xs text-muted mb-0">
+                    @(string.IsNullOrEmpty(Model.UnitApprovedBy) ? "Awaiting unit approver sign-off" : $"By {Model.UnitApprovedBy} on {Model.UnitApprovedOn:dd MMM yyyy HH:mm}")
+                </p>
+            </div>
+        </div>
+
+        <!-- Level 3: Risk Dept Review -->
+        <div class="col-md-4">
+            <div class="border rounded p-2 h-100 bg-light">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="rp-body-sm fw-semibold">Level 3: Risk Dept Review</span>
+                    @if (!string.IsNullOrEmpty(Model.RiskReviewedBy))
+                    {
+                        <span class="rp-pill rp-pill-success"><i class="fas fa-check"></i> Reviewed</span>
+                    }
+                    else
+                    {
+                        <span class="rp-pill rp-pill-neutral">Pending</span>
+                    }
+                </div>
+                <p class="rp-body-xs text-muted mb-0">
+                    @(string.IsNullOrEmpty(Model.RiskReviewedBy) ? "Awaiting risk department review" : $"By {Model.RiskReviewedBy} on {Model.RiskReviewedOn:dd MMM yyyy HH:mm}")
+                </p>
+                @if (!string.IsNullOrEmpty(Model.RiskReviewerRemarks))
+                {
+                    <p class="rp-body-xs text-secondary mt-1 mb-0 fst-italic">Remarks: "@Model.RiskReviewerRemarks"</p>
+                }
+            </div>
+        </div>
+
+        <!-- Level 4: Risk Dept Final Approval -->
+        <div class="col-md-4">
+            <div class="border rounded p-2 h-100 bg-light">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="rp-body-sm fw-semibold">Level 4: CRO Final Approval</span>
+                    @if (!string.IsNullOrEmpty(Model.FinalApprovedBy))
+                    {
+                        <span class="rp-pill rp-pill-success"><i class="fas fa-lock"></i> Final Approved</span>
+                    }
+                    else
+                    {
+                        <span class="rp-pill rp-pill-neutral">Pending</span>
+                    }
+                </div>
+                <p class="rp-body-xs text-muted mb-0">
+                    @(string.IsNullOrEmpty(Model.FinalApprovedBy) ? "Awaiting CRO / Head of Risk sign-off" : $"By {Model.FinalApprovedBy} on {Model.FinalApprovedOn:dd MMM yyyy HH:mm}")
+                </p>
+                @if (!string.IsNullOrEmpty(Model.FinalApproverRemarks))
+                {
+                    <p class="rp-body-xs text-secondary mt-1 mb-0 fst-italic">Remarks: "@Model.FinalApproverRemarks"</p>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="rp-card p-2">
     <div class="rp-grid-toolbar">
-        <p class="mb-0 rp-body-sm rp-text-muted">Items in this assessment. Complete each questionnaire, then approve or submit.</p>
+        <p class="mb-0 rp-body-sm rp-text-muted">Items in this assessment. Fill and complete each questionnaire, then submit and approve.</p>
     </div>
     <table id="detailTable" class="table rp-table table-sm w-100 align-middle">
         <thead>
@@ -75,7 +148,7 @@
                         <a href="@entryUrl" class="rp-btn @(item.Editable ? "rp-btn-edit" : "rp-btn-secondary")">
                             <i class="fas @(item.Editable ? "fa-pen-to-square" : "fa-eye")"></i> @(item.Editable ? "Fill" : "View")
                         </a>
-                        @if (item.StepCode == "Submitted")
+                        @if (item.StepCode == "Submitted" && (Model.CurrentUserRole == "Unit Approver" || Model.CurrentUserRole == "Administrator"))
                         {
                             <button type="button" class="rp-btn rp-btn-primary approve-item-btn" data-item-id="@item.AssessmentItemId">
                                 <i class="fas fa-check"></i> Approve
@@ -92,20 +165,36 @@
     }
 </div>
 
-<div class="d-flex justify-content-end mt-3">
-    <button type="button" id="authorizeUnitBtn" class="rp-btn rp-btn-primary"
-            @(Model.CanAuthorize && Model.ApprovedCount == Model.ItemCount && Model.ItemCount > 0 ? "" : "disabled")
-            title="@(Model.ApprovedCount < Model.ItemCount ? "Approve all items before authorizing." : "")">
-        <i class="fas fa-check-double me-1"></i> Authorize Assessment
-    </button>
-</div>
+<!-- Workflow Level Actions -->
+<div class="d-flex justify-content-end gap-2 mt-3">
+    @if (Model.CanReturn)
+    {
+        <button type="button" id="returnUnitBtn" class="rp-btn rp-btn-secondary text-danger border-danger">
+            <i class="fas fa-arrow-rotate-left me-1"></i> Return for Revision
+        </button>
+    }
 
-@if (!string.IsNullOrEmpty(Model.AuthorizedBy))
-{
-    <p class="rp-body-sm rp-text-muted mt-2 mb-0 text-end">
-        Authorized by @Model.AuthorizedBy on @(Model.AuthorizedOn?.ToString("dd MMM yyyy HH:mm"))
-    </p>
-}
+    @if (Model.CanUnitApprove)
+    {
+        <button type="button" id="unitApproveBtn" class="rp-btn rp-btn-primary">
+            <i class="fas fa-paper-plane me-1"></i> Sign-off & Pass to Risk Dept
+        </button>
+    }
+
+    @if (Model.CanRiskReview)
+    {
+        <button type="button" id="riskReviewBtn" class="rp-btn rp-btn-primary">
+            <i class="fas fa-check-double me-1"></i> Verify & Pass to CRO Approver
+        </button>
+    }
+
+    @if (Model.CanFinalApprove)
+    {
+        <button type="button" id="finalApproveBtn" class="rp-btn rp-btn-primary">
+            <i class="fas fa-stamp me-1"></i> Final Sign-Off (Approve)
+        </button>
+    }
+</div>
 
 @section Scripts {
     <script>
@@ -115,7 +204,10 @@
                SECTION 1 — ENDPOINTS
                ================================================================= */
             var approveUrl = '@Url.Action("ApproveItem", "Submissions")';
-            var authorizeUrl = '@Url.Action("AuthorizeUnit", "Submissions")';
+            var unitApproveUrl = '@Url.Action("UnitApprove", "Submissions")';
+            var riskReviewUrl = '@Url.Action("RiskReview", "Submissions")';
+            var finalApproveUrl = '@Url.Action("FinalApprove", "Submissions")';
+            var returnUrl = '@Url.Action("ReturnAssessment", "Submissions")';
             var currentAssessmentUnitId = @Model.AssessmentUnitId;
 
             /* =================================================================
@@ -132,13 +224,28 @@
                 });
             }
 
-            function authorizeAssessment() {
-                RiskPulse.postJson(authorizeUrl, { assessmentUnitId: currentAssessmentUnitId }, {
-                    success: function (res) {
-                        window.location.reload();
-                    },
-                    fail: function (res) {
-                        RiskPulse.toastError(res.message || 'Unable to authorize the assessment.');
+            function promptAction(url, title, inputLabel, confirmText) {
+                Swal.fire({
+                    title: title,
+                    input: 'textarea',
+                    inputLabel: inputLabel || 'Remarks (optional)',
+                    inputPlaceholder: 'Enter any comments or observations...',
+                    showCancelButton: true,
+                    confirmButtonText: confirmText || 'Proceed',
+                    confirmButtonColor: '#008080'
+                }).then(function (result) {
+                    if (result.isConfirmed) {
+                        RiskPulse.postJson(url, { 
+                            assessmentUnitId: currentAssessmentUnitId,
+                            remarks: result.value || null
+                        }, {
+                            success: function () {
+                                window.location.reload();
+                            },
+                            fail: function (res) {
+                                RiskPulse.toastError(res.message || 'Unable to complete the action.');
+                            }
+                        });
                     }
                 });
             }
@@ -150,8 +257,54 @@
                 approveItem(+$(this).data('item-id'));
             });
 
-            $('#authorizeUnitBtn').on('click', function () {
-                authorizeAssessment();
+            $('#unitApproveBtn').on('click', function () {
+                RiskPulse.postJson(unitApproveUrl, { assessmentUnitId: currentAssessmentUnitId }, {
+                    success: function () {
+                        window.location.reload();
+                    },
+                    fail: function (res) {
+                        RiskPulse.toastError(res.message || 'Unable to authorize the assessment.');
+                    }
+                });
+            });
+
+            $('#riskReviewBtn').on('click', function () {
+                promptAction(riskReviewUrl, 'Risk Department Review', 'Review Remarks (optional)', 'Verify & Pass to Approver');
+            });
+
+            $('#finalApproveBtn').on('click', function () {
+                promptAction(finalApproveUrl, 'Final Organizational Approval', 'Final Approval Remarks (optional)', 'Final Sign-Off');
+            });
+
+            $('#returnUnitBtn').on('click', function () {
+                Swal.fire({
+                    title: 'Return Assessment to Unit',
+                    input: 'textarea',
+                    inputLabel: 'Reason for return (required)',
+                    inputPlaceholder: 'Explain what needs to be revised by the branch...',
+                    showCancelButton: true,
+                    confirmButtonText: 'Return for Revision',
+                    confirmButtonColor: '#d33',
+                    inputValidator: function (value) {
+                        if (!value) {
+                            return 'You must provide a reason when returning an assessment.';
+                        }
+                    }
+                }).then(function (result) {
+                    if (result.isConfirmed) {
+                        RiskPulse.postJson(returnUrl, { 
+                            assessmentUnitId: currentAssessmentUnitId,
+                            remarks: result.value
+                        }, {
+                            success: function () {
+                                window.location.reload();
+                            },
+                            fail: function (res) {
+                                RiskPulse.toastError(res.message || 'Unable to return the assessment.');
+                            }
+                        });
+                    }
+                });
             });
         })(jQuery);
     </script>

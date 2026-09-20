@@ -41,8 +41,8 @@ public class DashboardService
                 SubmittedCount = u.AssessmentItems.Count(i => i.WorkflowStep!.StepCode == ItemSubmittedStepCode
                                                            || i.WorkflowStep!.StepCode == ItemApprovedStepCode),
                 ApprovedCount = u.AssessmentItems.Count(i => i.WorkflowStep!.StepCode == ItemApprovedStepCode),
-                AuthorizedBy = u.AuthorizedBy!.Username,
-                AuthorizedOn = u.AuthorizedOn
+                AuthorizedBy = u.FinalApprovedBy != null ? u.FinalApprovedBy.Username : (u.UnitApprovedBy != null ? u.UnitApprovedBy.Username : string.Empty),
+                AuthorizedOn = u.FinalApprovedOn ?? u.UnitApprovedOn
             })
             .ToListAsync();
 

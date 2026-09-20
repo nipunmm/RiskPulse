@@ -23,6 +23,7 @@
         <thead>
             <tr>
                 <th>Code</th>
+                <th>Unit</th>
                 <th>Period</th>
                 <th>Status</th>
                 <th>Progress</th>
@@ -48,7 +49,21 @@
                SECTION 2 — RENDER HELPERS
                ================================================================= */
             function submissionStatusPill(label) {
-                var kind = { Pending: 'neutral', InProgress: 'warning', Submitted: 'warning', Approved: 'success', Authorized: 'success' }[label] || 'neutral';
+                var kind = { 
+                    'Pending Entry': 'neutral',
+                    'Pending': 'neutral', 
+                    'In Progress': 'warning', 
+                    'InProgress': 'warning',
+                    'Submitted': 'warning', 
+                    'Unit Approved': 'success',
+                    'UnitApproved': 'success',
+                    'Risk Dept Reviewed': 'success',
+                    'RiskReviewed': 'success',
+                    'Final Approved': 'success',
+                    'FinalApproved': 'success',
+                    'Returned for Revision': 'danger',
+                    'Returned': 'danger'
+                }[label] || 'neutral';
                 return RiskPulse.pill(label, kind);
             }
 
@@ -63,6 +78,7 @@
                 ajax: { url: gridUrl },
                 columns: [
                     { data: 'assessmentCode' },
+                    { data: 'unitDesc' },
                     { data: null, render: function (d) { return RiskPulse.escapeHtml(dateOnly(d.periodStart) + ' \u2192 ' + dateOnly(d.periodEnd)); } },
                     { data: 'statusLabel', render: function (d) { return submissionStatusPill(d); } },
                     { data: null, render: function (d) { return RiskPulse.pill(d.submittedCount + ' of ' + d.itemCount); } },
@@ -70,7 +86,7 @@
                         return '<button type="button" class="rp-btn rp-btn-secondary open-unit-btn"><i class="fas fa-folder-open"></i> Open</button>';
                     } }
                 ],
-                order: [[1, 'desc']]
+                order: [[2, 'desc']]
             });
 
             /* =================================================================

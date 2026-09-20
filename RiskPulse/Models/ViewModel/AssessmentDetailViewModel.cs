@@ -14,15 +14,37 @@ namespace RiskPulse.Models.ViewModel
 
         public string StatusLabel { get; set; } = string.Empty;
 
-        public bool CanAuthorize { get; set; }
+        public string StepCode { get; set; } = string.Empty;
+
+        public string CurrentUserRole { get; set; } = string.Empty;
+
+        public bool CanUnitApprove { get; set; }
+
+        public bool CanRiskReview { get; set; }
+
+        public bool CanFinalApprove { get; set; }
+
+        public bool CanReturn { get; set; }
 
         public int ItemCount { get; set; }
 
         public int ApprovedCount { get; set; }
 
-        public string AuthorizedBy { get; set; } = string.Empty;
+        public string? UnitApprovedBy { get; set; }
 
-        public DateTime? AuthorizedOn { get; set; }
+        public DateTime? UnitApprovedOn { get; set; }
+
+        public string? RiskReviewedBy { get; set; }
+
+        public DateTime? RiskReviewedOn { get; set; }
+
+        public string? RiskReviewerRemarks { get; set; }
+
+        public string? FinalApprovedBy { get; set; }
+
+        public DateTime? FinalApprovedOn { get; set; }
+
+        public string? FinalApproverRemarks { get; set; }
 
         public List<AssessmentItemRowViewModel> Items { get; set; } = new List<AssessmentItemRowViewModel>();
     }

@@ -218,9 +218,19 @@ namespace RiskPulse.Data
                     .HasForeignKey(u => u.WorkflowStepId)
                     .OnDelete(DeleteBehavior.Restrict);
 
-                entity.HasOne(u => u.AuthorizedBy)
+                entity.HasOne(u => u.UnitApprovedBy)
                     .WithMany()
-                    .HasForeignKey(u => u.AuthorizedById)
+                    .HasForeignKey(u => u.UnitApprovedById)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(u => u.RiskReviewedBy)
+                    .WithMany()
+                    .HasForeignKey(u => u.RiskReviewedById)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(u => u.FinalApprovedBy)
+                    .WithMany()
+                    .HasForeignKey(u => u.FinalApprovedById)
                     .OnDelete(DeleteBehavior.Restrict);
 
                 entity.HasIndex(u => new { u.AssessmentHeaderId, u.UnitId })

@@ -19,11 +19,27 @@ namespace RiskPulse.Data.Entries
 
         public WorkflowStep? WorkflowStep { get; set; }
 
-        public int? AuthorizedById { get; set; }
+        public int? UnitApprovedById { get; set; }
 
-        public User? AuthorizedBy { get; set; }
+        public User? UnitApprovedBy { get; set; }
 
-        public DateTime? AuthorizedOn { get; set; }
+        public DateTime? UnitApprovedOn { get; set; }
+
+        public int? RiskReviewedById { get; set; }
+
+        public User? RiskReviewedBy { get; set; }
+
+        public DateTime? RiskReviewedOn { get; set; }
+
+        public string? RiskReviewerRemarks { get; set; }
+
+        public int? FinalApprovedById { get; set; }
+
+        public User? FinalApprovedBy { get; set; }
+
+        public DateTime? FinalApprovedOn { get; set; }
+
+        public string? FinalApproverRemarks { get; set; }
 
         public ICollection<AssessmentItem> AssessmentItems { get; set; } = new List<AssessmentItem>();
     }

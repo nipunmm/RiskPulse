@@ -9,11 +9,29 @@ namespace RiskPulse.Services.Assessment;
 
 public class SubmissionsService
 {
-    private const string ItemSubmittedStepCode = "Submitted";
-    private const string ItemApprovedStepCode = "Approved";
-    private const string UnitAuthorizedStepCode = "Authorized";
+    // Item-level step codes
+    public const string ItemPendingStepCode = "Pending";
+    public const string ItemSubmittedStepCode = "Submitted";
+    public const string ItemApprovedStepCode = "Approved";
+
+    // Unit-level step codes (4 levels)
+    public const string UnitPendingStepCode = "Pending";
+    public const string UnitInProgressStepCode = "InProgress";
+    public const string UnitApprovedStepCode = "UnitApproved";
+    public const string UnitRiskReviewedStepCode = "RiskReviewed";
+    public const string UnitFinalApprovedStepCode = "FinalApproved";
+    public const string UnitReturnedStepCode = "Returned";
+
+    // Workflows
     private const string ItemWorkflowCode = "ASSESSMENT-ITEM";
     private const string UnitWorkflowCode = "ASSESSMENT-UNIT";
+
+    // System Roles
+    public const string RoleAdmin = "Administrator";
+    public const string RoleUnitInitiator = "Unit Initiator";
+    public const string RoleUnitApprover = "Unit Approver";
+    public const string RoleRiskReviewer = "Risk Dept Reviewer";
+    public const string RoleRiskApprover = "Risk Dept Approver";
 
     private readonly AppDbContext _db;
 
@@ -22,15 +40,23 @@ public class SubmissionsService
         _db = db;
     }
 
-    // --- My-unit grid ---
-    public async Task<List<SubmissionGridRowViewModel>> GetGridRowsAsync(int userId)
-    {
-        var unitId = await GetUserUnitIdAsync(userId);
+    private static bool IsRiskOrAdminRole(string role) =>
+        role == RoleAdmin || role == RoleRiskReviewer || role == RoleRiskApprover;
 
-        return await _db.AssessmentUnits
-            .AsNoTracking()
-            .Where(u => u.UnitId == unitId)
+    // --- Submissions grid (role-aware: all units for Risk/Admin, own unit for branch) ---
+    public async Task<List<SubmissionGridRowViewModel>> GetGridRowsAsync(int userId, string userRole)
+    {
+        IQueryable<AssessmentUnit> query = _db.AssessmentUnits.AsNoTracking();
+
+        if (!IsRiskOrAdminRole(userRole))
+        {
+            var unitId = await GetUserUnitIdAsync(userId);
+            query = query.Where(u => u.UnitId == unitId);
+        }
+
+        return await query
             .OrderByDescending(u => u.AssessmentHeader!.PeriodStart)
+            .ThenBy(u => u.Unit!.UnitDesc)
             .Select(u => new SubmissionGridRowViewModel
             {
                 AssessmentUnitId = u.AssessmentUnitId,
@@ -46,18 +72,26 @@ public class SubmissionsService
             .ToListAsync();
     }
 
-    // --- Detail (own unit only) ---
-    public async Task<AssessmentDetailViewModel> GetDetailAsync(int assessmentUnitId, int userId)
+    // --- Detail (role-aware) ---
+    public async Task<AssessmentDetailViewModel> GetDetailAsync(int assessmentUnitId, int userId, string userRole)
     {
-        var unitId = await GetUserUnitIdAsync(userId);
-
-        var unit = await _db.AssessmentUnits
+        IQueryable<AssessmentUnit> query = _db.AssessmentUnits
             .AsNoTracking()
-            .Where(u => u.AssessmentUnitId == assessmentUnitId && u.UnitId == unitId)
+            .Where(u => u.AssessmentUnitId == assessmentUnitId);
+
+        if (!IsRiskOrAdminRole(userRole))
+        {
+            var unitId = await GetUserUnitIdAsync(userId);
+            query = query.Where(u => u.UnitId == unitId);
+        }
+
+        var unit = await query
             .Include(u => u.AssessmentHeader)
             .Include(u => u.Unit)
             .Include(u => u.WorkflowStep)
-            .Include(u => u.AuthorizedBy)
+            .Include(u => u.UnitApprovedBy)
+            .Include(u => u.RiskReviewedBy)
+            .Include(u => u.FinalApprovedBy)
             .Include(u => u.AssessmentItems).ThenInclude(i => i.WorkflowStep)
             .Include(u => u.AssessmentItems).ThenInclude(i => i.SubmittedBy)
             .Include(u => u.AssessmentItems).ThenInclude(i => i.ApprovedBy)
@@ -65,6 +99,21 @@ public class SubmissionsService
             ?? throw new InvalidOperationException("The requested assessment was not found.");
 
         var items = unit.AssessmentItems.ToList();
+        var stepCode = unit.WorkflowStep!.StepCode;
+        var allApproved = items.Count > 0 && items.All(i => i.WorkflowStep!.StepCode == ItemApprovedStepCode);
+
+        var canUnitApprove = (userRole == RoleUnitApprover || userRole == RoleAdmin)
+            && (stepCode == UnitPendingStepCode || stepCode == UnitInProgressStepCode || stepCode == UnitReturnedStepCode)
+            && allApproved;
+
+        var canRiskReview = (userRole == RoleRiskReviewer || userRole == RoleAdmin)
+            && stepCode == UnitApprovedStepCode;
+
+        var canFinalApprove = (userRole == RoleRiskApprover || userRole == RoleAdmin)
+            && stepCode == UnitRiskReviewedStepCode;
+
+        var canReturn = (userRole == RoleRiskReviewer || userRole == RoleRiskApprover || userRole == RoleAdmin)
+            && (stepCode == UnitApprovedStepCode || stepCode == UnitRiskReviewedStepCode);
 
         return new AssessmentDetailViewModel
         {
@@ -73,12 +122,23 @@ public class SubmissionsService
             UnitDesc = unit.Unit!.UnitDesc,
             PeriodStart = unit.AssessmentHeader.PeriodStart,
             PeriodEnd = unit.AssessmentHeader.PeriodEnd,
-            StatusLabel = unit.WorkflowStep!.StepLabel,
-            CanAuthorize = unit.WorkflowStep.StepCode != UnitAuthorizedStepCode,
+            StatusLabel = unit.WorkflowStep.StepLabel,
+            StepCode = stepCode,
+            CurrentUserRole = userRole,
+            CanUnitApprove = canUnitApprove,
+            CanRiskReview = canRiskReview,
+            CanFinalApprove = canFinalApprove,
+            CanReturn = canReturn,
             ItemCount = items.Count,
             ApprovedCount = items.Count(i => i.WorkflowStep!.StepCode == ItemApprovedStepCode),
-            AuthorizedBy = unit.AuthorizedBy?.Username ?? string.Empty,
-            AuthorizedOn = unit.AuthorizedOn,
+            UnitApprovedBy = unit.UnitApprovedBy?.Username,
+            UnitApprovedOn = unit.UnitApprovedOn,
+            RiskReviewedBy = unit.RiskReviewedBy?.Username,
+            RiskReviewedOn = unit.RiskReviewedOn,
+            RiskReviewerRemarks = unit.RiskReviewerRemarks,
+            FinalApprovedBy = unit.FinalApprovedBy?.Username,
+            FinalApprovedOn = unit.FinalApprovedOn,
+            FinalApproverRemarks = unit.FinalApproverRemarks,
             Items = (await BuildItemRowsAsync(items))
         };
     }
@@ -313,10 +373,15 @@ public class SubmissionsService
         await _db.SaveChangesAsync();
     }
 
-    // --- Workflow transitions: submit / approve / authorize ---
-    public async Task SubmitItemAsync(int assessmentItemId, int userId)
+    // --- Workflow transitions: Level 1 Submit / Level 2 Unit Approve / Level 3 Risk Review / Level 4 Final Approve / Return ---
+    public async Task SubmitItemAsync(int assessmentItemId, int userId, string userRole)
     {
-        var item = await LoadOwnedItemForUpdateAsync(assessmentItemId, userId);
+        if (userRole != RoleUnitInitiator && userRole != RoleAdmin)
+        {
+            throw new InvalidOperationException("Only Unit Initiators can submit assessment items.");
+        }
+
+        var item = await LoadOwnedItemForUpdateAsync(assessmentItemId, userId, userRole);
         EnsureEditable(item, "This item has already been submitted.");
         await EnsureCompleteAsync(item);
 
@@ -324,12 +389,26 @@ public class SubmissionsService
         item.WorkflowStepId = step.WorkflowStepId;
         item.SubmittedById = userId;
         item.SubmittedOn = DateTime.UtcNow;
+
+        // Auto-advance unit to InProgress if currently Pending or Returned
+        var unit = item.AssessmentUnit!;
+        if (unit.WorkflowStep!.StepCode == UnitPendingStepCode || unit.WorkflowStep!.StepCode == UnitReturnedStepCode)
+        {
+            var unitStep = await GetStepAsync(UnitWorkflowCode, UnitInProgressStepCode);
+            unit.WorkflowStepId = unitStep.WorkflowStepId;
+        }
+
         await _db.SaveChangesAsync();
     }
 
-    public async Task ApproveItemAsync(int assessmentItemId, int userId)
+    public async Task ApproveItemAsync(int assessmentItemId, int userId, string userRole)
     {
-        var item = await LoadOwnedItemForUpdateAsync(assessmentItemId, userId);
+        if (userRole != RoleUnitApprover && userRole != RoleAdmin)
+        {
+            throw new InvalidOperationException("Only Unit Approvers can approve assessment items.");
+        }
+
+        var item = await LoadOwnedItemForUpdateAsync(assessmentItemId, userId, userRole);
 
         if (item.WorkflowStep!.StepCode == ItemApprovedStepCode)
         {
@@ -339,9 +418,13 @@ public class SubmissionsService
         {
             throw new InvalidOperationException("Only items that have been submitted can be approved.");
         }
-        if (item.AssessmentUnit!.WorkflowStep!.StepCode == UnitAuthorizedStepCode)
+        if (item.SubmittedById == userId && userRole != RoleAdmin)
         {
-            throw new InvalidOperationException("This assessment has already been authorized.");
+            throw new InvalidOperationException("Segregation of duties violation: You cannot approve an item you submitted yourself.");
+        }
+        if (item.AssessmentUnit!.WorkflowStep!.StepCode == UnitFinalApprovedStepCode)
+        {
+            throw new InvalidOperationException("This assessment has already been finalized.");
         }
 
         var step = await GetStepAsync(ItemWorkflowCode, ItemApprovedStepCode);
@@ -351,32 +434,103 @@ public class SubmissionsService
         await _db.SaveChangesAsync();
     }
 
-    public async Task AuthorizeUnitAsync(int assessmentUnitId, int userId)
+    // Level 2: Unit Approver signs off the unit assessment and passes to Risk Dept
+    public async Task UnitApproveAsync(int assessmentUnitId, int userId, string userRole)
     {
-        var unitId = await GetUserUnitIdAsync(userId);
-
-        var unit = await _db.AssessmentUnits
-            .Where(u => u.AssessmentUnitId == assessmentUnitId && u.UnitId == unitId)
-            .Include(u => u.WorkflowStep)
-            .Include(u => u.AssessmentItems).ThenInclude(i => i.WorkflowStep)
-            .SingleOrDefaultAsync()
-            ?? throw new InvalidOperationException("The requested assessment was not found.");
-
-        if (unit.WorkflowStep!.StepCode == UnitAuthorizedStepCode)
+        if (userRole != RoleUnitApprover && userRole != RoleAdmin)
         {
-            throw new InvalidOperationException("This assessment has already been authorized.");
+            throw new InvalidOperationException("Only Unit Approvers can authorize and pass assessments to the Risk Department.");
         }
+
+        var unit = await LoadUnitForUpdateAsync(assessmentUnitId, userId, userRole);
 
         var notApproved = unit.AssessmentItems.Count(i => i.WorkflowStep!.StepCode != ItemApprovedStepCode);
         if (notApproved > 0)
         {
-            throw new InvalidOperationException("All items must be approved before the assessment can be authorized.");
+            throw new InvalidOperationException("All items must be approved by the Unit Approver before passing to the Risk Department.");
         }
 
-        var step = await GetStepAsync(UnitWorkflowCode, UnitAuthorizedStepCode);
+        var step = await GetStepAsync(UnitWorkflowCode, UnitApprovedStepCode);
         unit.WorkflowStepId = step.WorkflowStepId;
-        unit.AuthorizedById = userId;
-        unit.AuthorizedOn = DateTime.UtcNow;
+        unit.UnitApprovedById = userId;
+        unit.UnitApprovedOn = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+    }
+
+    // Level 3: Risk Dept Reviewer reviews and passes to CRO / Final Approver
+    public async Task RiskReviewAsync(int assessmentUnitId, int userId, string userRole, string? remarks)
+    {
+        if (userRole != RoleRiskReviewer && userRole != RoleAdmin)
+        {
+            throw new InvalidOperationException("Only Risk Department Reviewers can review assessments.");
+        }
+
+        var unit = await LoadUnitForUpdateAsync(assessmentUnitId, userId, userRole);
+
+        if (unit.WorkflowStep!.StepCode != UnitApprovedStepCode)
+        {
+            throw new InvalidOperationException("Only unit-approved assessments can be reviewed by the Risk Department.");
+        }
+
+        var step = await GetStepAsync(UnitWorkflowCode, UnitRiskReviewedStepCode);
+        unit.WorkflowStepId = step.WorkflowStepId;
+        unit.RiskReviewedById = userId;
+        unit.RiskReviewedOn = DateTime.UtcNow;
+        unit.RiskReviewerRemarks = remarks;
+        await _db.SaveChangesAsync();
+    }
+
+    // Level 4: Risk Dept Approver (CRO) gives final sign-off
+    public async Task FinalApproveAsync(int assessmentUnitId, int userId, string userRole, string? remarks)
+    {
+        if (userRole != RoleRiskApprover && userRole != RoleAdmin)
+        {
+            throw new InvalidOperationException("Only Risk Department Approvers can provide final approval.");
+        }
+
+        var unit = await LoadUnitForUpdateAsync(assessmentUnitId, userId, userRole);
+
+        if (unit.WorkflowStep!.StepCode != UnitRiskReviewedStepCode)
+        {
+            throw new InvalidOperationException("Only assessments that have undergone Risk Department review can receive final approval.");
+        }
+
+        var step = await GetStepAsync(UnitWorkflowCode, UnitFinalApprovedStepCode);
+        unit.WorkflowStepId = step.WorkflowStepId;
+        unit.FinalApprovedById = userId;
+        unit.FinalApprovedOn = DateTime.UtcNow;
+        unit.FinalApproverRemarks = remarks;
+        await _db.SaveChangesAsync();
+    }
+
+    // Return to Unit Initiator for revisions (Levels 3 or 4)
+    public async Task ReturnAssessmentAsync(int assessmentUnitId, int userId, string userRole, string? remarks)
+    {
+        if (!IsRiskOrAdminRole(userRole))
+        {
+            throw new InvalidOperationException("Only Risk Department staff or Administrators can return assessments for revision.");
+        }
+
+        var unit = await LoadUnitForUpdateAsync(assessmentUnitId, userId, userRole);
+
+        if (unit.WorkflowStep!.StepCode == UnitFinalApprovedStepCode)
+        {
+            throw new InvalidOperationException("Final approved assessments cannot be returned.");
+        }
+
+        var step = await GetStepAsync(UnitWorkflowCode, UnitReturnedStepCode);
+        unit.WorkflowStepId = step.WorkflowStepId;
+        unit.RiskReviewerRemarks = string.IsNullOrWhiteSpace(remarks) ? unit.RiskReviewerRemarks : remarks;
+
+        // Reset items to Pending so the Unit Initiator can edit and re-submit
+        var pendingItemStep = await GetStepAsync(ItemWorkflowCode, ItemPendingStepCode);
+        foreach (var item in unit.AssessmentItems)
+        {
+            item.WorkflowStepId = pendingItemStep.WorkflowStepId;
+            item.ApprovedById = null;
+            item.ApprovedOn = null;
+        }
+
         await _db.SaveChangesAsync();
     }
 
@@ -391,24 +545,48 @@ public class SubmissionsService
         return unitId ?? throw new InvalidOperationException("Your user profile was not found.");
     }
 
-    private async Task<AssessmentItem> LoadOwnedItemAsync(int assessmentItemId, int userId)
+    private async Task<AssessmentUnit> LoadUnitForUpdateAsync(int assessmentUnitId, int userId, string userRole)
     {
-        return await QueryOwnedItemAsync(assessmentItemId, userId, asNoTracking: true)
+        IQueryable<AssessmentUnit> query = _db.AssessmentUnits
+            .Where(u => u.AssessmentUnitId == assessmentUnitId);
+
+        if (!IsRiskOrAdminRole(userRole))
+        {
+            var unitId = await GetUserUnitIdAsync(userId);
+            query = query.Where(u => u.UnitId == unitId);
+        }
+
+        return await query
+            .Include(u => u.WorkflowStep)
+            .Include(u => u.AssessmentItems).ThenInclude(i => i.WorkflowStep)
+            .SingleOrDefaultAsync()
+            ?? throw new InvalidOperationException("The requested assessment was not found.");
+    }
+
+    private async Task<AssessmentItem> LoadOwnedItemAsync(int assessmentItemId, int userId, string userRole = "")
+    {
+        return await QueryOwnedItemAsync(assessmentItemId, userId, userRole, asNoTracking: true)
             ?? throw new InvalidOperationException("The requested item was not found.");
     }
 
-    private async Task<AssessmentItem> LoadOwnedItemForUpdateAsync(int assessmentItemId, int userId)
+    private async Task<AssessmentItem> LoadOwnedItemForUpdateAsync(int assessmentItemId, int userId, string userRole = "")
     {
-        return await QueryOwnedItemAsync(assessmentItemId, userId, asNoTracking: false)
+        return await QueryOwnedItemAsync(assessmentItemId, userId, userRole, asNoTracking: false)
             ?? throw new InvalidOperationException("The requested item was not found.");
     }
 
-    private async Task<AssessmentItem?> QueryOwnedItemAsync(int assessmentItemId, int userId, bool asNoTracking)
+    private async Task<AssessmentItem?> QueryOwnedItemAsync(int assessmentItemId, int userId, string userRole, bool asNoTracking)
     {
-        var unitId = await GetUserUnitIdAsync(userId);
-
         IQueryable<AssessmentItem> query = _db.AssessmentItems
-            .Where(i => i.AssessmentItemId == assessmentItemId && i.AssessmentUnit!.UnitId == unitId)
+            .Where(i => i.AssessmentItemId == assessmentItemId);
+
+        if (!IsRiskOrAdminRole(userRole))
+        {
+            var unitId = await GetUserUnitIdAsync(userId);
+            query = query.Where(i => i.AssessmentUnit!.UnitId == unitId);
+        }
+
+        query = query
             .Include(i => i.AssessmentUnit!).ThenInclude(u => u.AssessmentHeader!)
             .Include(i => i.AssessmentUnit!).ThenInclude(u => u.Unit!)
             .Include(i => i.AssessmentUnit!).ThenInclude(u => u.WorkflowStep!)
@@ -521,7 +699,12 @@ public class SubmissionsService
         var unitStepCode = item.AssessmentUnit!.WorkflowStep!.StepCode;
         var itemStepCode = item.WorkflowStep!.StepCode;
 
-        return unitStepCode != UnitAuthorizedStepCode
+        // An item is editable only while the unit is Pending/InProgress/Returned AND the item itself is not Submitted/Approved
+        var unitAllowsEdit = unitStepCode == UnitPendingStepCode 
+                          || unitStepCode == UnitInProgressStepCode 
+                          || unitStepCode == UnitReturnedStepCode;
+
+        return unitAllowsEdit
             && itemStepCode != ItemSubmittedStepCode
             && itemStepCode != ItemApprovedStepCode;
     }

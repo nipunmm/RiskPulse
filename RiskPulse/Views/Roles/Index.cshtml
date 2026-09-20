@@ -228,7 +228,16 @@
                 ajax: { url: gridUrl },
                 columns: [
                     { data: 'roleId' },
-                    { data: 'roleDesc' },
+                    { 
+                        data: 'roleDesc',
+                        render: function (data, type, row) {
+                            var html = RiskPulse.escapeHtml(data);
+                            if (row.isSystemRole) {
+                                html += ' <span class="rp-pill rp-pill-neutral ms-1"><i class="fas fa-shield-halved me-1"></i>System</span>';
+                            }
+                            return html;
+                        }
+                    },
                     { data: 'defaultPermissionDesc', render: function (d) {
                         return RiskPulse.pill(d || 'Dashboard', null, 'house');
                     } },
@@ -236,7 +245,10 @@
                         var badges = (d || []).map(function (desc) { return RiskPulse.pill(desc); });
                         return badges.length ? badges.join(' ') : '<span class="text-muted">None</span>';
                     } },
-                    { data: null, orderable: false, searchable: false, className: 'text-end', render: function () {
+                    { data: null, orderable: false, searchable: false, className: 'text-end', render: function (data, type, row) {
+                        if (row.isSystemRole) {
+                            return '<span class="rp-body-xs rp-text-muted"><i class="fas fa-lock me-1"></i>Protected</span>';
+                        }
                         return '<button type="button" class="rp-btn rp-btn-edit edit-role-btn"><i class="fas fa-pen-to-square"></i> Edit</button> ' +
                                '<button type="button" class="rp-btn rp-btn-delete delete-role-btn"><i class="fas fa-trash-can"></i> Delete</button>';
                     } }
