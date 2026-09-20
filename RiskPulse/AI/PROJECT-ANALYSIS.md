@@ -1,14 +1,16 @@
 # RiskPulse — Project Architecture & Data-Flow Analysis
 
-> Generated from codebase analysis. Last reviewed: August 2026.
+> Generated from codebase analysis. Last reviewed: September 2026.
 
 ---
 
 ## 1. Overview
 
-**RiskPulse** is an enterprise risk management application built with **ASP.NET Core MVC**. The domain targets KRI (Key Risk Indicators), SAQ (Self-Assessment Questionnaires), branch-level risk submissions, and RAG (Red/Amber/Green) status tracking for high-stakes financial environments.
+**RiskPulse** is an enterprise risk management application built with **ASP.NET Core MVC**. The domain targets KRI (Key Risk Indicators), SAQ (Self-Assessment Questionnaires), schedule/template orchestration, branch-level risk submissions, and RAG (Red/Amber/Green) status tracking for high-stakes financial environments.
 
-**Current Phase:** Access-control scaffolding complete — authentication (cookie + claims), user/role/permission management (working CRUD + DataTables grids). SAQ Templates and KRI Templates implemented — headers, item designers, threshold-config tabs (merged into KRI Templates), and Locked-immutability rules. Each template header is **linked to a required unit group or unit** (`GroupId FK→Groups` XOR `UnitId FK→Units`, selected in the add/edit modals and shown in the grid). **Units page implemented** — two-tab Administration page (Unit CRUD | Unit Group CRUD) under the new `Units` permission with Select2 group→unit assignment. **Assessment wizard implemented** — step flow (name → SAQ → KRI → schedule → finalize) with per-step AJAX persistence, draft edit/re-save through the stages, and activate rules. **Submissions implemented** — own-unit grid, per-item SAQ/KRI entry (draft save, submit, approve), unit authorize, all gated on workflow step codes. **Dashboard implemented** — fully server-rendered landing page (hero KPIs, status distribution, KRI RAG snapshot, needs-attention list, period history), own-unit scoped. Remaining domain page (Risk Register templates) is a **stub**. PostgreSQL persistence is live via EF Core migrations (`Migrations/20260920123931_UserPermissionControl`, git-ignored); seed data (permissions/roles/unit/test user) lives only in the live DB. Structure is convention-aligned: controllers are **flat** in `Controllers/` (thin, 1:1 with `Views/{Controller}/`), services are **grouped by workflow** (`Login`/`Administration`/`Templates`/`Assessment`/`Dashboard`), and `Models/` is split by layer distinction into `Models/Dto/` (inter-system data, `*Dto` postfix), `Models/ViewModel/` (UI-shaped data, `*ViewModel` postfix), and `Models/Enum/` (domain enums, persisted as strings).
+**Current Phase:** Access-control scaffolding complete (cookie auth + claims, user/role/permission management with DataTables grids). SAQ and KRI template designers implemented — headers with unique generated codes, question/item designers, Locked-immutability rules; each template header is **linked to a required unit group or unit** (`GroupId FK→Groups` XOR `UnitId FK→Units`, shown in the grids via an assignment label). **Schedule wizard implemented** — step flow (schedule type → SAQ templates → KRI templates → finalize) with per-step AJAX persistence, multi-template selection with a card/checkbox picker (search + pager + selection chips) and read-only SAQ/KRI previews. **Workflow engine implemented** — DB-driven `Workflow`/`WorkflowStep` dictionaries; activating a schedule auto-creates an assessment (header → one `AssessmentUnit` per targeted unit → one `AssessmentItem` per template) with statuses driven by workflow step codes rather than enums. **Submissions implemented** — own-unit grid, per-item SAQ/KRI entry (draft save, submit, approve), unit authorize, all gated on workflow step codes. **Dashboard implemented** — fully server-rendered landing page (hero KPIs, status distribution from workflow steps, KRI RAG snapshot over the latest period, needs-attention list, period history), own-unit scoped. Remaining domain page (Risk Register templates) is a **stub**. PostgreSQL persistence is live via EF Core; there is **no `Migrations/` folder on disk and no committed seed artifact** (`Migrations/` and `Database/` are git-ignored, so seed rows exist only in the dev DB). Structure is convention-aligned: controllers are **flat** in `Controllers/` (thin, 1:1 with `Views/{Controller}/`), services are **grouped by workflow** (`Login`/`Administration`/`Templates`/`Schedule`/`Assessment`/`Dashboard`/`Utilities`), and `Models/` is split by layer into `Models/Dto/` (inter-system data), `Models/ViewModel/` (UI-shaped data), and `Models/Enum/` (domain enums, persisted as strings).
+
+**Notable recent refactors (since the previous review):** the Assessment wizard was replaced by the **Schedule wizard** (`ScheduleController`/`ScheduleService`/`Views/Schedule/`, permission `Schedule`), assessment creation is now **triggered automatically** when a schedule is activated rather than built step-by-step, the KRI threshold-config subsystem (colors/groups/bands) was **removed** (KRI items now carry flat `GreenLimit`/`AmberLimit`/`RedLimit` ints), a `CodeGeneratorService` issues unique `SAQ-`/`KRI-`/`SCH-`/`ASM-` codes, and the workflow-status model went **DB-driven** via `Workflow`/`WorkflowStep`.
 
 ---
 
@@ -21,7 +23,7 @@
 | Framework | ASP.NET Core MVC | Minimal hosting model (`Program.cs`) |
 | ORM | Entity Framework Core | `Microsoft.EntityFrameworkCore` **10.0.10** |
 | DB Provider | Npgsql (PostgreSQL) | `Npgsql.EntityFrameworkCore.PostgreSQL` **10.0.3** |
-| Database | PostgreSQL | Schema `riskpulse`, DB `sit` (localhost:5432) |
+| Database | PostgreSQL | Schema `riskpulse`, DB `sit` (localhost:5432); `Search Path=riskpulse` |
 | Auth | Cookie Authentication | `Microsoft.AspNetCore.Authentication.Cookies` + claim-based policies |
 | View Engine | Razor `.cshtml` | Server-rendered, sections for Styles/Scripts |
 | Grid | DataTables | `jquery.dataTables.min.js` + `dataTables.bootstrap5.min.js` (client-side processing, AJAX JSON source) |
@@ -32,9 +34,9 @@
 | Icons | Font Awesome 6 | `all.min.css` |
 | Fonts | Inter, JetBrains Mono | Self-hosted `.woff2` |
 | Client Validation | jQuery Validate (vendored) + custom JS rules | Manual `validateXxx()` functions, not unobtrusive tags |
-| Scaffolding | EF Core Migrations | Baseline migration `20260920123931_UserPermissionControl` exists in `Migrations/` (git-ignored via `.gitignore` `**/Migrations/`); `dotnet ef database update` provisions the schema |
+| Scaffolding | EF Core Migrations | **No `Migrations/` folder exists on disk** (git-ignored via `.gitignore` `**/Migrations/`); schema is provisioned in the dev DB; seed rows live only in the dev DB |
 
-**NuGet packages:** `Microsoft.EntityFrameworkCore`, `Microsoft.EntityFrameworkCore.Tools`, `Npgsql.EntityFrameworkCore.PostgreSQL`. Nothing else.
+**NuGet packages:** `Microsoft.EntityFrameworkCore`, `Microsoft.EntityFrameworkCore.Tools`, `Npgsql.EntityFrameworkCore.PostgreSQL`. Nothing else. No tests, no CI (`.github/workflows` is an empty placeholder).
 
 ---
 
@@ -45,76 +47,82 @@ RiskPulse.slnx                                   # XML solution (single project)
 RiskPulse/
 ├── Program.cs                                   # Bootstrap: DbContext, DI, auth policies, pipeline
 ├── RiskPulse.csproj                             # net10.0, 3 EF/Npgsql package refs
-├── appsettings.json                             # ConnString: Server=localhost;Port=5432;DB=sit;schema=riskpulse
+├── appsettings.json                             # ConnString: Server=localhost;Port=5432;DB=sit;schema=riskpulse (COMMITTED — debt §8.3 #9)
 ├── appsettings.Development.json                 # Logging overrides
 ├── Properties/launchSettings.json
 │
 ├── Controllers/                  # Flat — thin, 1:1 with Views/{ControllerName}/; routes follow class names
 │   ├── LoginController.cs        # GET/POST Index, POST Login (JSON [FromBody]), Logout, AccessDenied (AllowAnonymous)
-│   ├── UsersController.cs        # Index (View), Grid (JSON incl. unit/role descs), Save (JSON [FromBody]), Delete (JSON)
+│   ├── UsersController.cs        # Index (View), Grid (JSON incl. role desc), Save (JSON [FromBody]), Delete (JSON)
 │   ├── RolesController.cs        # Index (View), Grid (JSON incl. permissionIds/descs), Save (JSON [FromBody]), Delete (JSON)
 │   ├── UnitsController.cs        # 2-tab Units page: UnitGrid/SaveUnit/DeleteUnit + GroupGrid/SaveGroup/DeleteGroup (JSON)
 │   ├── SaqTemplatesController.cs # Grid/Save/Delete headers + QuestionsGrid/SaveQuestion/DeleteQuestion (JSON)
-│   ├── KriTemplatesController.cs # Templates + config: Grid/Save/Delete headers, KrisGrid/SaveKri/DeleteKri, Colors/Groups/Bands CRUD (JSON)
-│   ├── RiskRegisterTemplatesController.cs # Stub, [Authorize(Policy="Permission:Risk Register")]
-│   ├── DashboardController.cs    # GET Index → server-rendered DashboardViewModel, [Authorize(Policy="Permission:Dashboard")]
+│   ├── KriTemplatesController.cs # Grid/Save/Delete headers + KrisGrid/SaveKri/DeleteKri (JSON); KRI limits on the item
+│   ├── ScheduleController.cs     # Schedule wizard: Index/Grid, Wizard (4 steps), SaveSchedule/SaveSaq/SaveKri, SaqPreview/KriPreview, Finalize, Delete (JSON)
 │   ├── SubmissionsController.cs  # Index + Grid (JSON) + Detail/SaqEntry/KriEntry (views) + SaveSaq/SaveKri/SubmitItem/ApproveItem/AuthorizeUnit (JSON), own-unit scoped
-│   ├── AssessmentController.cs   # Wizard: Index (grid), Wizard (step flow), SaveName/SaveSaq/SaveKri/SaveSchedule/Finalize/Delete (JSON)
-│   ├── ErrorController.cs        # GET /Error/Index
+│   ├── DashboardController.cs    # GET Index → server-rendered DashboardViewModel, [Authorize(Policy="Permission:Dashboard")]
+│   ├── RiskRegisterTemplatesController.cs # Stub, [Authorize(Policy="Permission:Risk Register")]
+│   ├── ErrorController.cs        # GET /Error/Index (no auth)
 │   └── ControllerHelpers.cs      # Static helpers: ValidateModel, TryExecute, TrySave, TryDelete (null-guard + ModelState + ApiResponse)
 │
 ├── Data/
-│   ├── AppDbContext.cs               # DbContext: schema, DbSets, enum→string conversions, FK/cascade config
+│   ├── AppDbContext.cs               # DbContext: schema, 21 DbSets, enum→string conversions, FK/cascade config
 │   ├── Entries/                      # EF entities — flat 1:1 mirror of riskpulse.* tables (no domain grouping)
 │   │   ├── User.cs  Role.cs  Permission.cs  RolePermission.cs  Unit.cs
-│   │   ├── Group.cs  UnitGroup.cs   # Unit grouping (Group 1—N UnitGroup N—1 Unit, unique GroupId+UnitId)
+│   │   ├── Group.cs  UnitGroup.cs      # Unit grouping (Group 1—N UnitGroup N—1 Unit, unique GroupId+UnitId)
 │   │   ├── SaqHeader.cs  SaqQuestion.cs  SaqQuestionOption.cs
-│   │   ├── KriHeader.cs  Kri.cs  KriThresholdGroup.cs  KriThresholdColor.cs  KriThreshold.cs
-│   │   └── AssessmentHeader.cs  ScheduleHeader.cs   # Assessment wizard entities
+│   │   ├── KriHeader.cs  Kri.cs        # Kri carries flat GreenLimit/AmberLimit/RedLimit (threshold subsystem removed)
+│   │   ├── Schedule.cs  ScheduleItem.cs        # schedule header + polymorphic (ItemType+ItemId) template links
+│   │   ├── AssessmentHeader.cs  AssessmentUnit.cs  AssessmentItem.cs   # auto-created on schedule activation
+│   │   ├── SaqAssessmentAnswer.cs  KriAssessmentValue.cs             # submission answers/values
+│   │   └── Workflow.cs  WorkflowStep.cs        # DB-driven workflow/step dictionary (statuses = step codes)
 │   └── Extensions/
 │       └── DbSetExtensions.cs        # EnsureUniqueAsync (duplicate → InvalidOperationException), ToOptionListAsync (→ OptionViewModel)
 │
 ├── Models/
-│   ├── Dto/                        # Data that moves between layers/systems (23 files, `*Dto` postfix)
-│   │   ├── ApiResponse.cs          # Shared JSON envelope { success, message, data, errors }
+│   ├── Dto/                        # Data that moves between layers/systems (`*Dto` postfix; ApiResponse excepted)
+│   │   ├── ApiResponse.cs          # Shared JSON envelope { success, message, data, errors } — only DTO with file-scoped namespace
 │   │   ├── LoginResultDto.cs  LoginRequestDto.cs  UserAuthorizationDto.cs
 │   │   ├── UserSaveDto.cs  RoleSaveDto.cs  UnitSaveDto.cs  GroupSaveDto.cs  DeleteRequestDto.cs  SaveResultDto.cs
 │   │   ├── Saq*.cs                 # SaqHeaderSaveDto, SaqQuestionSaveDto, SaqOptionSaveDto
-│   │   ├── Kri*.cs                 # KriHeaderSaveDto, KriSaveDto, KriColorSaveDto, KriThresholdGroupSaveDto, KriBandsSaveDto, KriBandSaveDto
-│   │   └── Assessment*.cs          # AssessmentNameSaveDto, AssessmentTemplateSaveDto, AssessmentFinalizeDto, ScheduleSaveDto
-│   ├── ViewModel/                  # Data shaped specifically for a UI/view (24 files, `*ViewModel` postfix)
+│   │   ├── Kri*.cs                 # KriHeaderSaveDto, KriSaveDto
+│   │   ├── Schedule*.cs            # ScheduleSaveDto, ScheduleTemplatesSaveDto, ScheduleFinalizeDto
+│   │   └── Submission*.cs          # SaveSaqAnswersDto (+SaqAnswerSaveDto), SaveKriValuesDto (+KriValueSaveDto), ItemTransitionDto, UnitAuthorizeDto
+│   ├── ViewModel/                  # Data shaped specifically for a UI/view (38 files, `*ViewModel` postfix)
 │   │   ├── UsersIndexViewModel.cs  RolesIndexViewModel.cs  UnitsIndexViewModel.cs  ErrorViewModel.cs
-│   │   ├── UserGridRowViewModel.cs  RoleGridRowViewModel.cs  UnitGridRowViewModel.cs  GroupGridRowViewModel.cs  OptionViewModel.cs
-│   │   ├── Saq*.cs                 # SaqTemplatesIndexViewModel, SaqGridRowViewModel, SaqQuestionGridRowViewModel, SaqOptionGridRowViewModel, SaqStatusOptionViewModel
-│   │   ├── Kri*.cs                 # KriTemplatesIndexViewModel, KriStatusOptionViewModel, KriGridRowViewModel, KriItemGridRowViewModel, KriGroupGridRowViewModel, KriColorGridRowViewModel, KriColorOptionViewModel, KriBandGridRowViewModel
-│   │   └── Assessment*.cs          # AssessmentGridRowViewModel, AssessmentWizardViewModel
-│   │   └── Submission*.cs          # SubmissionGridRowViewModel, AssessmentDetailViewModel, AssessmentItemRowViewModel, SaqEntryViewModel, SaqEntryQuestionViewModel, KriEntryViewModel, KriEntryValueViewModel
-│   │   └── Dashboard*.cs           # DashboardViewModel, DashboardKpiViewModel, DashboardStatusSliceViewModel, AssessmentProgressRowViewModel, KriSnapshotViewModel, DashboardAttentionRowViewModel, PeriodHistoryRowViewModel
+│   │   ├── UserGridRowViewModel.cs  RoleGridRowViewModel.cs  UnitGridRowViewModel.cs  GroupGridRowViewModel.cs  OptionViewModel.cs (Value/Label/Code)
+│   │   ├── Saq*.cs                 # SaqTemplatesIndexViewModel, SaqGridRowViewModel, SaqQuestionGridRowViewModel, SaqOptionGridRowViewModel, SaqStatusOptionViewModel, SaqPreviewViewModel
+│   │   ├── Kri*.cs                 # KriTemplatesIndexViewModel, KriGridRowViewModel, KriItemGridRowViewModel, KriStatusOptionViewModel, KriPreviewViewModel
+│   │   ├── Schedule*.cs            # ScheduleGridRowViewModel, ScheduleWizardViewModel
+│   │   ├── Submission*.cs          # SubmissionGridRowViewModel, AssessmentDetailViewModel, AssessmentItemRowViewModel (StepCode-driven), SaqEntryViewModel, SaqEntryQuestionViewModel, KriEntryViewModel, KriEntryValueViewModel (G/A/R limits)
+│   │   └── Dashboard*.cs           # DashboardViewModel, DashboardKpiViewModel, DashboardStatusSliceViewModel, DashboardAttentionRowViewModel, AssessmentProgressRowViewModel, PeriodHistoryRowViewModel, KriSnapshotViewModel
 │   └── Enum/                       # Domain enums, persisted as varchar(32)
-│       ├── UnitType.cs  QuestionType.cs  SaqStatus.cs  KriStatus.cs  AssessmentStatus.cs
+│       ├── UnitType.cs  QuestionType.cs  SaqStatus.cs  KriStatus.cs
+│       └── ScheduleType.cs  ScheduleStatus.cs  ScheduleItemType.cs  AssessmentStatus.cs
 │
 ├── Services/
 │   ├── Login/                        # Authentication + authorization
 │   │   ├── AdAuthenticationService.cs     # STUB — ValidateCredentialsAsync always returns true
 │   │   ├── DbAuthorizationService.cs       # Loads user+role+permissions+unit into UserAuthorizationDto
-│   │   ├── LoginOrchestratorService.cs     # Orchestrates: AD check → DB lookup → claims principal
-│   │   ├── PermissionCatalog.cs            # Single source for permission constants (policies, layout, mapper)
-│   │   └── PermissionPageMapper.cs         # Static: PermissionDesc → (Controller, Action)
+│   │   ├── LoginOrchestratorService.cs     # AD check → DB lookup → claims principal + redirect route
+│   │   ├── PermissionCatalog.cs            # Single source for permission constants (policies, layout, mapper) — includes Schedule
+│   │   └── PermissionPageMapper.cs         # Static: PermissionDesc → (Controller, Action); default = Dashboard
 │   ├── Administration/               # Users + roles + units CRUD
-│   │   ├── UsersService.cs                 # CRUD for users + self-edit guard (direct AppDbContext)
+│   │   ├── UsersService.cs                 # CRUD for users + self-edit guard (direct AppDbContext), username unique
 │   │   ├── RolesService.cs                 # CRUD for roles + permission mapping + default-permission rule (direct AppDbContext)
 │   │   └── UnitsService.cs                 # Unit CRUD (duplicate guard, block delete when referenced) + group CRUD (≥2 units, clear/re-add UnitGroups)
 │   ├── Templates/                    # SAQ + KRI templates
-│   │   ├── SaqTemplatesService.cs           # SAQ header CRUD (Group XOR Unit rule, lock rules) + question/option designer (dup question guard)
-│   │   └── KriTemplatesService.cs           # KRI header CRUD + KRI items + threshold config (colors/groups/bands) + lock/duplicate rules
-│   └── Assessment/                   # Assessment wizard workflow
-│       ├── AssessmentService.cs             # Draft create/rename, SAQ+KRI template pick (non-Locked), schedule upsert (UTC timestamptz), finalize (Active requires SAQ+KRI), delete (drafts only)
-│       └── SubmissionsService.cs            # Own-unit grid + detail; SAQ/KRI entry (draft save); submit/approve/authorize step transitions; own-unit scoping helpers
-│   └── Dashboard/                   # Server-rendered landing page
-│       └── DashboardService.cs             # Own-unit KPIs, status slices, KRI RAG snapshot (latest period), needs-attention list, period history
-│
-├── Database/                       # (folder absent — no Seed.sql in repo; seed lives in the live DB)
-│
+│   │   ├── SaqTemplatesService.cs           # SAQ header CRUD (Group XOR Unit rule, lock rules, unique SaqCode) + question/option designer (dup question guard)
+│   │   └── KriTemplatesService.cs           # KRI header CRUD + item designer (limits sort rule, dup KRI guard, lock rules, unique KriCode)
+│   ├── Schedule/                     # Schedule wizard engine
+│   │   └── ScheduleService.cs               # Draft create/rename (SCH code), multi-template SAQ/KRI pick (Active only), finalize (Active requires SAQ+KRI; triggers assessment creation), draft-only delete
+│   ├── Assessment/                   # Assessment auto-creation + submissions workflow
+│   │   ├── AssessmentService.cs             # CreateAssessmentAsync(scheduleId): header→units→items from workflow IsInitial steps
+│   │   └── SubmissionsService.cs            # Own-unit grid + detail; SAQ/KRI entry (draft save); submit/approve/authorize step transitions; own-unit scoping
+│   ├── Dashboard/                   # Server-rendered landing page
+│   │   └── DashboardService.cs             # Own-unit KPIs, status slices (from WorkflowStep rows), KRI RAG snapshot, needs-attention list, period history
+│   └── Utilities/
+│       └── CodeGeneratorService.cs         # Unique codes: SAQ-/KRI-/SCH-/ASM-{yyyyMMdd}-{0001..} with 5 retry attempts
 │
 ├── Views/
 │   ├── _ViewImports.cshtml  _ViewStart.cshtml
@@ -123,11 +131,11 @@ RiskPulse/
 │   ├── Login/AccessDenied.cshtml      # Standalone (Layout=null)
 │   ├── Users/Index.cshtml             # DataTables grid + Add/Edit modals (Select2 + SweetAlert)
 │   ├── Roles/Index.cshtml             # DataTables grid + Add/Edit modals (permission checkboxes)
-│   ├── Units/Index.cshtml             # Tabs (Units | Unit Groups) + grids + Unit modals + Group modal (Select2 multi-select)
+│   ├── Units/Index.cshtml             # Tabs (Units | Unit Groups) + grids + modals (Select2 multi-select for groups)
 │   ├── Error/Index.cshtml             # Standalone (Layout=null), RequestId
-│   ├── SaqTemplates/Index.cshtml    # DataTables grid + Add/Edit modals + Design modal (question cards + option editor)
-│   ├── KriTemplates/Index.cshtml    # Tabs (KRI Templates | Threshold Colors | KRI Groups) + grids + Design/Color/Group/Bands modals
-│   ├── Assessment/                  # Wizard flow: Index (DataTables grid) + Wizard (step bar + 5 step partials `_StepName|Saq|Kri|Schedule|Finalize.cshtml`)
+│   ├── SaqTemplates/Index.cshtml    # DataTables grid + modals + designer modal (question cards + option editor)
+│   ├── KriTemplates/Index.cshtml    # DataTables grid + modals + designer modal (KRI items with Green/Amber/Red limits)
+│   ├── Schedule/                     # Wizard flow: Index (DataTables grid) + Wizard (stepper + 4 step partials `_StepScheduleType|Saq|Kri|Finalize.cshtml`; template card picker + preview modal)
 │   ├── Submissions/               # Index (DataTables grid) + Detail (item table) + SaqEntry + KriEntry (draft save/submit, RAG dots)
 │   ├── Dashboard/Index.cshtml     # Server-rendered landing page (no DataTables/JS)
 │   └── RiskRegisterTemplates/Index.cshtml  # Stub
@@ -135,12 +143,11 @@ RiskPulse/
 ├── AI/
 │   ├── DESIGN.md                      # Stasis Enterprise design-system spec
 │   ├── PROJECT-ANALYSIS.md            # This document
-│   ├── Skills/                        # Empty (folder placeholder; file tracked then removed from the working tree)
 │   └── Specs/{login,layout,kri,error-page,branch}/   # Per-feature DESIGN.md + code.html + screen.png
 │
 └── wwwroot/
     ├── css/site.css                   # Stasis Enterprise design system
-    ├── js/site.js                     # Sidebar/collapse/submenu/keyboard logic
+    ├── js/site.js                     # Sidebar/collapse/submenu/flyout logic
     ├── js/modules/riskpulse.js        # Shared RiskPulse.* helpers (see §4.1 #11)
     └── lib/                           # bootstrap, datatables, font-awesome, jquery, select2, sweetalert2
 ```
@@ -154,18 +161,22 @@ RiskPulse/
 | # | Pattern | Where |
 |---|---|---|
 | 1 | **Classic MVC** (server-side Razor) | All controllers/views |
-| 2 | **Service layer** (concrete classes via DI, Scoped) | `Services/` (`Login`/`Administration`/`Templates`/`Assessment`), registered in `Program.cs:23-31` |
-| 3 | **EF Core + DbContext** directly inside services (no repository) | `UsersService`, `RolesService`, `UnitsService`, `DbAuthorizationService` |
-| 4 | **Cookie auth + claim-based authorization** | `Program.cs:32-53`, `[Authorize(Policy=...)]` |
-| 5 | **AJAX JSON endpoints** from controllers (not a Web API) | `Grid`/`Save`/`Login`/wizard actions |
-| 6 | **DataTables grid fed by JSON** | `Views/{Users,Roles,Units,SaqTemplates,KriTemplates,Assessment}/Index.cshtml` |
-| 7 | **ViewModel pattern** for page rendering | `*IndexViewModel` (Users, Roles, Units, SAQ Templates, KRI Templates, Assessment Wizard) |
-| 8 | **DTO/result model** for service → controller | `LoginResultDto`, `*SaveDto`, `*DeleteRequestDto` (`Models/Dto`) |
-| 9 | **Orchestrator service** composing lower services | `LoginOrchestratorService` |
-| 10 | **Bootstrap 5 modal API** — programmatic open/close only through `RiskPulse.showModal(id)` / `RiskPulse.hideModal(formEl)` in the shared module; no raw `bootstrap.Modal.getOrCreateInstance` or jQuery `$.fn.modal` in views (the vendored bundle has no jQuery modal API); the layout re-hosts `.modal` nodes as direct children of `<body>` so the Bootstrap backdrop never paints over them | All interactive view script sections + `_Layout.cshtml:226-228` |
-| 11 | **Shared JS module (`RiskPulse.*`)** — `wwwroot/js/modules/riskpulse.js` (loaded from `_Layout`) is the single home for cross-page helpers: `toastSuccess`/`toastError`/`toastGenericError`, `escapeHtml`, `postJson`/`getJson` (auto generic-error toast, `ApiResponse.success` routing, optional `$trigger` flight lock + `handlers.complete`), `serializeForm` (checkbox booleans + numeric coercion), `populateSelect`, `initSelect2` (rp theme, `data-color` swatches + `data-kind` pills, modal `dropdownParent`), `showModal`/`hideModal`, `confirmDelete`, `initGrid`, `pill`, `statusPill`, `statusKind`, `validationError`, `clearFieldErrors`. Views call the namespace and keep only validation/columns/wiring. | Users/Roles/Units/SAQ/KRI/KRI-Config/Assessment view script sections |
-| 12 | **Two-tab page pattern** — a single Index view with Bootstrap tabs, one grid per tab, each tab's CRUD hitting its own JSON endpoints | `Views/Units/Index.cshtml` (Units \| Unit Groups), `Views/KriTemplates/Index.cshtml` (Templates \| Threshold Colors \| KRI Groups) |
-| 13 | **Server-persisted wizard pattern** — a 5-step stepper (`data-step=1..5` + a locked `data-step="rr"` Risk Register placeholder) where each step posts its own AJAX endpoint (`SaveName`/`SaveSaq`/`SaveKri`/`SaveSchedule`) before advancing; a JS `state` object tracks `completed`/`frontier`; step 5 posts `Finalize` with `status: 'Draft' \| 'Active'`; non-drafts are read-only (`CanEdit`) | `Views/Assessment/Wizard.cshtml` + `_StepName|Saq|Kri|Schedule|Finalize.cshtml` + `AssessmentController` |
+| 2 | **Service layer** (concrete classes via DI, Scoped) | `Services/` (`Login`/`Administration`/`Templates`/`Schedule`/`Assessment`/`Dashboard`/`Utilities`), 13 `AddScoped` registrations in `Program.cs:26-38` |
+| 3 | **EF Core + DbContext directly inside services** (no repository) | `UsersService`, `RolesService`, `UnitsService`, all template/schedule/assessment services |
+| 4 | **Cookie auth + claim-based authorization** | `Program.cs:39-60`, `[Authorize(Policy=...)]` |
+| 5 | **AJAX JSON endpoints** from controllers (not a Web API) | `Grid`/`Save`/`Login`/wizard/submission actions |
+| 6 | **DataTables grid fed by JSON** | `Views/{Users,Roles,Units,SaqTemplates,KriTemplates,Schedule,Submissions}/Index.cshtml` |
+| 7 | **ViewModel pattern** for page rendering | `*IndexViewModel`/`*WizardViewModel`/`*EntryViewModel` |
+| 8 | **DTO/result model** for service → controller | `*SaveDto`, `*FinalizeDto`, `ItemTransitionDto`, `UnitAuthorizeDto`, `DeleteRequestDto` (`Models/Dto`) |
+| 9 | **Orchestrator service** composing lower services | `LoginOrchestratorService`; `ScheduleService` composes `CodeGeneratorService` + `AssessmentService` |
+| 10 | **Bootstrap 5 modal API** — programmatic open/close only through `RiskPulse.showModal(id)` / `RiskPulse.hideModal(formEl)` in the shared module; the layout re-hosts `.modal` nodes as direct children of `<body>` so the Bootstrap backdrop never paints over them | All interactive view script sections + `_Layout.cshtml:226-228` |
+| 11 | **Shared JS module (`RiskPulse.*`)** — `wwwroot/js/modules/riskpulse.js` (loaded from `_Layout`) is the single home for cross-page helpers: `toastSuccess`/`toastError`/`toastGenericError`, `escapeHtml`, `postJson`/`getJson` (auto generic-error toast, `ApiResponse.success` routing, optional `$trigger` flight lock + `handlers.complete`), `serializeForm`, `populateSelect`, `initSelect2` (rp theme, `data-color` swatches + `data-kind` pills, modal `dropdownParent`), `showModal`/`hideModal`, `confirmDelete`, `initGrid`, `pill`, `statusPill`, `statusKind`, `validationError`, `clearFieldErrors`. Views call the namespace and keep only validation/columns/wiring. | Users/Roles/Units/SAQ/KRI/Schedule/Submissions view script sections |
+| 12 | **Two-tab page pattern** — a single Index view with Bootstrap tabs, one grid per tab, each tab's CRUD hitting its own JSON endpoints | `Views/Units/Index.cshtml` (Units \| Unit Groups) |
+| 13 | **Server-persisted wizard pattern** — a 4-step stepper (`data-step=1..4` + a locked `data-step="rr"` Risk Register placeholder) where each step posts its own AJAX endpoint (`SaveSchedule`/`SaveSaq`/`SaveKri`) before advancing; a JS `state` object tracks `completed`/`frontier`; step 4 posts `Finalize` with `status: 'Draft' \| 'Active'`; non-drafts are read-only (`CanEdit`) | `Views/Schedule/Wizard.cshtml` + `_StepScheduleType|_StepSaq|_StepKri|_StepFinalize.cshtml` + `ScheduleController` |
+| 14 | **DB-driven workflow (statuses = step codes)** — statuses are `WorkflowStep.StepCode` rows of `ASSESSMENT-UNIT`/`ASSESSMENT-ITEM` workflows, not enums; transitions (`Submitted`/`Approved`/`Authorized`) are business rules in the service; the enum `AssessmentStatus` is write-once at creation and never read for logic | `Workflow`/`WorkflowStep` entities; `SubmissionsService` (`SubmissionsService.cs:12-16`); `AssessmentService.CreateAssessmentAsync` (`AssessmentService.cs:75-83`) |
+| 15 | **Polymorphic item linking** — `ScheduleItem`/`AssessmentItem` reference SAQ or KRI headers via `(ItemType, ItemId)` with **no FK**; ambiguity resolved by `ItemType` (`Saq`/`Kri`) | `AppDbContext.cs:124-140, 232-263` |
+| 16 | **Auto-assessment on schedule activation** — `ScheduleService.FinalizeAsync(Active)` calls `AssessmentService.CreateAssessmentAsync`, which expands schedule items to per-unit/per-template assessment rows using the workflows' initial steps | `ScheduleService.cs:259-285`; `AssessmentService.cs:22-73` |
+| 17 | **Code-generation for domain keys** — `CodeGeneratorService` issues `{SAQ|KRI|SCH|ASM}-{yyyyMMdd}-{0001..}` codes with up to 5 collision retries; unique indexes back each code | `Services/Utilities/CodeGeneratorService.cs`; `AppDbContext.cs:52-53, 98-99, 164-165` |
 
 ### 4.2 Request Pipeline (in order)
 
@@ -185,19 +196,19 @@ Default entry route is **Login/Index**. The sidebar (`_Layout.cshtml`) gates eac
 
 ### 4.3 Authorization Model
 
-- **9 permissions** are declared once in code as constants in `Services/Login/PermissionCatalog.cs` (`PermissionCatalog.Dashboard | Submissions | Assessment | Users | Roles | Units | Saq | Kri | RiskRegister`) and referenced by:
-  1. `Program.cs:44-53` — `AddPolicy($"Permission:{PermissionCatalog.X}")` … `RequireClaim("Permission", PermissionCatalog.X)`
+- **9 permissions** are declared once in code as constants in `Services/Login/PermissionCatalog.cs` (`Dashboard | Submissions | Schedule | Users | Roles | Units | Saq | Kri | RiskRegister`) and referenced by:
+  1. `Program.cs:49-60` — `AddPolicy($"Permission:{PermissionCatalog.X}")` … `RequireClaim("Permission", PermissionCatalog.X)`
   2. Controllers — `[Authorize(Policy = $"Permission:{PermissionCatalog.X}")]`
   3. `Views/Shared/_Layout.cshtml` — `User.HasClaim("Permission", PermissionCatalog.X)`
-  4. `Services/Login/PermissionPageMapper.cs` — dict keys keyed by `PermissionCatalog.X`
+  4. `Services/Login/PermissionPageMapper.cs` — dict keys keyed by `PermissionCatalog.X` (Schedule→Schedule/Index)
 - The **data source** remains the DB `riskpulse.Permissions.PermissionDesc` (live DB seed rows; no seed script is committed) — constant values must match those rows exactly. One value contains a space: `"Risk Register"`.
-- At login, `DbAuthorizationService` loads User → Role → RolePermissions → Permissions, and `LoginOrchestratorService` writes each `PermissionDesc` as a `Claim("Permission", ...)` plus `Name`, `NameIdentifier`, `Role`, `DefaultPage`, `Unit` claims into the auth cookie.
+- At login, `DbAuthorizationService` loads User → Role → RolePermissions → Permissions, and `LoginOrchestratorService` writes each `PermissionDesc` as a `Claim("Permission", ...)` plus `Name`, `NameIdentifier` (int user Id), `Role`, `DefaultPage`, `Unit` claims into the auth cookie. `DefaultPage` = the role's default permission desc (fallback `PermissionCatalog.Dashboard`).
 
 ---
 
 ## 5. Data-Flow Patterns (Frontend → Backend → Database)
 
-There are **five** distinct request/response flows in use today.
+There are **six** distinct request/response flows in use today.
 
 ### 5.0 Common request/response conventions
 
@@ -208,56 +219,57 @@ There are **five** distinct request/response flows in use today.
 
 ### 5.1 Flow A — Server-rendered page load (MVC + ViewModel)
 
-Used by the shell "Index" pages (Users, Roles, Units, SAQ Templates, KRI Templates), the Assessment Index/Wizard pages, and the login page.
+Used by the shell "Index" pages (Users, Roles, Units, SAQ Templates, KRI Templates, Schedule), the Schedule Index/Wizard pages, Submissions (Index/Detail/SaqEntry/KriEntry), the Dashboard, and the login page.
 
 ```
-Browser ──GET /Users/Index────────────────────────────► UsersController.Index
-         ◄──HTML (full page)──────────────────────────── UsersController
-                                                          │ UsersService.GetGridRowsAsync()  │
-                                                          │ UsersService.GetAllRolesAsync()  │ EF Core
-                                                          │ UnitsService.GetAllUnitsAsync()  │ (Include+AsNoTracking)
-                                                          ▼                                  ▼
-                                                        UsersIndexViewModel ──► PostgreSQL (riskpulse)
+Browser ──GET /Schedule/Wizard?id=N──────────────► ScheduleController.Wizard
+         ◄──HTML (full page)────────────────────── ScheduleController
+                                                      │ ScheduleService.GetWizardAsync(N)  │
+                                                      │ SaqTemplatesService / KriTemplatesService
+                                                      ▼                                  ▼
+                                                    ScheduleWizardViewModel ──► PostgreSQL (riskpulse)
 ```
 
-- **View model used:** `UsersIndexViewModel` — also `RolesIndexViewModel`, `UnitsIndexViewModel`, `SaqTemplatesIndexViewModel`, `KriTemplatesIndexViewModel`, `AssessmentWizardViewModel`.
-- **Rendering:** Razor view + `@Html.Raw(Json.Serialize(...))` to embed *initial dropdown data* (units/roles/permissions/groups/colors/statuses) directly into an inline `<script>` block — this is **not** an AJAX call; it is server-side JSON serialization injected into the page at render time.
+- **View model used:** `ScheduleWizardViewModel` (also `*IndexViewModel` for the shell pages, `SaqEntryViewModel`/`KriEntryViewModel` for the entry pages, `DashboardViewModel` for the landing page).
+- **Rendering:** Razor view + `@Html.Raw(Json.Serialize(...))` to embed *initial dropdown data* (unit/role options, template options, selected ids, completion flags) directly into an inline `<script>` block — this is **not** an AJAX call; it is server-side JSON serialization injected into the page at render time.
 - **Status options:** `SaqStatusOptionViewModel.GetAll()` / `KriStatusOptionViewModel.GetAll()` return `Value`/`Label` for every enum member **except `Locked`** — Locked is a system-set state (enforced by the service) and is never offered as a selectable status in the add/edit modals.
 
 ### 5.2 Flow B — AJAX JSON Grid (DataTables)
 
-Used by all shell grids — `Users/Grid`, `Roles/Grid`, `Units/UnitGrid|GroupGrid`, `SaqTemplates/Grid|QuestionsGrid`, `KriTemplates/Grid|KrisGrid|ColorsGrid|GroupsGrid|BandsGrid`, `Assessment/Grid`.
+Used by all shell grids — `Users/Grid`, `Roles/Grid`, `Units/UnitGrid|GroupGrid`, `SaqTemplates/Grid|QuestionsGrid`, `KriTemplates/Grid|KrisGrid`, `Schedule/Grid`, `Submissions/Grid`.
 
 ```
-Browser (DataTables.ajax) ──GET /Users/Grid──────────► UsersController.Grid
-        dataSrc:'data'                               │ GetAllAsync()
-        ◄── { success:true, message:null,            │   .Select(u => new UserGridRowViewModel { ... })
-              data:[ {id,username,unitId,            │
-                       roleId,isActive}, ...] }       │
+Browser (DataTables.ajax) ──GET /Schedule/Grid─────► ScheduleController.Grid
+        dataSrc:'data'                             │ ScheduleService.GetAllAsync()
+        ◄── { success:true, message:null,          │   .Select(s => new ScheduleGridRowViewModel { ... })
+              data:[ {scheduleId,scheduleCode,     │
+                       scheduleType, scheduleStatus,│
+                       ...}, ...] }                  │
                                                       └──► EF Core → PostgreSQL
 ```
 
 - **Grid library:** DataTables (client-side processing) — the whole row set is serialized and shipped to the browser in one response; paging/searching/sorting happen in the browser, not in SQL.
-- **Payload shape:** named grid view models — `*GridRowViewModel` in `Models/ViewModel` (Users, Roles, Units, Groups, SAQ, KRI, KRI-config, Assessment) — projected in the services; camelCase JSON via the MVC web serializer defaults matches the DataTables `columns` config.
+- **Payload shape:** named grid view models — `*GridRowViewModel` in `Models/ViewModel`, projected in the services; camelCase JSON via the MVC web serializer defaults matches the DataTables `columns` config.
 - **Role grid JSON** additionally includes nested arrays `permissionIds` / `permissionDescs` for the edit modal.
-- **Ordering:** user/role/unit/groups grids sort ascending by Id; SAQ template, KRI template, and assessment grids sort **descending** (`OrderByDescending`) so the newest records appear first.
+- **Ordering:** user/role/unit/group grids sort ascending by Id; SAQ template, KRI template, schedule, and assessment grids sort **descending** (`OrderByDescending`) so the newest records appear first.
 
 ### 5.3 Flow C — AJAX JSON Form Submit (Create / Update)
 
-Used by `Users/Save`, `Roles/Save`, `Units/SaveUnit|SaveGroup`, `SaqTemplates/Save|SaveQuestion`, `KriTemplates/Save|SaveKri|SaveColor|SaveGroup|SaveBands`, `Assessment/Delete`.
+Used by `Users/Save`, `Roles/Save`, `Units/SaveUnit|SaveGroup`, `SaqTemplates/Save|SaveQuestion`, `KriTemplates/Save|SaveKri`, `Schedule/SaveSchedule`, `*/Delete`.
 
 ```
-Browser (jQuery serializeArray) ──POST /Users/Save──────────► UsersController.Save
-  { contentType:'application/json',                        │ null ?? ModelState check
-    data: JSON.stringify(payload) }                        │ business rule (can't edit self)
-    ◄── { success:true, message:"User saved..",            ▼
-          data:{ id:12 } }                                  UsersService.CreateUserAsync/UpdateUserAsync
-                                                             ├─ duplicate checks
-                                                             └─ _db.SaveChangesAsync()  → PostgreSQL
+Browser (jQuery serializeArray) ──POST /Schedule/SaveSchedule──► ScheduleController.SaveSchedule
+  { contentType:'application/json',                            │ null ?? ModelState check
+    data: JSON.stringify(payload) }                            │ business rule (one-time vs recurring)
+    ◄── { success:true, message:"Schedule draft created.",     ▼
+          data:{ id:12, code:"SCH-20260920-0001" } }            ScheduleService.CreateOrUpdateScheduleAsync
+                                                                ├─ CodeGeneratorService (new)
+                                                                ├─ RequireDraftAsync (edit)
+                                                                └─ DbContext.SaveChangesAsync()  → PostgreSQL
 ```
 
-- **Model binding:** `[FromBody]` deserializes the JSON body into dedicated `*SaveDto` types (`UserSaveDto`, `RoleSaveDto`, `UnitSaveDto`, `GroupSaveDto`, `SaqHeaderSaveDto`, `SaqQuestionSaveDto`, `KriHeaderSaveDto`, `KriSaveDto`, `KriColorSaveDto`, `KriThresholdGroupSaveDto`, `KriBandsSaveDto`).
-- **Return:** `ApiResponse<T>` envelope via `ControllerHelpers.TrySave` / `TryDelete` — success `{ success, message, data:{ id } }`, failure `{ success:false, message }`.
+- **Model binding:** `[FromBody]` deserializes the JSON body into dedicated `*SaveDto` types (`UserSaveDto`, `RoleSaveDto`, `UnitSaveDto`, `GroupSaveDto`, `SaqHeaderSaveDto`, `SaqQuestionSaveDto`, `KriHeaderSaveDto`, `KriSaveDto`, `ScheduleSaveDto`).
+- **Return:** `ApiResponse<T>` envelope via `ControllerHelpers.TrySave` / `TryDelete` — success `{ success, message, data:{ id, code } }`, failure `{ success:false, message }`.
 
 ### 5.4 Flow D — AJAX Login (JSON)
 
@@ -266,9 +278,9 @@ Browser (loginForm) ──POST /Login/Login (JSON body)──► LoginController
                         contentType:'application/json' │ null ?? ModelState check (LoginRequestDto)
                         ◄── { success:true,            │ LoginOrchestratorService.AuthenticateAsync
                                data:{ redirectUrl } }  │  1 AdAuthenticationService  (STUB: always true)
-                                                        │  2 DbAuthorizationService    (user/role/perm graph)
-                                                        │  3 build ClaimsPrincipal
-                                                        ▲  PermissionPageMapper       (desc → (controller,action))
+                                                         │  2 DbAuthorizationService    (user/role/perm graph)
+                                                         │  3 build ClaimsPrincipal
+                                                         ▲  PermissionPageMapper       (desc → (controller, action))
 Post-success:                         HttpContext.SignInAsync(principal) → auth cookie
   window.location.href = response.data.redirectUrl ─┘
 ```
@@ -276,32 +288,53 @@ Post-success:                         HttpContext.SignInAsync(principal) → aut
 - **Payload style:** `application/json` via `JSON.stringify`, bound to `LoginRequestDto` with `[FromBody]` — consistent with Flows B/C.
 - **Outcome:** On success the server sets the cookie via `SignInAsync` and returns `{ success, data:{ redirectUrl } }`; the browser navigates to `response.data.redirectUrl`.
 
-### 5.5 Flow E — Assessment wizard step persistence
+### 5.5 Flow E — Schedule wizard step persistence + assessment auto-creation
 
 Each wizard step persists independently via its own AJAX endpoint, then the stepper advances (JS `state.completed`/`state.frontier`).
 
 ```
-Browser (wizard JS) ──POST /Assessment/SaveName     { assessmentHeaderId:0, assessmentName }    ──► SaveName    → CreateDraftAsync / UpdateNameAsync
-                    ──POST /Assessment/SaveSaq      { assessmentHeaderId, templateHeaderId }    ──► SaveSaq     → SetSaqTemplateAsync (rejects Locked)
-                    ──POST /Assessment/SaveKri      { assessmentHeaderId, templateHeaderId }    ──► SaveKri     → SetKriTemplateAsync (rejects Locked)
-                    ──POST /Assessment/SaveSchedule { assessmentHeaderId, scheduleDesc, startDate, endDate } ──► SaveSchedule → UpsertScheduleAsync
-                    ──POST /Assessment/Finalize     { assessmentHeaderId, status:'Draft'|'Active' } ──► Finalize    → FinalizeAsync
+Browser (wizard JS) ──POST /Schedule/SaveSchedule  { scheduleId:0, scheduleType, startDate, endDate | startMonth, recurringDay } ──► SaveSchedule → CreateOrUpdateScheduleAsync (SCH code)
+                    ──POST /Schedule/SaveSaq       { scheduleId, templateHeaderIds:[...] } ──► SaveSaq → SetSaqTemplatesAsync (Active-only)
+                    ──POST /Schedule/SaveKri       { scheduleId, templateHeaderIds:[...] } ──► SaveKri → SetKriTemplatesAsync (Active-only)
+                    ──POST /Schedule/Finalize      { scheduleId, status:'Draft'|'Active' }  ──► Finalize → FinalizeAsync
+                                                                                                  └─ status Active && ≥1 SAQ && ≥1 KRI
+                                                                                                     → AssessmentService.CreateAssessmentAsync(scheduleId)
+                                                                                                        header(Pending, ASM code) → AssessmentUnit per unit
+                                                                                                        → AssessmentItem per template (workflow IsInitial steps)
 ```
 
-- **Draft rules (service-side):** renaming, template pick, and schedule upsert all run through `RequireDraftAsync` (edit = Draft only); `FinalizeAsync(Active)` requires both SAQ and KRI templates; `DeleteAsync` allows drafts only. Non-draft wizard pages render with `CanEdit = false` and the JS blocks navigation.
-- **timestamptz gotcha:** `ScheduleHeader.StartDate/EndDate` are `timestamptz`; the JSON binder yields `DateTimeKind.Unspecified`, so `AssessmentService.UpsertScheduleAsync` wraps values in `DateTime.SpecifyKind(..., DateTimeKind.Utc)` before saving.
+- **Draft rules (service-side):** schedule-type edit and template pick all run through `RequireDraftAsync` (edit = Draft only); `FinalizeAsync(Active)` requires ≥1 SAQ and ≥1 KRI template; `DeleteAsync` allows drafts only. Non-draft wizard pages render with `CanEdit = false` and the JS blocks navigation.
+- **timestamptz gotcha:** `Schedule.StartDate/EndDate/StartMonth` are `timestamptz`; the JSON binder yields `DateTimeKind.Unspecified`, so `ScheduleService.CreateOrUpdateScheduleAsync` wraps values in `DateTime.SpecifyKind(..., DateTimeKind.Utc)` before saving (`ScheduleService.cs:188-196`).
+- **Recurring schedules** cannot be activated yet: `CreateAssessmentAsync` throws `"Recurring schedules are not supported yet; only one-time schedules can be activated."` (`AssessmentService.cs:29-32`).
 
-### 5.6 Flow summary table
+### 5.6 Flow F — Submissions workflow (draft → submit → approve → authorize)
+
+Each assessment item and assessment unit carries a `WorkflowStepId`; transitions are gated on step codes in `SubmissionsService`.
+
+```
+Browser (entry JS) ──POST /Submissions/SaveSaq       { assessmentItemId, answers:[{questionId, optionId, comment}] }  ──► SaveSaqAnswersAsync (upsert)
+                  ──POST /Submissions/SaveKri       { assessmentItemId, values:[{kriId, value, comment}] }         ──► SaveKriValuesAsync (upsert)
+                  ──POST /Submissions/SubmitItem    { assessmentItemId }                                            ──► SubmitItemAsync (requires complete saq/kri)
+                  ──POST /Submissions/ApproveItem   { assessmentItemId }                                            ──► ApproveItemAsync (item must be Submitted)
+                  ──POST /Submissions/AuthorizeUnit { assessmentUnitId }                                            ──► AuthorizeUnitAsync (all items Approved)
+```
+
+- **Own-unit scoping:** every read/save path filters through the acting user's `UnitId`; foreign items/units throw `"The requested item/assessment was not found."`.
+- **Editable rule:** a unit is editable while its step ≠ Authorized and the item step ∉ {Submitted, Approved}.
+- **Step codes (constants in `SubmissionsService.cs:12-16`):** `Submitted`, `Approved` (items); `Authorized` (unit). Workflows are `"ASSESSMENT-ITEM"` and `"ASSESSMENT-UNIT"`. Completeness is enforced with `EnsureCompleteAsync` (SAQ: every question answered; KRI: every value present).
+
+### 5.7 Flow summary table
 
 | Flow | Method/Route | Request body | Server binder | Response JSON | Data source |
 |---|---|---|---|---|---|
-| A — Page load | `GET /{Users,Roles,Units,SaqTemplates,KriTemplates,Assessment}/Index` + `/Assessment/Wizard` | — | — | HTML + embedded `Json.Serialize` | ViewModel from service |
-| B — Grid | `GET /{Users,Roles}/Grid`, `Units/{UnitGrid,GroupGrid}`, `SaqTemplates/{Grid,QuestionsGrid}`, `KriTemplates/*Grid`, `Assessment/Grid` | — | — | `{success:true, data:[…]}` (`*GridRowViewModel`) | service → EF Core |
-| C — Save/Delete | `POST /{Users,Roles}/Save`, `Units/SaveUnit|SaveGroup`, `SaqTemplates/Save|SaveQuestion`, `KriTemplates/Save|SaveKri|SaveColor|SaveGroup|SaveBands`, `*/Delete` | JSON | `[FromBody]` (`*SaveDto` / `DeleteRequestDto`) | `{success,message,data:{id}}` | service → `SaveChanges` |
+| A — Page load | `GET /{Users,Roles,Units,SaqTemplates,KriTemplates,Schedule}/Index`, `Schedule/Wizard`, `Submissions/{Index,Detail,SaqEntry,KriEntry}`, `Dashboard/Index` | — | — | HTML + embedded `Json.Serialize` | ViewModel from service |
+| B — Grid | `GET /{Users,Roles}/Grid`, `Units/{UnitGrid,GroupGrid}`, `SaqTemplates/{Grid,QuestionsGrid}`, `KriTemplates/{Grid,KrisGrid}`, `Schedule/Grid`, `Submissions/Grid` | — | — | `{success:true, data:[…]}` (`*GridRowViewModel`) | service → EF Core |
+| C — Save/Delete | `POST /{Users,Roles}/Save`, `Units/{SaveUnit,SaveGroup}`, `SaqTemplates/{Save,SaveQuestion}`, `KriTemplates/{Save,SaveKri}`, `Schedule/SaveSchedule`, `*/Delete` | JSON | `[FromBody]` (`*SaveDto` / `DeleteRequestDto`) | `{success,message,data:{id,code}}` | service → `SaveChanges` |
 | D — Login | `POST /Login/Login` | JSON | `[FromBody]` (`LoginRequestDto`) | `{success, data:{redirectUrl}}` | orchestrator → cookie |
-| E — Wizard | `POST /Assessment/SaveName|SaveSaq|SaveKri|SaveSchedule|Finalize` | JSON | `[FromBody]` (`AssessmentNameSaveDto` / `AssessmentTemplateSaveDto` / `ScheduleSaveDto` / `AssessmentFinalizeDto`) | `{success,message,data}` | service → `SaveChanges` |
+| E — Wizard | `POST /Schedule/{SaveSchedule,SaveSaq,SaveKri,Finalize}` | JSON | `[FromBody]` (`ScheduleSaveDto` / `ScheduleTemplatesSaveDto` / `ScheduleFinalizeDto`) | `{success,message,data}` | service → `SaveChanges` (+ auto-assessment) |
+| F — Submissions | `POST /Submissions/{SaveSaq,SaveKri,SubmitItem,ApproveItem,AuthorizeUnit}` | JSON | `[FromBody]` (`SaveSaqAnswersDto` / `SaveKriValuesDto` / `ItemTransitionDto` / `UnitAuthorizeDto`) | `{success,message}` | service → `SaveChanges` |
 
-All AJAX responses use the shared **`ApiResponse<T>`** envelope (`Models/Dto/ApiResponse.cs`): `Success`, `Message`, `Data`, `Errors`. HTTP status stays `200`; outcome signalled by `success`. Grid keeps `data` as the array so DataTables `dataSrc:'data'` is unchanged; `id` / `redirectUrl` moved into `data`.
+All AJAX responses use the shared **`ApiResponse<T>`** envelope (`Models/Dto/ApiResponse.cs`): `Success`, `Message`, `Data`, `Errors`. HTTP status stays `200`; outcome signalled by `success`. Grid keeps `data` as the array so DataTables `dataSrc:'data'` is unchanged; `id` / `code` / `redirectUrl` move into `data`.
 
 ---
 
@@ -309,22 +342,23 @@ All AJAX responses use the shared **`ApiResponse<T>`** envelope (`Models/Dto/Api
 
 | Concern | Layer / File | Notes |
 |---|---|---|
-| **Grid** (data table UI) | DataTables in `Views/{Users,Roles,Units,SaqTemplates,KriTemplates,Assessment}/Index.cshtml` | client-side processing, AJAX `dataSrc:'data'` |
+| **Grid** (data table UI) | DataTables in `Views/{Users,Roles,Units,SaqTemplates,KriTemplates,Schedule,Submissions}/Index.cshtml` | client-side processing, AJAX `dataSrc:'data'` |
 | **Grid data source** | `*Controller.Grid` → `*GridRowViewModel` (in `Models/ViewModel`) via `ApiResponse<T>` | camelCase (web JSON defaults) matches DataTables `columns`; not server-side processing |
-| **JSON serialization (server→JS init)** | Razor `@Html.Raw(Json.Serialize(...))` | Users/Roles/Units/SAQ/KRI Index pages (statuses, units, groups, colors) |
+| **JSON serialization (server→JS init)** | Razor `@Html.Raw(Json.Serialize(...))` | Users/Roles/Units/SAQ/KRI/Schedule/Submissions pages (options, selected ids, completion flags) |
 | **JSON produce/consume** | Controllers `Json(...)` + jQuery `RiskPulse.postJson/getJson` | all AJAX in views' `@section Scripts` via the shared module |
 | **Model — EF entities** | `Data/Entries/*` | mapped 1:1 to `riskpulse.*` tables |
-| **Model — view models** | `Models/ViewModel/*` | data shaped for a UI/view — `*IndexViewModel`, `*GridRowViewModel`, `*OptionViewModel` |
-| **Model — DTOs** | `Models/Dto/*` | data moving between layers/systems — `ApiResponse<T>`, `LoginRequestDto`, `LoginResultDto`, `UserAuthorizationDto`, `*SaveDto`, `*DeleteRequestDto`, `SaveResultDto` |
-| **Model — enums** | `Models/Enum/*` | `UnitType`, `QuestionType`, `SaqStatus`, `KriStatus`, `AssessmentStatus`; persisted as `varchar(32)` |
-| **Business logic** | `Services/*Service` | no repository layer; each service uses `AppDbContext` directly; business rules throw `InvalidOperationException` (duplicate, self-edit, locked-template, group-vs-unit XOR, active-requires-SAQ+KRI, draft-only edits) |
+| **Model — view models** | `Models/ViewModel/*` | data shaped for a UI/view — `*IndexViewModel`, `*GridRowViewModel`, `*WizardViewModel`, `*EntryViewModel`, `*PreviewViewModel`, `*OptionViewModel` |
+| **Model — DTOs** | `Models/Dto/*` | data moving between layers/systems — `ApiResponse<T>`, `LoginRequestDto`, `LoginResultDto`, `UserAuthorizationDto`, `*SaveDto`, `*FinalizeDto`, `ItemTransitionDto`, `UnitAuthorizeDto`, `DeleteRequestDto`, `SaveResultDto` |
+| **Model — enums** | `Models/Enum/*` | `UnitType`, `QuestionType`, `SaqStatus`, `KriStatus`, `ScheduleType`, `ScheduleStatus`, `ScheduleItemType`, `AssessmentStatus`; persisted as `varchar(32)` |
+| **Business logic** | `Services/*Service` | no repository layer; each service uses `AppDbContext` directly; business rules throw `InvalidOperationException` (duplicate, self-edit, locked-template, group-vs-unit XOR, active-requires-SAQ+KRI, draft-only edits, workflow-step transitions, own-unit scoping) |
 | **Controller boilerplate** | `Controllers/ControllerHelpers.cs` | `ValidateModel`, `TryExecute`, `TrySave`, `TryDelete` — null-guard, ModelState, ApiResponse envelope, exception→message passthrough |
 | **Data access** | `Data/AppDbContext` via services | `Include`/`AsNoTracking`/`ExecuteDeleteAsync`/`SaveChanges` in services; `DbSetExtensions.EnsureUniqueAsync`/`ToOptionListAsync` |
-| **DB schema/DDL** | `Migrations/` (git-ignored via `.gitignore` `**/Migrations/`) — baseline `20260920123931_UserPermissionControl`, created 2026-09-20 | `HasDefaultSchema("riskpulse")`; `dotnet ef database update` provisions the schema |
-| **Seed data** | None in repo (no `Database/` folder, no `Seed.sql`) | permissions/roles/unit/test-user rows live only in the dev DB; apply from the live DB or re-create manually |
+| **DB schema/DDL** | **No `Migrations/` folder on disk** (git-ignored via `.gitignore` `**/Migrations/`); the `riskpulse` schema exists only in the dev DB | `HasDefaultSchema("riskpulse")`; schema is provisioned in the live DB outside the repo |
+| **Seed data** | None in repo (no `Database/` folder, no `Seed.sql`) | permissions/roles/workflow-steps/unit/test-user rows live only in the dev DB; apply from the live DB or re-create manually |
 | **Client validation** | `validateUserPayload`/`validateRolePayload`/`validateLoginForm` + `RiskPulse.validationError` in views | hand-rolled, not DataAnnotations-driven; server DataAnnotations are the source of truth |
 | **Auth policies** | `PermissionCatalog` (single source) → `Program.cs` + `[Authorize]` + sidebar `HasClaim` + `PermissionPageMapper` | constant values must match `LoginOrchestratorService` claims + DB `Permissions` rows |
 | **Auth cookie claims** | `LoginOrchestratorService` | `Name`, `NameIdentifier`, `Role`, `DefaultPage`, `Unit`, `Permission*` |
+| **Workflow statuses** | `WorkflowStep.StepCode`/`StepLabel` for `ASSESSMENT-UNIT` and `ASSESSMENT-ITEM` workflows | statuses are DB rows, not enums; `IsInitial` seeds new assessments; `StepOrder` drives the Dashboard status slices and pill ordering |
 | **Status options** | `SaqStatusOptionViewModel.GetAll()` / `KriStatusOptionViewModel.GetAll()` | exclude `Locked` (system-set only); views tag `<option>`s via `statusKind` for pill chips in Select2 |
 
 ---
@@ -341,64 +375,92 @@ UnitGroups  (UnitGroupId PK, GroupId FK→Groups, UnitId FK→Units)   [many-to-
 Roles       (RoleId PK, RoleDesc, DefaultPermissionId FK→Permissions)
 RolePermissions (RolePermissionId PK, RoleId FK→Roles, PermissionId FK→Permissions)   [many-to-many join]
 Users       (Id PK, Username, IsActive, UnitId FK→Units, RoleId FK→Roles)
-SaqHeaders          (SaqHeaderId PK, SaqDesc, GroupId FK→Groups (nullable), UnitId FK→Units (nullable), SaqStatus varchar(32))
+
+SaqHeaders          (SaqHeaderId PK, SaqDesc, GroupId FK→Groups (nullable), UnitId FK→Units (nullable),
+                     SaqStatus varchar(32), SaqCode unique)
 SaqQuestions        (QuestionId PK, SaqHeaderId FK→SaqHeaders, QuestionText, QuestionType varchar(32), AllowComment, DisplayOrder)
 SaqQuestionOptions  (OptionId PK, QuestionId FK→SaqQuestions, OptionText, DisplayOrder)
-KriHeaders          (KriHeaderId PK, KriHeaderDesc, GroupId FK→Groups (nullable), UnitId FK→Units (nullable), KriStatus varchar(32))
-Kri                 (KriId PK, KriHeaderId FK→KriHeaders, KriDesc, AllowComment, KriThresholdGroupId FK→KriThresholdGroups)
-KriThresholdGroups  (KriThresholdGroupId PK, KriThresholdGroupDesc)
-KriThresholdColors  (ColorId PK, ColorDesc, HexCode)
-KriThresholds       (KriThresholdId PK, KriThresholdGroupId FK→KriThresholdGroups, ColorId FK→KriThresholdColors, MinValue, MaxValue)
-AssessmentHeaders   (AssessmentHeaderId PK, AssessmentName, AssessmentStatus varchar(32) — Draft/Active, SaqHeaderId FK→SaqHeaders, KriHeaderId FK→KriHeaders, RiskRegisterHeaderId nullable — Risk Register not built yet)
-ScheduleHeaders     (ScheduleHeaderId PK, AssessmentHeaderId FK→AssessmentHeaders, ScheduleDesc, StartDate, EndDate)   [1:N — an assessment can be re-scheduled]
+
+KriHeaders          (KriHeaderId PK, KriHeaderDesc, GroupId FK→Groups (nullable), UnitId FK→Units (nullable),
+                     KriStatus varchar(32), KriCode unique)
+Kri                 (KriId PK, KriHeaderId FK→KriHeaders, KriDesc, AllowComment, GreenLimit int, AmberLimit int, RedLimit int)
+
+Schedules           (ScheduleId PK, ScheduleCode, ScheduleStatus varchar(32), ScheduleType varchar(32),
+                     StartDate timestamptz?, EndDate timestamptz?, StartMonth timestamptz?, RecurringDay int?,
+                     RiskRegisterHeaderId int? (placeholder — Risk Register not built))
+ScheduleItems       (ScheduleItemId PK, ScheduleId FK→Schedules, ItemType varchar(32) — Saq/Kri, ItemId (polymorphic, no FK))
+                     [unique (ScheduleId, ItemType, ItemId)]
+
+Workflows           (WorkflowId PK, WorkflowCode unique, WorkflowName)
+WorkflowSteps       (WorkflowStepId PK, WorkflowId FK→Workflows, StepCode, StepLabel, StepOrder, IsInitial, IsFinal)
+                     [unique (WorkflowId, StepCode)]      # codes: Pending/InProgress/Submitted/Approved/Authorized
+
+AssessmentHeaders   (AssessmentHeaderId PK, ScheduleId FK→Schedules (Restrict), AssessmentCode unique,
+                     PeriodStart timestamptz?, PeriodEnd timestamptz?, AssessmentStatus varchar(32) — Pending only)
+AssessmentUnits     (AssessmentUnitId PK, AssessmentHeaderId FK→AssessmentHeaders (Cascade),
+                     UnitId FK→Units (Restrict), WorkflowStepId FK→WorkflowSteps (Restrict),
+                     AuthorizedById FK→Users (nullable, Restrict), AuthorizedOn timestamptz?)
+                     [unique (AssessmentHeaderId, UnitId)]
+AssessmentItems     (AssessmentItemId PK, AssessmentUnitId FK→AssessmentUnits (Cascade),
+                     ItemType varchar(32) — Saq/Kri, ItemId (polymorphic, no FK),
+                     WorkflowStepId FK→WorkflowSteps (Restrict),
+                     SubmittedById FK→Users (nullable, Restrict), SubmittedOn timestamptz?,
+                     ApprovedById FK→Users (nullable, Restrict), ApprovedOn timestamptz?)
+                     [unique (AssessmentUnitId, ItemType, ItemId)]
+SaqAssessmentAnswers (SaqAssessmentAnswerId PK, AssessmentItemId FK→AssessmentItems (Cascade),
+                     QuestionId FK→SaqQuestions (Restrict), OptionId FK→SaqQuestionOptions (Restrict), Comment?)
+                     [unique (AssessmentItemId, QuestionId)]
+KriAssessmentValues (KriAssessmentValueId PK, AssessmentItemId FK→AssessmentItems (Cascade),
+                     KriId FK→Kris (Restrict), Value, Comment?)
+                     [unique (AssessmentItemId, KriId)]
 ```
 
-- **Enum→string conversion:** `Unit.UnitType`, `SaqStatus`, `QuestionType`, `KriStatus`, `AssessmentStatus` stored as `character varying(32)` (`AppDbContext.cs:11-153`).
-- **Cascade/restrict rules** (`AppDbContext.cs:25-152`): `SaqHeader→SaqQuestions→SaqQuestionOptions` cascade; `KriHeader→Kri` cascade with `Kri→KriThresholdGroup` restrict; `KriThresholdGroup→KriThresholds` cascade with `KriThreshold→KriThresholdColor` restrict; `AssessmentHeader→ScheduleHeaders` cascade with `AssessmentHeader→Saq/KriHeaders` restrict; `UnitGroup→Group/Unit` cascade with a unique `(GroupId, UnitId)` index; `SaqHeader/KriHeader→Group` and `SaqHeader/KriHeader→Unit` restrict (a group or unit in use by a template can't be deleted; exactly one of GroupId/UnitId must be set — enforced as a business rule in the service). AccessControl FKs (Users→Roles/Units, RolePermissions→Roles/Permissions) cascade by convention.
-- **Implemented via:** baseline migration in `Migrations/20260920123931_UserPermissionControl.cs` (git-ignored), created 2026-09-20 from the live `AppDbContext`. Seed rows (permissions/roles/unit/test user) are not part of any migration — apply them from the live DB or re-create manually.
+- **Enum→string conversion:** `Unit.UnitType`, `Unit.SaqStatus`, `QuestionType`, `KriStatus`, `ScheduleStatus`, `ScheduleType`, `ScheduleItemType` (×2), `AssessmentStatus` stored as `character varying(32)` (`AppDbContext.cs:18-141, 155-171, 232-237`).
+- **Unique indexes:** `SaqCode`, `KriCode`, `AssessmentCode`, `ScheduleItem.(ScheduleId,ItemType,ItemId)`, `WorkflowCode`, `WorkflowStep.(WorkflowId,StepCode)`, `AssessmentUnit.(AssessmentHeaderId,UnitId)`, `AssessmentItem.(AssessmentUnitId,ItemType,ItemId)`, `SaqAssessmentAnswer.(AssessmentItemId,QuestionId)`, `KriAssessmentValue.(AssessmentItemId,KriId)`, `UnitGroup.(GroupId,UnitId)` (`AppDbContext.cs:38-39, 52-53, 98-99, 136-139, 164-165, 182-183, 199-200, 226-229, 259-262, 283-284, 300-301`). **No index on `Schedule.ScheduleCode`** (unlike the template/assessment codes).
+- **Cascade/restrict rules** (`AppDbContext.cs:26-302`): `SaqHeader→SaqQuestions→SaqQuestionOptions` cascade with `SaqHeader→Group/Unit` restrict; `KriHeader→Kri` cascade with `KriHeader→Group/Unit` restrict; `Schedule→ScheduleItems` cascade; `AssessmentHeader→Schedule` **Restrict**; `Workflow→WorkflowSteps` cascade; `AssessmentHeader→AssessmentUnits→AssessmentItems` cascade with `AssessmentUnit→Unit/WorkflowStep/AuthorizedBy` restrict and `AssessmentItem→WorkflowStep/SubmittedBy/ApprovedBy` restrict; `AssessmentItem→answers/values` cascade with answer→Question/Option and value→Kri restrict; `UnitGroup→Group/Unit` cascade with a unique `(GroupId, UnitId)` index; `SaqHeader/KriHeader→Group` and `SaqHeader/KriHeader→Unit` restrict (a group or unit in use by a template can't be deleted; exactly one of GroupId/UnitId must be set — enforced as a business rule in the service). AccessControl FKs (Users→Roles/Units, RolePermissions→Roles/Permissions) cascade by convention.
+- **Implemented via:** the schema was provisioned from the previous (now git-ignored) migration set; **no `Migrations/` folder exists on disk today** and `dotnet ef database update` has nothing to run against in the repo. Apply the schema/seed from the live DB or re-create manually (mismatch #5).
 
 ### 7.2 Seed data — no `Seed.sql` in the repo
 
-No seed artifact is committed or present locally: there is **no `Database/` folder and no `Seed.sql`**. The dev DB holds the 9 permissions, 2 roles, 1 unit, and 1 test user directly. Any fresh DB needs these rows re-applied manually (ideally as an EF `HasData` seed or a committed SQL script — see mismatch #6/#7).
+No seed artifact is committed or present locally: there is **no `Database/` folder and no `Seed.sql`**. The dev DB holds the 9 permissions, 2 roles, 1 unit, 1 test user, and the two workflows' step dictionaries (`ASSESSMENT-UNIT`, `ASSESSMENT-ITEM`) directly. Any fresh DB needs these rows re-applied manually (ideally as an EF `HasData` seed or a committed SQL script — see mismatch #5/#6).
 
 ---
 
 ## 8. Pattern Mismatches & Inconsistencies
 
-> Current **open** deviations only, with evidence and fix. Already-resolved items (save-model binding + server-side DataAnnotations, `ApiResponse<T>` envelope, login JSON standardization, `PermissionCatalog` single source, named grid view models, the DTO/ViewModel/Enum layer split, self-edit rule moved into `UsersService`, the shared JS module, Units page, Assessment wizard, and status-dropdown/grid-ordering refinements) are reflected in §4–§6 and §10 and are not repeated here.
+> Current **open** deviations only, with evidence and fix. Already-resolved items (save-model binding + server-side DataAnnotations, `ApiResponse<T>` envelope, login JSON standardization, `PermissionCatalog` single source, named grid view models, the DTO/ViewModel/Enum layer split, the shared JS module, Mod as the canonical shell pattern, the Assessment→Schedule wizard refactor, and the workflow-step/auto-assessment model) are reflected in §4–§6 and §10 and are not repeated here.
 
 ### 8.1 Architecture & layering
 
 | # | Mismatch | Evidence | Recommended fix |
 |---|---|---|---|
-| 1 | **No repository / unit-of-work; no interface abstractions** — every service talks to `AppDbContext` directly and exposes concrete methods returning entities. The data layer is untestable and services can't be swapped or faked. | `Services/Administration/UsersService.cs:10-17`, `Services/Administration/RolesService.cs:11-18`, `Services/Administration/UnitsService.cs:10-17`, `Services/Login/DbAuthorizationService.cs:8-15` | Introduce `IUsersService`, `IRolesService`, `ILoginOrchestratorService`, `IAdAuthenticationService`, `IDbAuthorizationService` (optionally `IRepository<T>`/`IUnitOfWork`) and have services return DTOs, not entities. |
-| 2 | **Concrete-class-only DI** — every service is registered as `AddScoped<Concrete>()`, so nothing can be mocked or swapped. | `Program.cs:23-31` | Register `AddScoped<IXxx, Xxx>()` against the interfaces from #1. |
-| 3 | **DataTables runs client-side processing** — the full row set ships to the browser in one response; paging/search/sort run in JS, not SQL. Latent scale problem once Submissions hold real data. | `Views/Users/Index.cshtml` (grid config), `Views/Roles/Index.cshtml`, `Views/Units/Index.cshtml`, `Views/Assessment/Index.cshtml:57-77` | For large tables use `serverSide:true` and handle `start`/`length`/`search` at the Grid endpoints. |
-| 4 | **Global/inline JS, no modules, no bundling** — page logic lives in `@section Scripts` with hand-rolled `$.ajax` calls; only vendored libs are static. | `wwwroot/js/modules/riskpulse.js` | ~Resolved — shared helpers extracted into the module; page scripts now call `RiskPulse.*` and hold only validation, column configs, and wiring (dedup was the fix; no bundling, no build step). |
-| 5 | **`AdAuthenticationService` is a stub that always returns `true`** — any username/password is "valid" as long as the user exists in DB. | `Services/Login/AdAuthenticationService.cs:4-9` | Implement a real directory/identity-provider lookup (or explicitly dev-gate the stub). |
+| 1 | **No repository / unit-of-work; no interface abstractions** — every service talks to `AppDbContext` directly and exposes concrete methods returning entities (or view models). The data layer is untestable and services can't be swapped or faked. | `Services/Administration/UsersService.cs`, `Services/Administration/RolesService.cs`, `Services/Administration/UnitsService.cs`, `Services/Login/DbAuthorizationService.cs`, `Services/Schedule/ScheduleService.cs`, `Services/Assessment/AssessmentService.cs`, `Services/Utilities/CodeGeneratorService.cs` | Introduce `IUsersService`, `IRolesService`, `IUnitsService`, `IScheduleService`, `IAssessmentService`, `ISubmissionsService`, `IDashboardService`, `ICodeGeneratorService`, `IAdAuthenticationService`, `IDbAuthorizationService`, `ILoginOrchestratorService` (optionally `IRepository<T>`/`IUnitOfWork`) and have services return DTOs, not entities. |
+| 2 | **Concrete-class-only DI** — all 13 services are registered as `AddScoped<Concrete>()`, so nothing can be mocked or swapped. | `Program.cs:26-38` | Register `AddScoped<IXxx, Xxx>()` against the interfaces from #1. |
+| 3 | **DataTables runs client-side processing** — the full row set ships to the browser in one response; paging/search/sort run in JS, not SQL. Latent scale problem for Submissions once real branch data collects. | All grid `Index.cshtml` views | For large tables use `serverSide:true` and handle `start`/`length`/`search` at the Grid endpoints. |
+| 4 | **`AdAuthenticationService` is a stub that always returns `true`** — any username/password is "valid" as long as the user exists in DB. | `Services/Login/AdAuthenticationService.cs` | Implement a real directory/identity-provider lookup (or explicitly dev-gate the stub). |
 
 ### 8.2 Data & persistence
 
 | # | Mismatch | Evidence | Recommended fix |
 |---|---|---|---|
-| 6 | **No seed artifact for a fresh DB** — permissions/roles/unit/test-user rows exist only in the dev DB (no `Database/Seed.sql`, no EF `HasData`). | no `Database/` folder, no `Seed.sql`; `Migrations/20260920123931_UserPermissionControl.cs` contains no seed data | Move seed into EF Core (`modelBuilder.HasData` / seed extension) so a fresh DB is reproducible end-to-end. |
-| 7 | **No migrate/seed bootstrap at startup** — the app assumes the DB was provisioned externally; a fresh DB will fail at first query. The git-ignored migration exists but is not auto-applied. | `Program.cs:12-14` (no `Db.Database.Migrate()`) | Add dev-only `Migrate()` (+ data seed) bootstrap, or document the manual `dotnet ef database update` + seed-resync step in a README. |
-| 8 | **No logging (`ILogger`) anywhere** — service/DB exceptions bubble with no trace and the catch blocks can't be audited. | all `Services/*` and `Controllers/*` | Inject `ILogger<T>` and log at service and catch boundaries. |
+| 5 | **No seed artifact and no migration set for a fresh DB** — permissions/roles/unit/test-user/workflow-step rows exist only in the dev DB; `Migrations/` is git-ignored and absent on disk. | no `Database/`, no `Seed.sql`, no `Migrations/`; `.gitignore:365-368` | Move the schema into EF Core (`dotnet ef migrations add`) **and** seed via `modelBuilder.HasData` so a fresh DB is reproducible end-to-end. |
+| 6 | **No migrate/seed bootstrap at startup** — the app assumes the DB was provisioned externally; a fresh DB will fail at first query. | `Program.cs:16-17` (no `Db.Database.Migrate()`) | Add dev-only `Migrate()` (+ data seed) bootstrap, or document the manual provisioning + seed-resync step in a README. |
+| 7 | **No logging (`ILogger`) anywhere** — service/DB exceptions bubble with no trace and the catch blocks can't be audited. | all `Services/*` and `Controllers/*` | Inject `ILogger<T>` and log at service and catch boundaries. |
 
 ### 8.3 Security
 
 | # | Mismatch | Evidence | Recommended fix |
 |---|---|---|---|
-| 9 | **No CSRF protection on cookie-auth state-changing endpoints** — `Users/Save`, `Roles/Save`, `Units` save/delete, `SaqTemplates`/`KriTemplates` save/delete, the wizard `SaveName|SaveSaq|SaveKri|SaveSchedule|Finalize`, and `Login/Login` are JSON POSTs authenticated by cookie, but the app has no antiforgery tokens (`[ValidateAntiForgeryToken]` / `@Html.AntiForgeryToken()` are absent everywhere). | `Controllers/UsersController.cs:46-63`, `Controllers/RolesController.cs:40-52`, `Controllers/UnitsController.cs:40-74`, `Controllers/LoginController.cs:34-51`, `Controllers/AssessmentController.cs:54-142` | Emit antiforgery tokens in the views and add `[ValidateAntiForgeryToken]` on the POST actions; for `[FromBody]` JSON use `AddAntiforgery` + a header token. |
-| 10 | **Database credentials committed to source** — the PostgreSQL connection string (`Server`, `Port`, user, `Password=123456`) is hard-coded in `appsettings.json` and tracked by git. | `appsettings.json:9` | Move credentials to user-secrets / environment variables; keep no secret (or a harmless dev value) in the repo. |
+| 8 | **No CSRF protection on cookie-auth state-changing endpoints** — `Users/Save`, `Roles/Save`, `Units` save/delete, `SaqTemplates`/`KriTemplates` save/delete, the schedule wizard `SaveSchedule|SaveSaq|SaveKri|Finalize|Delete`, the submissions `SaveSaq|SaveKri|SubmitItem|ApproveItem|AuthorizeUnit`, and `Login/Login` are JSON POSTs authenticated by cookie, but the app has no antiforgery tokens (`[ValidateAntiForgeryToken]` / `@Html.AntiForgeryToken()` are absent everywhere). | `Controllers/UsersController.cs`, `Controllers/RolesController.cs`, `Controllers/UnitsController.cs`, `Controllers/ScheduleController.cs`, `Controllers/SubmissionsController.cs`, `Controllers/LoginController.cs` | Emit antiforgery tokens in the views and add `[ValidateAntiForgeryToken]` on the POST actions; for `[FromBody]` JSON use `AddAntiforgery` + a header token. |
+| 9 | **Database credentials committed to source** — the PostgreSQL connection string (`Server`, `Port`, user, `Password=123456`) is hard-coded in `appsettings.json` and tracked by git. | `appsettings.json:9` | Move credentials to user-secrets / environment variables; keep no secret (or a harmless dev value) in the repo. |
 
 ### 8.4 Code hygiene & minor
 
 | # | Mismatch | Evidence | Recommended fix |
 |---|---|---|---|
-| _(none open)_ | Hygiene items resolved — dead zero-FK fallbacks in `UsersService`, unused `UsersIndexViewModel.Users` / `RolesIndexViewModel.Roles`, dead `KriBandSaveDto.KriThresholdId`, unreferenced `_ValidationScriptsPartial`, empty `Infrastructure/` + `Validation/`, dead `Models\Auth\**` csproj exclusion, undefined `status-active`/`login-icon-circle` classes, and the tri-spelled brand name were all removed in the hygiene pass. | (removed) | (done) |
-| _(resolved)_ | `Specs/layout/DESIGN.md` lacked the teal accent family that `Specs/login/DESIGN.md` and `site.css` already had, and had no "Layout shell polish" section documenting the sidebar gradient, sonar brandmark, teal active rail, frosted topbar, or canvas gradient. | `Specs/layout/DESIGN.md` YAML block ended at `surface-variant` (line 50); no shell polish section existed | Updated `Specs/layout/DESIGN.md` to include the full accent family YAML block + a "Layout shell polish" section covering sidebar gradient/sonar, teal nav states, frosted topbar, canvas gradient/ambient, cards, typography, and `prefers-reduced-motion` |
-| _(resolved)_ | `Locked` was offered as a selectable status in the SAQ/KRI add/edit modals, but it is a system-set state (service rejects edits/deletes of Locked templates). Status dropdowns now exclude it, and the per-view `statusOptions` wrappers that re-derived `kind` via `RiskPulse.statusKind` were removed since the option list is already known. Template grids (SAQ, KRI) and the assessment grid now order **newest-first** (`OrderByDescending` on the header Id) so freshly-created records appear at the top. | `SaqStatusOptionViewModel.GetAll()` / `KriStatusOptionViewModel.GetAll()` now `.Where(s => s != Status.Locked)`; `SaqTemplatesService.GetHeaderRowsAsync` / `KriTemplatesService.GetHeaderRowsAsync` `OrderByDescending`; `Views/{Saq,Kri}Templates/Index.cshtml` dropped the `statusOptions` mapping and switched grid `order` to `desc` | Done — Locked remains visible only as a grid pill (`statusPill` → warning) and via the service guards. |
+| 10 | **Assessment-structure enums are half-wired** — `AssessmentStatus` is written once (`Pending`) at assessment creation and never read for logic (behavior is entirely workflow-step-driven); `WorkflowStep.IsFinal` is defined but never referenced in code. | `AssessmentService.cs:52`; `Data/Entries/WorkflowStep.cs:22` | Either delete the enum + `IsFinal` column, or wire them into UI state ("Authorized" pills could reuse a final-step flag). |
+| 11 | **No unique index on `Schedule.ScheduleCode`** (present on `SaqCode`/`KriCode`/`AssessmentCode`). | `AppDbContext.cs:113-122` vs `:49-53`, `:95-99`, `:161-165` | `AddIndex(ScheduleCode).IsUnique()` for parity; `CodeGeneratorService` already retries on collision. |
+| 12 | **`OptionViewModel`/grid data relies on the picker card pattern in the wizard** — the template selector (`createTemplatePicker`) is ~210 lines of bespoke JS embedded in `Wizard.cshtml` rather than the shared module. | `Views/Schedule/Wizard.cshtml:322-533` | If reused by the Risk Register wizard later, extract into `riskpulse.js` as a reusable picker helper. |
 
 ---
 
@@ -407,9 +469,9 @@ No seed artifact is committed or present locally: there is **no `Database/` fold
 A minimal, incremental target that fixes every mismatch above **without** a rewrite:
 
 ```
-Views (.cshtml + DataTables/Select2/SweetAlert)
+Views (.cshtml + DataTables/Select2/SweetAlert + card pickers)
    │  GET page (ViewModels + Json.Serialize init data)
-   ▼  AJAX JSON (grid + save + login + wizard) — all through ApiResponse<T>
+   ▼  AJAX JSON (grid + save + login + wizard + submissions) — all through ApiResponse<T>
 Controllers — thin: bind SaveModels, call services, return ApiResponse<T>
    │
 Services (interface + concrete, Scoped DI)
@@ -419,24 +481,27 @@ Services (interface + concrete, Scoped DI)
    │              PermissionCatalog / PermissionPageMapper (single source, shared by all modules)
    ├── Administration: IUsersService / IRolesService / IUnitsService
    ├── Templates:  ISaqTemplatesService / IKriTemplatesService
-   ├── Assessment: IAssessmentService
+   ├── Schedule:   IScheduleService
+   ├── Assessment: IAssessmentService / ISubmissionsService
+   ├── Dashboard:  IDashboardService
+   ├── Utilities:  ICodeGeneratorService
    └── Data access via IRepository<T> (or keep DbContext here behind service facades)
    │
-Data — AppDbContext + EF Migrations (regenerate baseline) + EF seed (HasData)
+Data — AppDbContext + EF Migrations (regenerate & commit) + EF seed (HasData)
    │
 PostgreSQL (riskpulse schema)
 ```
 
 Key decisions for the target:
-1. **DTOs in, ViewModels out** — inbound payloads are `*SaveDto` / `*DeleteRequestDto` / `LoginRequestDto` (`Models/Dto`); outbound UI data is `*IndexViewModel` / `*GridRowViewModel` / `*OptionViewModel` (`Models/ViewModel`); `ApiResponse<T>` is the shared envelope (already live).
+1. **DTOs in, ViewModels out** — inbound payloads are `*SaveDto` / `*FinalizeDto` / `ItemTransitionDto` / `UnitAuthorizeDto` / `DeleteRequestDto` / `LoginRequestDto` (`Models/Dto`); outbound UI data is `*IndexViewModel` / `*GridRowViewModel` / `*WizardViewModel` / `*OptionViewModel` (`Models/ViewModel`); `ApiResponse<T>` is the shared envelope (already live).
 2. **Uniform JSON contract** — `{ success, message, data, errors }` via `ApiResponse<T>` (already live).
 3. **Server-side validation is the source of truth** — DataAnnotations on save models + custom validators; client JS mirrors it for UX only (already live).
 4. **Single source for permissions/policies** — `PermissionCatalog` shared by `Program.cs`, sidebar, and `PermissionPageMapper` (already live).
-5. **EF seed via `HasData`** so a fresh DB provisions seed rows (mismatch #6).
-6. **Real AD provider** behind `IAdAuthenticationService` (or explicitly dev-gated) (mismatch #5).
-7. **Logging** (`ILogger`) at service boundaries (mismatch #8).
+5. **EF seed via `HasData`** so a fresh DB provisions seed rows + workflow dictionaries (mismatch #5/#6).
+6. **Real AD provider** behind `IAdAuthenticationService` (or explicitly dev-gated) (mismatch #4).
+7. **Logging** (`ILogger`) at service boundaries (mismatch #7).
 8. **Server-side DataTables** when row counts grow (mismatch #3).
-9. **Anti-forgery on all state-changing POSTs** (mismatch #9) and **secrets out of source** (mismatch #10).
+9. **Anti-forgery on all state-changing POSTs** (mismatch #8) and **secrets out of source** (mismatch #9).
 
 ---
 
@@ -448,54 +513,49 @@ Key decisions for the target:
 | Cookie auth + claims + permission policies | ✅ Complete |
 | User / Role / Permission CRUD (models, services, views) | ✅ Complete — incl. self-edit rule in `UsersService` (controller left thin) |
 | Units page (Unit CRUD \| Unit Group CRUD, Select2 group→unit assignment) | ✅ Complete — two-tab Administration page; group requires ≥2 units; delete guards for units/groups referenced by users or templates |
-| PostgreSQL + EF Core | ✅ Live — baseline migration `20260920123931_UserPermissionControl` (created 2026-09-20, git-ignored) provisions the `riskpulse` schema via `dotnet ef database update`; seed rows applied manually from the dev DB |
-| DataTables AJAX grids + JSON save flows | ✅ Working — every grid returns a named `*GridRowViewModel` (Users, Roles, Units, Groups, SAQ headers/questions/options, KRI headers/items, KRI colors/groups/bands, Assessment) |
-| Bootstrap 5 modals (programmatic open/close) | ✅ Fixed — open/close via `RiskPulse.showModal(id)` / `RiskPulse.hideModal(formEl)` in the shared module; modals re-hosted under `<body>`; no jQuery `$.fn.modal` or raw `getOrCreateInstance` in views |
+| SAQ Templates (grid, header CRUD, question/option designer, Locked immutable rule, Group XOR Unit link, unique code) | ✅ Implemented |
+| KRI Templates (grid, header CRUD, item builder with Green/Amber/Red limits + comment flag, Locked immutable rule, Group XOR Unit link, unique code) | ✅ Implemented (threshold-config subsystem removed) |
+| Schedule wizard (schedule type → SAQ templates → KRI templates → finalize, SCH code, multi-select card pickers + previews) | ✅ Implemented — per-step AJAX persistence, draft edit/re-save, activate rules (SAQ+KRI required), draft-only delete, locked Risk Register step placeholder |
+| Assessment auto-creation on schedule activation (header → per-unit → per-item rows, workflow IsInitial steps) | ✅ Implemented — recurring schedules blocked for now |
+| Workflow engine (DB-driven `Workflow`/`WorkflowStep` statuses) | ✅ Implemented — statuses are step codes, not enums |
+| Submissions (fill/submit/approve/authorize, own-unit) | ✅ Implemented — grid, detail, SAQ entry, KRI entry (RAG dots from limits), workflow step transitions via `SubmissionsService`; maker/checker separation on completion |
+| Dashboard (landing page) | ✅ Implemented — fully server-rendered: hero KPIs, status distribution (from workflow steps), KRI RAG snapshot (latest period), needs-attention list, period history |
+| PostgreSQL + EF Core | ⚠️ Live in dev DB only — no `Migrations/`, no seed artifact in the repo; fresh DBs are not reproducible without manual work (§8 #5/#6) |
+| DataTables AJAX grids + JSON save flows | ✅ Working — every grid returns a named `*GridRowViewModel` |
+| Bootstrap 5 modals (programmatic open/close) | ✅ Fixed — open/close via `RiskPulse.showModal(id)` / `RiskPulse.hideModal(formEl)` in the shared module; modals re-hosted under `<body>` |
 | Design system (CSS) + AI specs | ✅ Complete |
-| Project structure conventions | ✅ Complete — controllers flat & 1:1 with Views; services grouped by workflow; Models split `Dto`/`ViewModel`/`Enum`; entities in `Data/Entries`; Views folder=controller, file=action |
+| Project structure conventions | ✅ Complete — controllers flat & 1:1 with Views; services grouped by workflow; Models split `Dto`/`ViewModel`/`Enum`; entities in `Data/Entries` |
 | Domain page: Risk Register Templates | ⬜ Stub |
-| Submissions (fill/submit/approve/authorize, own-unit) | ✅ Implemented — grid, detail, SAQ entry, KRI entry (RAG dots), workflow step transitions; maker/checker separation deferred |
-| Dashboard (landing page) | ✅ Implemented — fully server-rendered (no DataTables/JS): hero KPIs, status distribution, KRI RAG snapshot (latest period), needs-attention list, period history |
-| SAQ Templates (grid, header CRUD, question/option designer, Locked immutable rule, Group XOR Unit link) | ✅ Implemented |
-| KRI Templates (grid, header CRUD, KRI builder with value/comment/group, Locked immutable rule, Group XOR Unit link) | ✅ Implemented |
-| KRI Config (threshold colors, groups, value-band editor) | ✅ Merged into KRI Templates as tabs |
-| Assessment wizard (name → SAQ → KRI → schedule → finalize) | ✅ Implemented — per-step AJAX persistence, draft edit/re-save, activate rules, draft-only delete, locked Risk Register step placeholder |
-| Repository / unit-of-work / interface services | ❌ Not started |
-| DTOs & uniform API envelope | ✅ Complete — `ApiResponse<T>` envelope; `*Dto` inputs (`LoginRequestDto`, `LoginResultDto`, `UserAuthorizationDto`, `*SaveDto`, `*DeleteRequestDto`) + `*ViewModel` outputs (`*IndexViewModel`, `*GridRowViewModel`, `*OptionViewModel`) split by layer |
-| Server-side validation (DataAnnotations on save models) | ✅ On every save model (Users/Roles/Login/Units/Groups/SAQ/KRI/Assessment/Schedule) — FK `[Range]`, `[Required]`, `[StringLength]`, `[RegularExpression]` |
+| DTOs & uniform API envelope | ✅ Complete — `ApiResponse<T>` envelope; `*Dto` inputs + `*ViewModel` outputs split by layer |
+| Server-side validation (DataAnnotations on save models) | ✅ On every save model |
 | Permission single source (`PermissionCatalog`) | ✅ Resolved — policies, `[Authorize]`, sidebar, `PermissionPageMapper` all reference the catalog |
-| Business rule placement | ✅ Service-side — self-edit, duplicate, not-found, locked-template, group-vs-unit XOR, default-permission, draft-only-edit, active-requires-SAQ+KRI rules all throw `InvalidOperationException` from services |
-| Code hygiene (dead code, unused scaffolding, brand name) | ✅ Cleaned — see §8.4 |
-| Shared JS module (`RiskPulse.*` in `wwwroot/js/modules/riskpulse.js`) | ✅ Dedup done — all shell views + wizard use the helpers; generic-error toast single-sourced (§4.1 #11) |
-| Status dropdowns (Locked excluded, RAG pill options) | ✅ Done — `GetAll()` filters `Locked`; `statusKind` tags options; template/assessment grids newest-first |
-| CSRF protection | ❌ Not started (§8 #9) |
-| Secrets management | ❌ Credentials committed (§8 #10) |
-| Real AD / identity provider | ❌ Stub (always true) (§8 #5) |
+| Business rule placement | ✅ Service-side — duplicate, not-found, locked-template, group-vs-unit XOR, default-permission-must-be-assigned, draft-only-edit, active-requires-SAQ+KRI, workflow transitions, own-unit scoping |
+| Shared JS module (`RiskPulse.*` in `wwwroot/js/modules/riskpulse.js`) | ✅ Dedup done — all shell views + wizard + submissions use the helpers; generic-error toast single-sourced |
+| Status dropdowns (Locked excluded, RAG pill options) | ✅ Done — `GetAll()` filters `Locked`; `statusKind` tags options; template/schedule grids newest-first |
+| Repository / unit-of-work / interface services | ❌ Not started (§8 #1/#2) |
+| CSRF protection | ❌ Not started (§8 #8) |
+| Secrets management | ❌ Credentials committed (§8 #9) |
+| Real AD / identity provider | ❌ Stub (always true) (§8 #4) |
 | Server-side grid processing | ❌ Not started (client-side only) (§8 #3) |
-| Logging | ❌ Not started (§8 #8) |
+| Logging | ❌ Not started (§8 #7) |
 | Tests / CI / Docker | ❌ Not started |
 
 ---
 
 ## 11. Next Logical Steps
 
-1. ✅ **Fix validation & binding consistency** — `UserSaveDto`/`RoleSaveDto`, `[Required]`/`[RegularExpression]`, null-guard both `Save` actions (resolved).
-2. ✅ **Introduce `ApiResponse<T>`** and adopt in `Grid`/`Save`/`Login`; login standardized to JSON `[FromBody]` (resolved).
-3. ✅ **Single permission source** (`PermissionCatalog`) for policies/layout/mapper (resolved).
-4. ✅ **Named grid view models** — `UserGridRowViewModel`, `RoleGridRowViewModel` replace anonymous grid projections (resolved).
-5. ✅ **Move self-edit rule into `UsersService`** — `UpdateUserAsync(model, actingUserId)`; controller left thin (resolved).
-6. ✅ **Fix Bootstrap 5 modal API** — replaced all `$('#x').modal('show'/'hide')` calls with the programmatic API in the shared module (resolved).
-7. ✅ **Close pattern deviations** — `ColorsGrid` now returns `KriColorGridRowViewModel`; default-permission rule moved into `RolesService`; `SaveBands` + all delete actions get the null-guard/ModelState block; DataAnnotations aligned; `form-select` dropped from `input-stasis` selects (resolved).
-8. ✅ **Hygiene pass** — removed dead `UsersService` fallbacks, dead view-model props, dead `KriBandSaveDto.KriThresholdId`, unreferenced `_ValidationScriptsPartial`, empty `Infrastructure/`/`Validation/` folders, dead csproj exclusion, undefined CSS classes; unified brand on "Risk Pulse" (resolved).
-9. ✅ **JS dedup / shared module** — created `wwwroot/js/modules/riskpulse.js` (`RiskPulse.*`: toast helpers, `postJson`/`getJson`, `escapeHtml`, `serializeForm`, `populateSelect`, `initSelect2`, `showModal`/`hideModal`, `confirmDelete`, `initGrid`, `pill`, `statusPill`, `statusKind`, `validationError`, `clearFieldErrors`); loaded from `_Layout`; refactored all shell views to use it; generic-error message single-sourced (resolved).
-10. ✅ **Restructure layers** — controllers flattened to `Controllers/` (thin 1:1 with views); `Models/` split into `Models/Dto/`, `Models/ViewModel/`, and `Models/Enum/`; `ApiResponse<T>` kept as the sole un-postfixed type; entities moved to `Data/Entries/`; services grouped by workflow (Login/Administration/Templates); Views verified folder=controller / file=action (resolved).
-11. ✅ **Units page** — two-tab Administration page (Unit CRUD | Unit Group CRUD) under the new `Units` permission, with Select2 multi-select group→unit assignment, a ≥2-units group rule, and delete guards for units/groups referenced by users or templates (resolved).
-12. ✅ **Assessment wizard** — step flow (name → SAQ → KRI → schedule → finalize) with per-step AJAX persistence (`SaveName`/`SaveSaq`/`SaveKri`/`SaveSchedule`), draft edit/re-save through the stages, `Finalize` with `Draft`/`Active`, activate rules (SAQ + KRI required), draft-only deletion, and a locked Risk Register step placeholder (resolved).
-13. ✅ **Status dropdowns + grid ordering refinements** — `Locked` excluded from SAQ/KRI status options (system-set only); per-view `statusOptions` mapping removed; SAQ/KRI/Assessment grids order newest-first (resolved).
-14. **Add CSRF protection** — antiforgery tokens + `[ValidateAntiForgeryToken]` on `Save`/`Login`/wizard POSTs (§8 #9).
-15. **Move DB credentials out of source** — user-secrets / environment variables (§8 #10).
-16. **Extract interfaces + register DI** — `IUsersService`, `IRolesService`, `IUnitsService`, `IAssessmentService`, `IAdAuthenticationService`, `IDbAuthorizationService` (§8 #1–#2).
-17. **Implement real AD** or dev-gate explicitly (§8 #5).
-18. **EF seed via `HasData`** so `dotnet ef database update` produces a fully-working DB including permissions/roles/unit/test user (§8 #6–#7).
-19. **Add logging** at service boundaries (§8 #8).
-20. Then build domain: keep this file current for Dashboard/Submissions with the standardized flow (server-side grid for submissions volume, §8 #3).
+**Resolved under the current phase (reflected in §4–§6/§10):**
+1. ✅ Shared JS module + `ApiResponse<T>` + named grid view models + `ControllerHelpers` standardized across all shells.
+2. ✅ Hygenic layer split — controllers flat, `Models/{Dto,ViewModel,Enum}`, entities in `Data/Entries`, services grouped by workflow; dead scaffolding removed.
+3. ✅ **Assessment wizard → Schedule wizard refactor** — `Schedule` entity (not `ScheduleHeader`), `ScheduleController`/`ScheduleService`/`Views/Schedule/`, permission `Schedule`, multi-template card picker with SAQ/KRI previews.
+4. ✅ **Workflow-step model** — `Workflow`/`WorkflowStep` dictionaries; submissions gated on step codes; auto-assessment on schedule activation.
+5. ✅ **Template-key refactor** — `CodeGeneratorService` + unique `SaqCode`/`KriCode`/`AssessmentCode`; KRI threshold-config subsystem removed in favor of flat `GreenLimit`/`AmberLimit`/`RedLimit` RAG.
+
+**Open (from §8):**
+6. **Add CSRF protection** — antiforgery tokens + `[ValidateAntiForgeryToken]` on `Save`/`Login`/schedule-wizard/submissions POSTs (§8 #8).
+7. **Move DB credentials out of source** — user-secrets / environment variables (§8 #9).
+8. **Extract interfaces + register DI** — `IUsersService`, `IRolesService`, `IUnitsService`, `ISaqTemplatesService`, `IKriTemplatesService`, `IScheduleService`, `IAssessmentService`, `ISubmissionsService`, `IDashboardService`, `ICodeGeneratorService`, auth-service interfaces (§8 #1–#2).
+9. **Commit EF migrations + `HasData` seed** so `dotnet ef database update` produces a fully-working DB including permissions/roles/unit/test user/workflow steps (§8 #5–#6).
+10. **Implement real AD** or dev-gate explicitly (§8 #4).
+11. **Add logging at service boundaries** (§8 #7).
+12. **Then build domain:** the Risk Register module (its wizard step + auto-generated register rows), and move grids to server-side processing as submissions volume grows (§8 #3). Keep this file current for each finished step.
