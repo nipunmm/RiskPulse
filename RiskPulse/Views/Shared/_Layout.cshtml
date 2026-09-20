@@ -70,12 +70,12 @@
                 </a>
             }
 
-            @if (User.HasClaim("Permission", PermissionCatalog.Assessment))
+            @if (User.HasClaim("Permission", PermissionCatalog.Schedule))
             {
-                <a asp-controller="Assessment" asp-action="Index"
-                   class="nav-link d-flex align-items-center gap-3 px-3 py-2 rounded @(ViewContext.RouteData.Values["controller"]?.ToString() == "Assessment" ? "active" : "")">
-                    <i class="fas fa-clipboard-check"></i>
-                    <span class="text-truncate">Assessment</span>
+                <a asp-controller="Schedule" asp-action="Index"
+                   class="nav-link d-flex align-items-center gap-3 px-3 py-2 rounded @(ViewContext.RouteData.Values["controller"]?.ToString() == "Schedule" ? "active" : "")">
+                    <i class="fas fa-calendar-check"></i>
+                    <span class="text-truncate">Schedule</span>
                 </a>
             }
 

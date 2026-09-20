@@ -4,7 +4,7 @@ public static class PermissionCatalog
 {
     public const string Dashboard = "Dashboard";
     public const string Submissions = "Submissions";
-    public const string Assessment = "Assessment";
+    public const string Schedule = "Schedule";
     public const string Users = "Users";
     public const string Roles = "Roles";
     public const string Units = "Units";

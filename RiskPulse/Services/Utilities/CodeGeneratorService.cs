@@ -1,39 +1,46 @@
 using Microsoft.EntityFrameworkCore;
 using RiskPulse.Data;
-using RiskPulse.Data.Entries;
 
-namespace RiskPulse.Services.Templates;
+namespace RiskPulse.Services.Utilities;
 
-public class TemplateCodeService
+public class CodeGeneratorService
 {
     private readonly AppDbContext _db;
 
-    public TemplateCodeService(AppDbContext db)
+    public CodeGeneratorService(AppDbContext db)
     {
         _db = db;
     }
 
-    public async Task<string> GenerateSaqCodeAsync()
+    public Task<string> GenerateSaqCodeAsync()
     {
-        return await GenerateCodeAsync("SAQ");
+        return GenerateCodeAsync("SAQ", _db.SaqHeaders
+            .Where(h => h.SaqCode != null)
+            .Select(h => h.SaqCode!));
     }
 
-    public async Task<string> GenerateKriCodeAsync()
+    public Task<string> GenerateKriCodeAsync()
     {
-        return await GenerateCodeAsync("KRI");
+        return GenerateCodeAsync("KRI", _db.KriHeaders
+            .Where(h => h.KriCode != null)
+            .Select(h => h.KriCode!));
     }
 
-    private async Task<string> GenerateCodeAsync(string prefix)
+    public Task<string> GenerateScheduleCodeAsync()
+    {
+        return GenerateCodeAsync("SCH", _db.Schedules
+            .Select(s => s.ScheduleCode));
+    }
+
+    private async Task<string> GenerateCodeAsync(string prefix, IQueryable<string> allCodes)
     {
         var datePart = DateTime.Now.ToString("yyyyMMdd");
         var prefixPattern = $"{prefix}-{datePart}-";
 
         for (var attempt = 0; attempt < 5; attempt++)
         {
-            var todayCodes = await _db.SaqHeaders
-                .AsNoTracking()
-                .Where(h => h.SaqCode != null && h.SaqCode.StartsWith(prefixPattern))
-                .Select(h => h.SaqCode!)
+            var todayCodes = await allCodes
+                .Where(c => c.StartsWith(prefixPattern))
                 .ToListAsync();
 
             var maxSeq = todayCodes
@@ -47,9 +54,8 @@ public class TemplateCodeService
 
             var candidate = $"{prefixPattern}{(maxSeq + 1):0000}";
 
-            var exists = await _db.SaqHeaders
-                .AsNoTracking()
-                .AnyAsync(h => h.SaqCode == candidate);
+            var exists = await allCodes
+                .AnyAsync(c => c == candidate);
 
             if (!exists)
             {

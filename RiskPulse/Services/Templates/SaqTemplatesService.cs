@@ -5,15 +5,16 @@ using RiskPulse.Data.Extensions;
 using RiskPulse.Models.Dto;
 using RiskPulse.Models.Enum;
 using RiskPulse.Models.ViewModel;
+using RiskPulse.Services.Utilities;
 
 namespace RiskPulse.Services.Templates;
 
 public class SaqTemplatesService
 {
     private readonly AppDbContext _db;
-    private readonly TemplateCodeService _codeService;
+    private readonly CodeGeneratorService _codeService;
 
-    public SaqTemplatesService(AppDbContext db, TemplateCodeService codeService)
+    public SaqTemplatesService(AppDbContext db, CodeGeneratorService codeService)
     {
         _db = db;
         _codeService = codeService;
@@ -113,6 +114,10 @@ public class SaqTemplatesService
         {
             throw new InvalidOperationException("Cannot delete a locked template.");
         }
+
+        await _db.ScheduleItems
+            .Where(si => si.ItemType == ScheduleItemType.Saq && si.ItemId == saqHeaderId)
+            .ExecuteDeleteAsync();
 
         _db.SaqHeaders.Remove(header);
         await _db.SaveChangesAsync();
@@ -264,6 +269,34 @@ public class SaqTemplatesService
         }
 
         await _db.SaveChangesAsync();
+    }
+
+    // --- Preview ---
+    public async Task<SaqPreviewViewModel> GetSaqPreviewAsync(int saqHeaderId)
+    {
+        var header = await _db.SaqHeaders
+            .AsNoTracking()
+            .Where(h => h.SaqHeaderId == saqHeaderId)
+            .Select(h => new
+            {
+                h.SaqHeaderId,
+                h.SaqCode,
+                h.SaqDesc,
+                h.SaqStatus,
+                AssignmentLabel = h.Group != null ? h.Group.GroupDesc : (h.Unit != null ? h.Unit.UnitDesc : string.Empty)
+            })
+            .SingleOrDefaultAsync()
+            ?? throw new InvalidOperationException($"Template with Id {saqHeaderId} was not found.");
+
+        return new SaqPreviewViewModel
+        {
+            SaqHeaderId = header.SaqHeaderId,
+            SaqCode = header.SaqCode ?? string.Empty,
+            SaqDesc = header.SaqDesc,
+            SaqStatus = header.SaqStatus.ToString(),
+            AssignmentLabel = header.AssignmentLabel,
+            Questions = await GetQuestionRowsAsync(saqHeaderId)
+        };
     }
 
     private async Task<bool> HasDuplicateQuestionAsync(

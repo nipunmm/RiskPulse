@@ -1,0 +1,34 @@
+@model RiskPulse.Models.ViewModel.ScheduleWizardViewModel
+
+<section class="rp-wizard-panel" data-step="3">
+    <div class="rp-card p-3">
+        <h6 class="rp-display-md mb-1">Step 3 — KRI templates</h6>
+        <p class="rp-body-sm mb-3 rp-text-muted">
+            Pick the key risk indicator templates that will be tracked for this schedule. You can select more than one.
+        </p>
+        <div class="rp-picker">
+            <div class="rp-pick-toolbar">
+                <div class="rp-pick-search-wrap">
+                    <i class="fas fa-magnifying-glass rp-pick-search-icon"></i>
+                    <input type="text" class="rp-input rp-pick-search" placeholder="Search templates..." autocomplete="off" aria-label="Search KRI templates" />
+                    <button type="button" class="rp-pick-search-clear" title="Clear search" tabindex="-1"><i class="fas fa-xmark"></i></button>
+                </div>
+            </div>
+            <div class="rp-pick-bar">
+                <span class="rp-pick-count">0 selected</span>
+                <span class="rp-pick-chips"></span>
+                <button type="button" class="rp-pick-clear-link">Clear all</button>
+            </div>
+            <div class="rp-checklist rp-pick-grid" id="kriTemplateList"></div>
+            <div class="rp-pick-pager">
+                <button type="button" class="rp-btn rp-btn-secondary rp-pager-btn" data-pager="prev"><i class="fas fa-chevron-left"></i> Prev</button>
+                <span class="rp-pick-pageinfo">Page 1 of 1 · 0 results</span>
+                <button type="button" class="rp-btn rp-btn-secondary rp-pager-btn" data-pager="next">Next <i class="fas fa-chevron-right"></i></button>
+            </div>
+        </div>
+    </div>
+    <div class="d-flex justify-content-between gap-2 mt-3">
+        <button type="button" class="rp-btn rp-btn-secondary rp-wizard-back"><i class="fas fa-arrow-left"></i> Back</button>
+        <button type="button" class="rp-btn rp-btn-primary rp-wizard-next">Next <i class="fas fa-arrow-right"></i></button>
+    </div>
+</section>

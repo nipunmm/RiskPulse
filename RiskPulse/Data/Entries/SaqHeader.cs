@@ -23,7 +23,5 @@ namespace RiskPulse.Data.Entries
         public string? SaqCode { get; set; }
 
         public ICollection<SaqQuestion> SaqQuestions { get; set; } = new List<SaqQuestion>();
-
-        public ICollection<AssessmentHeader> AssessmentHeaders { get; set; } = new List<AssessmentHeader>();
     }
 }

@@ -5,15 +5,16 @@ using RiskPulse.Data.Extensions;
 using RiskPulse.Models.Dto;
 using RiskPulse.Models.Enum;
 using RiskPulse.Models.ViewModel;
+using RiskPulse.Services.Utilities;
 
 namespace RiskPulse.Services.Templates;
 
 public class KriTemplatesService
 {
     private readonly AppDbContext _db;
-    private readonly TemplateCodeService _codeService;
+    private readonly CodeGeneratorService _codeService;
 
-    public KriTemplatesService(AppDbContext db, TemplateCodeService codeService)
+    public KriTemplatesService(AppDbContext db, CodeGeneratorService codeService)
     {
         _db = db;
         _codeService = codeService;
@@ -116,6 +117,10 @@ public class KriTemplatesService
 
         await _db.Kris.Where(k => k.KriHeaderId == kriHeaderId).ExecuteDeleteAsync();
 
+        await _db.ScheduleItems
+            .Where(si => si.ItemType == ScheduleItemType.Kri && si.ItemId == kriHeaderId)
+            .ExecuteDeleteAsync();
+
         _db.KriHeaders.Remove(header);
         await _db.SaveChangesAsync();
     }
@@ -206,5 +211,33 @@ public class KriTemplatesService
 
         _db.Kris.Remove(kri);
         await _db.SaveChangesAsync();
+    }
+
+    // --- Preview ---
+    public async Task<KriPreviewViewModel> GetKriPreviewAsync(int kriHeaderId)
+    {
+        var header = await _db.KriHeaders
+            .AsNoTracking()
+            .Where(h => h.KriHeaderId == kriHeaderId)
+            .Select(h => new
+            {
+                h.KriHeaderId,
+                h.KriCode,
+                h.KriHeaderDesc,
+                h.KriStatus,
+                AssignmentLabel = h.Group != null ? h.Group.GroupDesc : (h.Unit != null ? h.Unit.UnitDesc : string.Empty)
+            })
+            .SingleOrDefaultAsync()
+            ?? throw new InvalidOperationException($"Template with Id {kriHeaderId} was not found.");
+
+        return new KriPreviewViewModel
+        {
+            KriHeaderId = header.KriHeaderId,
+            KriCode = header.KriCode ?? string.Empty,
+            KriHeaderDesc = header.KriHeaderDesc,
+            KriStatus = header.KriStatus.ToString(),
+            AssignmentLabel = header.AssignmentLabel,
+            Kris = await GetKrisAsync(kriHeaderId)
+        };
     }
 }

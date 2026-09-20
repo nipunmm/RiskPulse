@@ -109,27 +109,34 @@ namespace RiskPulse.Data
                     .OnDelete(DeleteBehavior.Restrict);
             });
 
-            //AssessmentStatus enum to string conversion
-            modelBuilder.Entity<AssessmentHeader>(entity =>
+            //ScheduleStatus/ScheduleType enum to string conversion
+            modelBuilder.Entity<Schedule>(entity =>
             {
-                entity.Property(a => a.AssessmentStatus)
+                entity.Property(s => s.ScheduleStatus)
                     .HasConversion<string>()
                     .HasMaxLength(32);
 
-                entity.HasOne(a => a.SaqHeader)
-                    .WithMany(h => h.AssessmentHeaders)
-                    .HasForeignKey(a => a.SaqHeaderId)
-                    .OnDelete(DeleteBehavior.Restrict);
+                entity.Property(s => s.ScheduleType)
+                    .HasConversion<string>()
+                    .HasMaxLength(32);
+            });
 
-                entity.HasOne(a => a.KriHeader)
-                    .WithMany(h => h.AssessmentHeaders)
-                    .HasForeignKey(a => a.KriHeaderId)
-                    .OnDelete(DeleteBehavior.Restrict);
+            //ScheduleItem polymorphic links (Schedule ↔ SaqHeader/KriHeader by ItemType + ItemId; ItemId has no FK)
+            modelBuilder.Entity<ScheduleItem>(entity =>
+            {
+                entity.Property(si => si.ItemType)
+                    .HasConversion<string>()
+                    .HasMaxLength(32);
 
-                entity.HasMany(a => a.ScheduleHeaders)
-                    .WithOne(s => s.AssessmentHeader)
-                    .HasForeignKey(s => s.AssessmentHeaderId)
+                entity.HasOne(si => si.Schedule)
+                    .WithMany(s => s.ScheduleItems)
+                    .HasForeignKey(si => si.ScheduleId)
                     .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(si => new { si.ScheduleId, si.ItemType, si.ItemId })
+                    .IsUnique();
+
+                entity.HasIndex(si => new { si.ItemType, si.ItemId });
             });
 
             //Kri relationships
@@ -169,9 +176,9 @@ namespace RiskPulse.Data
 
         public DbSet<Kri> Kris { get; set; }
 
-        public DbSet<AssessmentHeader> AssessmentHeaders { get; set; }
+        public DbSet<Schedule> Schedules { get; set; }
 
-        public DbSet<ScheduleHeader> ScheduleHeaders { get; set; }
+        public DbSet<ScheduleItem> ScheduleItems { get; set; }
 
     }
 }

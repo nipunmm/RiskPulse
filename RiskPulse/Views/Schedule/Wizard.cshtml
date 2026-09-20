@@ -1,0 +1,711 @@
+@model RiskPulse.Models.ViewModel.ScheduleWizardViewModel
+@{
+    ViewData["Title"] = Model.ScheduleId > 0 ? "Edit Schedule" : "New Schedule";
+
+    var isEdit = Model.ScheduleId > 0;
+    var completedJson = Json.Serialize(new
+    {
+        saq = Model.CompletedSaq,
+        kri = Model.CompletedKri,
+        schedule = Model.ScheduleId > 0 || Model.CompletedSchedule
+    });
+
+    var saqOptionsJson = Json.Serialize(Model.SaqOptions);
+    var kriOptionsJson = Json.Serialize(Model.KriOptions);
+    var saqHeaderIdsJson = Json.Serialize(Model.SaqHeaderIds);
+    var kriHeaderIdsJson = Json.Serialize(Model.KriHeaderIds);
+}
+
+<div class="rp-page-header gap-3 mb-3">
+    <div>
+        <h2 class="rp-display-lg">@(isEdit ? "Edit Schedule" : "New Schedule")</h2>
+        <p class="rp-body-md mt-1 mb-0 rp-text-muted">
+            Complete the steps below to build the schedule. Each step is saved as you go; a draft can be reopened and edited later.
+        </p>
+    </div>
+    <a href="@Url.Action("Index", "Schedule")" class="rp-btn rp-btn-secondary d-inline-flex align-items-center gap-2">
+        <i class="fas fa-arrow-left"></i> Back to Schedules
+    </a>
+</div>
+
+@if (!Model.CanEdit)
+{
+    <div class="alert alert-warning" role="alert">
+        This schedule is active and cannot be edited. Only draft schedules can be modified.
+    </div>
+}
+
+<!-- ============================================================
+     WIZARD STEP BAR
+     ============================================================ -->
+<div class="rp-card p-3 mb-3">
+    <div class="rp-stepper d-flex align-items-start">
+        <div class="rp-stepper-step" data-step="1" tabindex="0" role="button" aria-label="Go to step 1: Schedule Type">
+            <div class="rp-stepper-dot">1</div>
+            <div class="rp-stepper-label">Schedule Type</div>
+        </div>
+        <div class="rp-stepper-connector"></div>
+        <div class="rp-stepper-step" data-step="2" tabindex="0" role="button" aria-label="Go to step 2: SAQ Templates">
+            <div class="rp-stepper-dot">2</div>
+            <div class="rp-stepper-label">SAQ Templates</div>
+        </div>
+        <div class="rp-stepper-connector"></div>
+        <div class="rp-stepper-step" data-step="3" tabindex="0" role="button" aria-label="Go to step 3: KRI Templates">
+            <div class="rp-stepper-dot">3</div>
+            <div class="rp-stepper-label">KRI Templates</div>
+        </div>
+        <div class="rp-stepper-connector"></div>
+        <div class="rp-stepper-step is-disabled" data-step="rr" title="Coming soon">
+            <div class="rp-stepper-dot"><i class="fas fa-lock fa-xs"></i></div>
+            <div class="rp-stepper-label">Risk Register</div>
+        </div>
+        <div class="rp-stepper-connector"></div>
+        <div class="rp-stepper-step" data-step="4" tabindex="0" role="button" aria-label="Go to step 4: Finalize">
+            <div class="rp-stepper-dot">4</div>
+            <div class="rp-stepper-label">Finalize</div>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================
+     WIZARD STEP PANELS (partials)
+     ============================================================ -->
+@await Html.PartialAsync("_StepScheduleType", Model)
+@await Html.PartialAsync("_StepSaq", Model)
+@await Html.PartialAsync("_StepKri", Model)
+@await Html.PartialAsync("_StepFinalize", Model)
+
+<!-- ============================================================
+     TEMPLATE PREVIEW MODAL (shared SAQ/KRI — read-only)
+     ============================================================ -->
+<div class="modal fade" id="templatePreviewModal" tabindex="-1" aria-labelledby="templatePreviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="templatePreviewModalLabel">Template preview</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="templatePreviewBody"></div>
+            <div class="modal-footer">
+                <button type="button" class="rp-btn rp-btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (function ($) {
+
+            /* =================================================================
+               SECTION 1 — PAGE DATA & ENDPOINTS
+               ================================================================= */
+            var canEdit = @(Model.CanEdit ? "true" : "false");
+            var completed = @Html.Raw(completedJson);
+
+            var saveScheduleUrl = '@Url.Action("SaveSchedule", "Schedule")';
+            var saveSaqUrl = '@Url.Action("SaveSaq", "Schedule")';
+            var saveKriUrl = '@Url.Action("SaveKri", "Schedule")';
+            var finalizeUrl = '@Url.Action("Finalize", "Schedule")';
+            var indexUrl = '@Url.Action("Index", "Schedule")';
+            var saqPreviewUrl = '@Url.Action("SaqPreview", "Schedule")';
+            var kriPreviewUrl = '@Url.Action("KriPreview", "Schedule")';
+
+            var saqOptions = @Html.Raw(saqOptionsJson);
+            var kriOptions = @Html.Raw(kriOptionsJson);
+            var saqHeaderIds = @Html.Raw(saqHeaderIdsJson);
+            var kriHeaderIds = @Html.Raw(kriHeaderIdsJson);
+
+            /* =================================================================
+               SECTION 2 — WIZARD STATE
+               ================================================================= */
+            var state = {
+                id: @Model.ScheduleId,
+                code: @Html.Raw(Json.Serialize(Model.ScheduleCode)),
+                step: 1,
+                completed: {
+                    1: @(isEdit ? "true" : "false"),
+                    2: completed.saq,
+                    3: completed.kri,
+                    4: false
+                },
+                frontier: 1
+            };
+
+            // The frontier is the furthest step reachable by clicking the bar.
+            for (var i = 1; i <= 4; i++) {
+                if (state.completed[i]) state.frontier = i + 1;
+            }
+
+            function markStepComplete(s) {
+                state.completed[s] = true;
+                if (s >= state.frontier) state.frontier = s + 1;
+            }
+
+            /* =================================================================
+               SECTION 3 — STEP BAR + NAVIGATION
+               ================================================================= */
+            function setBar(n) {
+                $('.rp-stepper-step[data-step]').each(function () {
+                    var s = $(this).data('step');
+                    var $el = $(this);
+                    if (s === 'rr') {
+                        $el.removeClass('is-active is-complete is-clickable');
+                        return;
+                    }
+                    s = +s;
+                    $el.toggleClass('is-active', s === n);
+                    $el.toggleClass('is-complete', !!state.completed[s] && s < n);
+                    $el.toggleClass('is-clickable', s <= state.frontier && s !== n);
+                });
+            }
+
+            function templateLabels(picker) {
+                var labels = picker ? picker.labels() : [];
+                return labels.length ? labels.join(', ') : '—';
+            }
+
+            function fillSummary() {
+                $('#summaryCode').text(state.code || '—');
+                $('#summarySaq').text(templateLabels(saqPicker));
+                $('#summaryKri').text(templateLabels(kriPicker));
+                if (state.type === 'Recurring') {
+                    var month = $('#wizardStartMonth').val() || '—';
+                    var day = $('#wizardRecurringDay').val() || '—';
+                    $('#summaryWindow').text(month + ' · day ' + day);
+                } else {
+                    var dates = [];
+                    if ($('#wizardStartDate').val()) dates.push('Start: ' + $('#wizardStartDate').val());
+                    if ($('#wizardEndDate').val()) dates.push('End: ' + $('#wizardEndDate').val());
+                    $('#summaryWindow').text(dates.length ? dates.join(', ') : '—');
+                }
+            }
+
+            function goToStep(n) {
+                if (n < 1 || n > 4) return;
+                if (!canEdit) { RiskPulse.toastError('This schedule is not editable.'); return; }
+                if (n > state.frontier) { RiskPulse.toastError('Complete the previous step first.'); return; }
+                state.step = n;
+                $('.rp-wizard-panel').hide().filter('[data-step="' + n + '"]').show();
+                setBar(n);
+                if (n === 4) fillSummary();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+
+            /* =================================================================
+               SECTION 4 — STEP SUBMITS (the only server touchpoints)
+               ================================================================= */
+            function submitSchedule($btn) {
+                var scheduleType = $('input[name="scheduleType"]:checked').val();
+                if (!scheduleType) { RiskPulse.validationError($('.schedule-type-group'), 'Choose a schedule type.'); return; }
+
+                var payload = {
+                    scheduleId: state.id,
+                    scheduleType: scheduleType,
+                    startDate: null,
+                    endDate: null,
+                    startMonth: null,
+                    recurringDay: null
+                };
+
+                if (scheduleType === 'OneTime') {
+                    var start = $('#wizardStartDate').val();
+                    var end = $('#wizardEndDate').val();
+                    if (!start) { RiskPulse.validationError($('#wizardStartDate'), 'Start date is required.'); return; }
+                    if (!end) { RiskPulse.validationError($('#wizardEndDate'), 'End date is required.'); return; }
+                    if (start > end) { RiskPulse.validationError($('#wizardEndDate'), 'End date cannot be before the start date.'); return; }
+                    payload.startDate = start;
+                    payload.endDate = end;
+                } else {
+                    var month = $('#wizardStartMonth').val();
+                    var day = +$('#wizardRecurringDay').val() || 0;
+                    if (!month) { RiskPulse.validationError($('#wizardStartMonth'), 'Start month is required.'); return; }
+                    if (day < 1 || day > 7) { RiskPulse.validationError($('#wizardRecurringDay'), 'Recurring day must be between 1 and 7.'); return; }
+                    payload.startMonth = month + '-01';
+                    payload.recurringDay = day;
+                }
+
+                RiskPulse.postJson(saveScheduleUrl, payload, {
+                    success: function (res) {
+                        state.id = res.data.id;
+                        state.code = res.data.code;
+                        state.type = scheduleType;
+                        markStepComplete(1);
+                        goToStep(2);
+                    },
+                    fail: function (res) { RiskPulse.toastError(res.message || 'Unable to save the schedule.'); }
+                }, $btn);
+            }
+
+            function submitSaq($btn) {
+                var ids = saqPicker.selectedIds();
+                if (!ids.length) { RiskPulse.validationError($('#saqTemplateList'), 'Select at least one SAQ template.'); return; }
+                RiskPulse.postJson(saveSaqUrl, { scheduleId: state.id, templateHeaderIds: ids }, {
+                    success: function () { markStepComplete(2); goToStep(3); },
+                    fail: function (res) { RiskPulse.toastError(res.message || 'Unable to save the SAQ templates.'); }
+                }, $btn);
+            }
+
+            function submitKri($btn) {
+                var ids = kriPicker.selectedIds();
+                if (!ids.length) { RiskPulse.validationError($('#kriTemplateList'), 'Select at least one KRI template.'); return; }
+                RiskPulse.postJson(saveKriUrl, { scheduleId: state.id, templateHeaderIds: ids }, {
+                    success: function () { markStepComplete(3); goToStep(4); },
+                    fail: function (res) { RiskPulse.toastError(res.message || 'Unable to save the KRI templates.'); }
+                }, $btn);
+            }
+
+            function finalize(status) {
+                if (state.id === 0) { RiskPulse.toastError('The schedule has not been saved yet.'); return; }
+                RiskPulse.postJson(finalizeUrl, { scheduleId: state.id, status: status }, {
+                    success: function (res) {
+                        RiskPulse.toastSuccess(res.message || 'Schedule saved.');
+                        setTimeout(function () { window.location.href = indexUrl; }, 800);
+                    },
+                    fail: function (res) { RiskPulse.toastError(res.message || 'Unable to finalize the schedule.'); }
+                });
+            }
+
+            /* =================================================================
+               SECTION 5 — CONDITIONAL FIELDS
+               ================================================================= */
+            function applyTypeFields(scheduleType) {
+                var oneTime = scheduleType === 'OneTime';
+                $('#oneTimeFields').toggleClass('d-none', !oneTime);
+                $('#recurringFields').toggleClass('d-none', oneTime);
+            }
+
+            /* =================================================================
+               SECTION 6 — EVENT WIRING & INIT
+               ================================================================= */
+            $('input[name="scheduleType"]').on('change', function () { applyTypeFields($(this).val()); });
+
+            $('.rp-wizard-next').on('click', function () {
+                var $btn = $(this);
+                if (state.step === 1) submitSchedule($btn);
+                else if (state.step === 2) submitSaq($btn);
+                else if (state.step === 3) submitKri($btn);
+            });
+
+            $('.rp-wizard-back').on('click', function () {
+                if (state.step === 1) { window.location.href = indexUrl; return; }
+                goToStep(state.step - 1);
+            });
+
+            $('.rp-stepper-step[data-step]').on('click', function () {
+                var n = $(this).data('step');
+                if (n === 'rr') return;
+                goToStep(n);
+            });
+
+            $('.rp-stepper-step[data-step]').on('keydown', function (e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    var n = $(this).data('step');
+                    if (n === 'rr') return;
+                    goToStep(n);
+                }
+            });
+
+            $('.finalize-draft-btn').on('click', function () { finalize('Draft'); });
+            $('.finalize-active-btn').on('click', function () { finalize('Active'); });
+
+            // Paint the initial state.
+            applyTypeFields($('input[name="scheduleType"]:checked').val() || 'OneTime');
+            state.type = $('input[name="scheduleType"]:checked').val() || 'OneTime';
+            $('.rp-wizard-panel').hide().filter('[data-step="' + state.step + '"]').show();
+            setBar(state.step);
+
+            /* =================================================================
+               SECTION 7 — TEMPLATE PICKERS (search + pager + selection chips)
+               ================================================================= */
+            function createTemplatePicker(cfg) {
+                var $grid = $(cfg.containerSel);
+                var $picker = $grid.closest('.rp-picker');
+                var $search = $picker.find('.rp-pick-search');
+                var $clearSearch = $picker.find('.rp-pick-search-clear');
+                var $count = $picker.find('.rp-pick-count');
+                var $chips = $picker.find('.rp-pick-chips');
+                var $clearLink = $picker.find('.rp-pick-clear-link');
+                var $prevBtn = $picker.find('.rp-pager-btn[data-pager="prev"]');
+                var $nextBtn = $picker.find('.rp-pager-btn[data-pager="next"]');
+                var $pageInfo = $picker.find('.rp-pick-pageinfo');
+                var pageSize = cfg.pageSize || 12;
+                var CHIP_CAP = 6;
+
+                var state = {
+                    query: '',
+                    page: 1,
+                    selected: new Set()
+                };
+
+                // Seed only selections still offered (Active) — stale links are ignored.
+                var known = {};
+                $.each(cfg.options, function (i, o) { known[o.value] = true; });
+                (cfg.selected || []).forEach(function (id) { if (known[id]) state.selected.add(id); });
+
+                function optionMap() {
+                    var map = {};
+                    $.each(cfg.options, function (i, o) { map[o.value] = o; });
+                    return map;
+                }
+
+                function filteredOptions() {
+                    var q = state.query.trim().toLowerCase();
+                    if (!q) return cfg.options.slice();
+                    return $.grep(cfg.options, function (o) {
+                        return String(o.label || '').toLowerCase().indexOf(q) !== -1 ||
+                               String(o.code || '').toLowerCase().indexOf(q) !== -1;
+                    });
+                }
+
+                function pageCount() {
+                    return Math.max(1, Math.ceil(filteredOptions().length / pageSize));
+                }
+
+                function cardFor(opt) {
+                    var $card = $('<label class="rp-card p-3 d-flex gap-3 align-items-center rp-option-card">');
+                    $('<input type="checkbox" class="rp-checkbox">')
+                        .attr('name', cfg.inputName || 'templateHeaderIds')
+                        .attr('value', opt.value)
+                        .attr('data-label', opt.label || '')
+                        .prop('checked', state.selected.has(opt.value))
+                        .appendTo($card);
+
+                    var $body = $('<span class="d-flex flex-column gap-1 flex-grow-1">');
+                    if (opt.code) {
+                        $('<span class="rp-pill rp-pill-neutral align-self-start">').text(opt.code).appendTo($body);
+                    }
+                    $('<span class="rp-body-sm">').text(opt.label || '').appendTo($body);
+                    $body.appendTo($card);
+
+                    $('<button type="button" class="rp-pick-preview" title="Preview template" aria-label="Preview template">')
+                        .append('<i class="fas fa-eye"></i>')
+                        .attr('data-id', opt.value)
+                        .appendTo($card);
+
+                    return $card;
+                }
+
+                function renderGrid() {
+                    var list = filteredOptions();
+                    var from = (state.page - 1) * pageSize;
+                    var pageItems = list.slice(from, from + pageSize);
+
+                    $grid.empty();
+
+                    if (!cfg.options.length) {
+                        $('<p class="rp-body-sm rp-text-muted mb-0 rp-pick-empty">').text(cfg.emptyText || 'No templates available yet.').appendTo($grid);
+                    } else if (!list.length) {
+                        $('<p class="rp-body-sm rp-text-muted mb-0 rp-pick-empty">').text('No matches for your search.').appendTo($grid);
+                    } else {
+                        $.each(pageItems, function (i, opt) { $grid.append(cardFor(opt)); });
+                    }
+                }
+
+                function renderBar() {
+                    var ids = selectedIds();
+                    var map = optionMap();
+                    $count.text(ids.length + ' selected');
+                    $chips.empty();
+
+                    var visible = ids.slice(0, CHIP_CAP);
+                    $.each(visible, function (i, id) {
+                        var opt = map[id];
+                        if (!opt) return;
+                        var $chip = $('<span class="rp-pick-chip">');
+                        $('<span class="rp-pick-chip-label">').text(opt.label || String(opt.code || id)).appendTo($chip);
+                        $('<button type="button" class="rp-pick-chip-remove" aria-label="Remove">')
+                            .attr('aria-label', 'Remove ' + (opt.label || id))
+                            .append('<i class="fas fa-xmark"></i>')
+                            .data('id', id)
+                            .appendTo($chip);
+                        $chips.append($chip);
+                    });
+
+                    var remaining = ids.length - visible.length;
+                    if (remaining > 0) {
+                        $('<span class="rp-pick-chip rp-pick-chip-more">').text('+' + remaining + ' more').appendTo($chips);
+                    }
+
+                    $clearLink.toggle(ids.length > 0);
+                }
+
+                function renderPager() {
+                    var listLen = filteredOptions().length;
+                    var pages = pageCount();
+                    if (state.page > pages) state.page = pages;
+                    if (state.page < 1) state.page = 1;
+                    $prevBtn.prop('disabled', state.page <= 1);
+                    $nextBtn.prop('disabled', state.page >= pages);
+                    $pageInfo.text('Page ' + state.page + ' of ' + pages + ' · ' + listLen + (listLen === 1 ? ' result' : ' results'));
+                }
+
+                function render() {
+                    renderPager();
+                    renderGrid();
+                    renderBar();
+                    $clearSearch.toggle(state.query.length > 0);
+                }
+
+                function selectedIds() {
+                    var ids = Array.from(state.selected);
+                    ids.sort(function (a, b) { return a - b; });
+                    return ids;
+                }
+
+                function labels() {
+                    var out = [];
+                    $.each(cfg.options, function (i, o) {
+                        if (state.selected.has(o.value)) out.push(o.label || String(o.code || o.value));
+                    });
+                    return out;
+                }
+
+                // --- Events ---
+                $search.on('input', function () {
+                    state.query = $(this).val();
+                    state.page = 1; // reset to page 1 on every search
+                    renderPager();
+                    renderGrid();
+                    $clearSearch.toggle(state.query.length > 0);
+                });
+
+                $clearSearch.on('click', function () {
+                    $search.val('');
+                    state.query = '';
+                    state.page = 1;
+                    renderPager();
+                    renderGrid();
+                    $clearSearch.hide();
+                    $search.trigger('focus');
+                });
+
+                $prevBtn.on('click', function () {
+                    if (state.page > 1) {
+                        state.page--;
+                        renderPager();
+                        renderGrid();
+                    }
+                });
+
+                $nextBtn.on('click', function () {
+                    if (state.page < pageCount()) {
+                        state.page++;
+                        renderPager();
+                        renderGrid();
+                    }
+                });
+
+                $grid.on('change', 'input.rp-checkbox', function () {
+                    var id = +this.value;
+                    if (this.checked) state.selected.add(id);
+                    else state.selected.delete(id);
+                    renderBar();
+                });
+
+                $grid.on('click', '.rp-pick-preview', function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    var id = +$(this).data('id');
+                    if (cfg.previewOpen) cfg.previewOpen(id, $(this));
+                });
+
+                $chips.on('click', '.rp-pick-chip-remove', function () {
+                    state.selected.delete(+$(this).data('id'));
+                    renderBar();
+                    renderGrid();
+                });
+
+                $clearLink.on('click', function () {
+                    state.selected.clear();
+                    renderBar();
+                    renderGrid();
+                });
+
+                render();
+
+                return {
+                    selectedIds: selectedIds,
+                    labels: labels,
+                    isChecked: function (id) { return state.selected.has(id); }
+                };
+            }
+
+            var saqPicker = createTemplatePicker({
+                containerSel: '#saqTemplateList',
+                options: saqOptions,
+                selected: saqHeaderIds,
+                pageSize: 12,
+                inputName: 'saqTemplateIds',
+                emptyText: 'No SAQ templates available yet.',
+                previewOpen: openSaqPreview
+            });
+
+            var kriPicker = createTemplatePicker({
+                containerSel: '#kriTemplateList',
+                options: kriOptions,
+                selected: kriHeaderIds,
+                pageSize: 12,
+                inputName: 'kriTemplateIds',
+                emptyText: 'No KRI templates available yet.',
+                previewOpen: openKriPreview
+            });
+
+            /* =================================================================
+               SECTION 8 — TEMPLATE PREVIEW (shared read-only modal)
+               ================================================================= */
+            var previewKind = 'saq';
+            var previewId = 0;
+            var previewTrigger = null;
+
+            function openSaqPreview(id, $trigger) { openTemplatePreview('saq', id, $trigger, 'SAQ template preview'); }
+            function openKriPreview(id, $trigger) { openTemplatePreview('kri', id, $trigger, 'KRI template preview'); }
+
+            function openTemplatePreview(kind, id, $trigger, title) {
+                previewKind = kind;
+                previewId = id;
+                previewTrigger = $trigger;
+                $('#templatePreviewModalLabel').text(title);
+                renderPreviewLoading();
+                RiskPulse.showModal('templatePreviewModal');
+                fetchTemplatePreview();
+            }
+
+            function previewFetchUrl() {
+                return (previewKind === 'saq' ? saqPreviewUrl : kriPreviewUrl) + '?id=' + previewId;
+            }
+
+            function fetchTemplatePreview() {
+                RiskPulse.getJson(previewFetchUrl(), null, {
+                    success: function (res) { renderTemplatePreview(res.data); },
+                    fail: function (res) { renderPreviewError(res.message || RiskPulse.genericError); },
+                    complete: function () {
+                        // HTTP errors only reach the module's generic toast; surface an inline retry too.
+                        if ($('#templatePreviewBody').find('.rp-preview-loading').length) {
+                            renderPreviewError('Unable to load the template preview. Please try again.');
+                        }
+                    }
+                });
+            }
+
+            function renderPreviewLoading() {
+                $('#templatePreviewBody').html(
+                    '<div class="rp-preview-loading text-center p-4">' +
+                        '<i class="fas fa-spinner fa-spin fa-2x mb-3"></i>' +
+                        '<p class="rp-body-sm rp-text-muted mb-0">Loading template details...</p>' +
+                    '</div>'
+                );
+            }
+
+            function renderPreviewError(message) {
+                $('#templatePreviewBody').html(
+                    '<div class="rp-preview-error">' +
+                        '<i class="fas fa-triangle-exclamation"></i>' +
+                        '<p class="rp-body-sm mb-3">' + RiskPulse.escapeHtml(message) + '</p>' +
+                        '<button type="button" class="rp-btn rp-btn-secondary rp-preview-retry"><i class="fas fa-rotate-right"></i> Retry</button>' +
+                    '</div>'
+                );
+            }
+
+            function renderTemplatePreview(data) {
+                if (previewKind === 'saq') renderSaqPreview(data);
+                else renderKriPreview(data);
+            }
+
+            function renderSaqPreview(data) {
+                var $body = $('#templatePreviewBody').empty();
+
+                var $meta = $('<div class="rp-preview-meta mb-3">');
+                if (data.saqCode) $meta.append($(RiskPulse.pill(data.saqCode, 'neutral')));
+                $meta.append($(RiskPulse.pill(data.saqStatus || '—', RiskPulse.statusKind(data.saqStatus))));
+                if (data.assignmentLabel) {
+                    $meta.append(
+                        $('<span class="rp-preview-assignment"><i class="fas fa-sitemap me-1"></i></span>')
+                            .append(document.createTextNode(data.assignmentLabel))
+                    );
+                }
+                $meta.appendTo($body);
+
+                var questions = data.questions || [];
+                if (!questions.length) {
+                    $('<p class="rp-body-sm rp-text-muted mb-0">').text('This template has no questions yet.').appendTo($body);
+                    return;
+                }
+
+                $.each(questions, function (i, q) {
+                    var $q = $('<div class="rp-preview-question">');
+                    var $head = $('<div class="rp-preview-question-head">');
+                    $('<span class="rp-body-sm rp-text-muted fw-semibold rp-preview-qnum">').text('Q' + (i + 1) + '.').appendTo($head);
+                    $('<span class="rp-body-md">').text(q.questionText).appendTo($head);
+                    if (q.allowComment) {
+                        $('<span class="rp-preview-comment"><i class="fas fa-comment-dots me-1"></i>Comment allowed</span>').appendTo($head);
+                    }
+                    $head.appendTo($q);
+
+                    var $opts = $('<div class="rp-preview-options">');
+                    if (q.options && q.options.length) {
+                        $.each(q.options, function (j, o) {
+                            $('<span class="rp-preview-option">').text(o.optionText).appendTo($opts);
+                        });
+                    } else {
+                        $('<span class="rp-body-sm rp-text-muted">').text('No answer options.').appendTo($opts);
+                    }
+                    $opts.appendTo($q);
+                    $q.appendTo($body);
+                });
+            }
+
+            function renderKriPreview(data) {
+                var $body = $('#templatePreviewBody').empty();
+
+                var $meta = $('<div class="rp-preview-meta mb-3">');
+                if (data.kriCode) $meta.append($(RiskPulse.pill(data.kriCode, 'neutral')));
+                $meta.append($(RiskPulse.pill(data.kriStatus || '—', RiskPulse.statusKind(data.kriStatus))));
+                if (data.assignmentLabel) {
+                    $meta.append(
+                        $('<span class="rp-preview-assignment"><i class="fas fa-sitemap me-1"></i></span>')
+                            .append(document.createTextNode(data.assignmentLabel))
+                    );
+                }
+                $meta.appendTo($body);
+
+                var kris = data.kris || [];
+                if (!kris.length) {
+                    $('<p class="rp-body-sm rp-text-muted mb-0">').text('This template has no indicators yet.').appendTo($body);
+                    return;
+                }
+
+                $.each(kris, function (i, k) {
+                    var $row = $('<div class="rp-preview-kri-row">');
+                    $('<span class="rp-body-sm rp-text-muted fw-semibold rp-preview-qnum">').text((i + 1) + '.').appendTo($row);
+                    $('<span class="rp-body-md rp-preview-kri-desc">').text(k.kriDesc).appendTo($row);
+
+                    var $limits = $('<span class="rp-preview-kri-limits">');
+                    $('<span class="rp-level-dot rp-level-dot--green" title="Green"></span>').appendTo($limits);
+                    $('<span class="rp-preview-kri-limit">').text(k.greenLimit).appendTo($limits);
+                    $('<span class="rp-level-dot rp-level-dot--amber" title="Amber"></span>').appendTo($limits);
+                    $('<span class="rp-preview-kri-limit">').text(k.amberLimit).appendTo($limits);
+                    $('<span class="rp-level-dot rp-level-dot--red" title="Red"></span>').appendTo($limits);
+                    $('<span class="rp-preview-kri-limit">').text(k.redLimit).appendTo($limits);
+                    $limits.appendTo($row);
+
+                    if (k.allowComment) {
+                        $('<span class="rp-preview-comment"><i class="fas fa-comment-dots me-1"></i>Comment allowed</span>').appendTo($row);
+                    }
+                    $row.appendTo($body);
+                });
+            }
+
+            $('#templatePreviewBody').on('click', '.rp-preview-retry', function () {
+                fetchTemplatePreview();
+            });
+
+            $('#templatePreviewModal').on('hidden.bs.modal', function () {
+                $('#templatePreviewBody').empty();
+                if (previewTrigger && previewTrigger.length) previewTrigger.focus();
+                previewTrigger = null;
+            });
+        })(jQuery);
+    </script>
+}

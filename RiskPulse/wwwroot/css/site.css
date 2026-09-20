@@ -1331,6 +1331,98 @@ select.rp-input {
 .rp-wizard-panel { display: none; }
 .rp-wizard-summary th { width: 200px; }
 
+/* --- Template checklist (wizard multi-pick) --- */
+.rp-checklist { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 0.75rem; }
+.rp-checklist .rp-option-card { margin-bottom: 0; cursor: pointer; transition: border-color 0.15s ease, box-shadow 0.15s ease; }
+.rp-checklist .rp-option-card:hover { border-color: var(--outline); }
+.rp-checklist .rp-option-card:has(input:checked) { border-color: var(--accent-strong); box-shadow: 0 0 0 1px var(--accent-strong), 0 4px 16px -8px var(--accent-strong); }
+.rp-checkbox { width: 1.125rem; height: 1.125rem; accent-color: var(--accent-strong); flex-shrink: 0; margin-top: 0.15rem; }
+.rp-checklist.rp-input-error { outline: 1px dashed var(--danger); outline-offset: 3px; border-radius: 0.625rem; }
+
+/* --- Template picker (wizard SAQ/KRI multi-pick: search + pager + chips) --- */
+.rp-picker { display: flex; flex-direction: column; gap: 0.75rem; }
+.rp-pick-toolbar { display: flex; }
+.rp-pick-search-wrap { position: relative; flex: 1 1 auto; max-width: 28rem; }
+.rp-pick-search-icon { position: absolute; left: 0.625rem; top: 50%; transform: translateY(-50%); color: var(--outline); font-size: 0.8125rem; pointer-events: none; }
+.rp-pick-search { padding-left: 2rem; padding-right: 2rem; }
+.rp-pick-search-clear {
+  position: absolute; right: 0.375rem; top: 50%; transform: translateY(-50%);
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 1.25rem; height: 1.25rem; padding: 0; border: none; border-radius: 50%;
+  background: transparent; color: var(--outline); cursor: pointer;
+  transition: color 0.2s ease, background-color 0.2s ease;
+}
+.rp-pick-search-clear:hover { color: var(--on-surface); background-color: var(--surface-container-high); }
+.rp-pick-search-clear i { font-size: 0.75rem; }
+.rp-pick-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; min-height: 1.5rem; }
+.rp-pick-count { font-size: 0.75rem; font-weight: 600; color: var(--on-surface-variant); }
+.rp-pick-chips { display: inline-flex; flex-wrap: wrap; gap: 0.375rem; flex: 1 1 auto; }
+.rp-pick-chip {
+  display: inline-flex; align-items: center; gap: 0.25rem;
+  background-color: var(--accent-container); color: var(--on-accent-container);
+  border-radius: 0.25rem; padding: 0.125rem 0.5rem;
+  font-size: 0.75rem; line-height: 1.125rem;
+}
+.rp-pick-chip-label { max-width: 14rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rp-pick-chip-remove {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 0; margin: 0; border: none; background: transparent;
+  color: var(--on-accent-container); cursor: pointer; line-height: 1;
+}
+.rp-pick-chip-remove:hover { color: var(--accent-strong); }
+.rp-pick-chip-more { background-color: var(--surface-container-high); color: var(--on-surface-variant); }
+.rp-pick-clear-link {
+  border: none; background: transparent; padding: 0;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-size: 0.6875rem; line-height: 0.875rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--accent-strong); cursor: pointer;
+}
+.rp-pick-clear-link:hover { text-decoration: underline; }
+.rp-pick-grid { min-height: 7.5rem; align-content: start; }
+.rp-pick-empty { grid-column: 1 / -1; text-align: center; padding: 1.5rem 0; }
+.rp-pick-preview {
+  display: inline-flex; align-items: center; justify-content: center;
+  flex-shrink: 0; width: 1.875rem; height: 1.875rem;
+  border: 1px solid var(--primary-container); border-radius: 0.25rem;
+  background: transparent; color: var(--primary-container); cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+.rp-pick-preview:hover { background-color: rgba(27, 54, 93, 0.05); border-color: var(--primary-container); }
+.rp-pick-preview:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.rp-checklist .rp-option-card:has(input:focus-visible) { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-ring); }
+.rp-pick-pager { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.rp-pager-btn { min-width: 6rem; justify-content: center; }
+.rp-pager-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.rp-pick-pageinfo { font-size: 0.75rem; color: var(--on-surface-variant); }
+
+/* --- Template preview modal (read-only SAQ/KRI) --- */
+.rp-preview-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 0.625rem; }
+.rp-preview-assignment { display: inline-flex; align-items: center; gap: 0.375rem; font-size: 0.8125rem; color: var(--on-surface-variant); }
+.rp-preview-question { border-top: 1px solid var(--outline-variant); padding: 0.75rem 0; }
+.rp-preview-question:first-of-type { border-top: none; }
+.rp-preview-question-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.5rem; }
+.rp-preview-qnum { min-width: 1.75rem; }
+.rp-preview-comment { display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.6875rem; color: var(--on-surface-variant); }
+.rp-preview-options { display: flex; flex-wrap: wrap; gap: 0.375rem; margin-top: 0.5rem; }
+.rp-preview-option {
+  display: inline-flex; align-items: center; padding: 0.125rem 0.5rem; border-radius: 9999px;
+  background-color: var(--surface-container-low); border: 1px solid var(--outline-variant);
+  font-size: 0.75rem; line-height: 1.125rem; color: var(--on-surface);
+}
+.rp-preview-kri-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; padding: 0.5rem 0; border-top: 1px solid var(--outline-variant); }
+.rp-preview-kri-row:first-child { border-top: none; }
+.rp-preview-kri-desc { flex: 1 1 0; min-width: 12rem; }
+.rp-preview-kri-limits { display: inline-flex; align-items: center; gap: 0.375rem; }
+.rp-preview-kri-limit { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--on-surface-variant); }
+.rp-level-dot--green { background-color: var(--success); }
+.rp-level-dot--amber { background-color: var(--gold); }
+.rp-level-dot--red { background-color: var(--danger); }
+.rp-preview-loading { color: var(--outline); }
+.rp-preview-error { text-align: center; padding: 1.5rem 1rem; }
+.rp-preview-error i { display: block; font-size: 1.5rem; color: var(--danger); margin-bottom: 0.5rem; }
+.rp-preview-error .rp-body-sm { color: var(--on-surface-variant); }
+
 /* ============================================================
    LOGIN PAGE — Standalone (Layout = null)
    "Daylight": light aurora field + crisp white card

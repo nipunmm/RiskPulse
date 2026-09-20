@@ -1,6 +1,6 @@
 namespace RiskPulse.Models.Enum
 {
-    public enum AssessmentStatus
+    public enum ScheduleStatus
     {
         Draft,
         Active

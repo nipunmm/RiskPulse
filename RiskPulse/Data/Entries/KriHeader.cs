@@ -23,7 +23,5 @@ namespace RiskPulse.Data.Entries
         public string? KriCode { get; set; }
 
         public ICollection<Kri> Kris { get; set; } = new List<Kri>();
-
-        public ICollection<AssessmentHeader> AssessmentHeaders { get; set; } = new List<AssessmentHeader>();
     }
 }

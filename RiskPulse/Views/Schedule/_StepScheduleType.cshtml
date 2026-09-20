@@ -1,0 +1,81 @@
+@model RiskPulse.Models.ViewModel.ScheduleWizardViewModel
+@using RiskPulse.Models.Enum
+@{
+    var scheduleDayNames = new[] { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" };
+}
+
+<section class="rp-wizard-panel" data-step="1">
+    <div class="rp-card p-3">
+        <h6 class="rp-display-md mb-1">Step 1 — Schedule type</h6>
+        <p class="rp-body-sm mb-3 rp-text-muted">
+            Set up when this assessment runs. You can change it later while the schedule is still a draft.
+        </p>
+        @if (Model.ScheduleId > 0)
+        {
+            <div class="row g-3">
+                <div class="col-lg-4">
+                    <label class="rp-label" for="wizardScheduleCode">Schedule Code</label>
+                    <input type="text" id="wizardScheduleCode" class="rp-input" value="@Model.ScheduleCode" readonly />
+                </div>
+            </div>
+        }
+        else
+        {
+            <p class="rp-body-sm mb-0 rp-text-muted">
+                <i class="fas fa-tag me-1"></i> A unique schedule code (e.g. SCH-@DateTime.Now.ToString("yyyyMMdd")-0001) will be assigned automatically.
+            </p>
+        }
+
+        <fieldset class="schedule-type-group mt-3">
+            <legend class="rp-label mb-2">Schedule Type</legend>
+            <div class="d-flex flex-column flex-lg-row gap-3">
+                <label class="rp-card p-3 d-flex gap-3 align-items-start rp-option-card">
+                    <input type="radio" name="scheduleType" value="OneTime" @(Model.ScheduleType == ScheduleType.OneTime || Model.ScheduleId == 0 ? "checked" : null) class="mt-1 rp-radio" />
+                    <span>
+                        <span class="rp-body-sm fw-semibold d-block">One-time</span>
+                        <span class="rp-text-muted rp-body-sm">Runs within a fixed window (start and end dates).</span>
+                    </span>
+                </label>
+                <label class="rp-card p-3 d-flex gap-3 align-items-start rp-option-card">
+                    <input type="radio" name="scheduleType" value="Recurring" @(Model.ScheduleType == ScheduleType.Recurring ? "checked" : null) class="mt-1 rp-radio" />
+                    <span>
+                        <span class="rp-body-sm fw-semibold d-block">Recurring</span>
+                        <span class="rp-text-muted rp-body-sm">Repeats every month on the day you choose, starting from a month.</span>
+                    </span>
+                </label>
+            </div>
+        </fieldset>
+
+        <div class="row g-3 mt-1" id="oneTimeFields">
+            <div class="col-lg-3">
+                <label class="rp-label" for="wizardStartDate">Start Date</label>
+                <input type="date" id="wizardStartDate" class="rp-input" value="@Model.StartDate?.ToString("yyyy-MM-dd")" />
+            </div>
+            <div class="col-lg-3">
+                <label class="rp-label" for="wizardEndDate">End Date</label>
+                <input type="date" id="wizardEndDate" class="rp-input" value="@Model.EndDate?.ToString("yyyy-MM-dd")" />
+            </div>
+        </div>
+
+        <div class="row g-3 mt-1 d-none" id="recurringFields">
+            <div class="col-lg-3">
+                <label class="rp-label" for="wizardStartMonth">Start Month</label>
+                <input type="month" id="wizardStartMonth" class="rp-input" value="@Model.StartMonth?.ToString("yyyy-MM")" />
+            </div>
+            <div class="col-lg-3">
+                <label class="rp-label" for="wizardRecurringDay">Recurring Day</label>
+                <select id="wizardRecurringDay" class="rp-input">
+                    <option value="0">Select a day...</option>
+                    @for (var d = 1; d <= 7; d++)
+                    {
+                        <option value="@d" selected="@(Model.RecurringDay == d ? "selected" : null)">@scheduleDayNames[d - 1]</option>
+                    }
+                </select>
+            </div>
+        </div>
+    </div>
+    <div class="d-flex justify-content-end gap-2 mt-3">
+        <a href="@Url.Action("Index", "Schedule")" class="rp-btn rp-btn-secondary d-inline-flex align-items-center gap-2">Cancel</a>
+        <button type="button" class="rp-btn rp-btn-primary rp-wizard-next"><i class="fas fa-arrow-right"></i> Next</button>
+    </div>
+</section>

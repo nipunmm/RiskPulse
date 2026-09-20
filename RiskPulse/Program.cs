@@ -3,9 +3,10 @@ using Microsoft.EntityFrameworkCore;
 using RiskPulse.Data;
 using RiskPulse.Services;
 using RiskPulse.Services.Administration;
-using RiskPulse.Services.Assessment;
 using RiskPulse.Services.Login;
+using RiskPulse.Services.Schedule;
 using RiskPulse.Services.Templates;
+using RiskPulse.Services.Utilities;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,8 +29,8 @@ builder.Services.AddScoped<RolesService>();
 builder.Services.AddScoped<UnitsService>();
 builder.Services.AddScoped<SaqTemplatesService>();
 builder.Services.AddScoped<KriTemplatesService>();
-builder.Services.AddScoped<AssessmentService>();
-builder.Services.AddScoped<TemplateCodeService>();
+builder.Services.AddScoped<ScheduleService>();
+builder.Services.AddScoped<CodeGeneratorService>();
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
@@ -44,7 +45,7 @@ builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy($"Permission:{PermissionCatalog.Dashboard}", policy => policy.RequireClaim("Permission", PermissionCatalog.Dashboard));
     options.AddPolicy($"Permission:{PermissionCatalog.Submissions}", policy => policy.RequireClaim("Permission", PermissionCatalog.Submissions));
-    options.AddPolicy($"Permission:{PermissionCatalog.Assessment}", policy => policy.RequireClaim("Permission", PermissionCatalog.Assessment));
+    options.AddPolicy($"Permission:{PermissionCatalog.Schedule}", policy => policy.RequireClaim("Permission", PermissionCatalog.Schedule));
     options.AddPolicy($"Permission:{PermissionCatalog.Roles}", policy => policy.RequireClaim("Permission", PermissionCatalog.Roles));
     options.AddPolicy($"Permission:{PermissionCatalog.Users}", policy => policy.RequireClaim("Permission", PermissionCatalog.Users));
     options.AddPolicy($"Permission:{PermissionCatalog.Units}", policy => policy.RequireClaim("Permission", PermissionCatalog.Units));

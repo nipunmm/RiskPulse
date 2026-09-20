@@ -1,20 +1,26 @@
+using RiskPulse.Models.Enum;
+
 namespace RiskPulse.Models.ViewModel
 {
-    public class AssessmentWizardViewModel
+    public class ScheduleWizardViewModel
     {
-        public int AssessmentHeaderId { get; set; }
+        public int ScheduleId { get; set; }
 
-        public string AssessmentName { get; set; } = string.Empty;
+        public string ScheduleCode { get; set; } = string.Empty;
 
-        public int SaqHeaderId { get; set; }
-
-        public int KriHeaderId { get; set; }
-
-        public string ScheduleDesc { get; set; } = string.Empty;
+        public ScheduleType ScheduleType { get; set; }
 
         public DateTime? StartDate { get; set; }
 
         public DateTime? EndDate { get; set; }
+
+        public DateTime? StartMonth { get; set; }
+
+        public int? RecurringDay { get; set; }
+
+        public List<int> SaqHeaderIds { get; set; } = new();
+
+        public List<int> KriHeaderIds { get; set; } = new();
 
         public List<OptionViewModel> SaqOptions { get; set; } = new();
 
