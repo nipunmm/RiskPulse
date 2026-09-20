@@ -32,6 +32,12 @@ public class CodeGeneratorService
             .Select(s => s.ScheduleCode));
     }
 
+    public Task<string> GenerateAssessmentCodeAsync()
+    {
+        return GenerateCodeAsync("ASM", _db.AssessmentHeaders
+            .Select(h => h.AssessmentCode));
+    }
+
     private async Task<string> GenerateCodeAsync(string prefix, IQueryable<string> allCodes)
     {
         var datePart = DateTime.Now.ToString("yyyyMMdd");

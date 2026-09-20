@@ -1,0 +1,158 @@
+@model RiskPulse.Models.ViewModel.AssessmentDetailViewModel
+@{
+    ViewData["Title"] = "Assessment " + Model.AssessmentCode;
+
+    string PillClass(string label) => label switch
+    {
+        "InProgress" => "warning",
+        "Submitted" => "warning",
+        "Approved" => "success",
+        "Authorized" => "success",
+        _ => "neutral"
+    };
+
+    string StepPill(string label) => $"<span class=\"rp-pill rp-pill-{PillClass(label)}\">{label}</span>";
+    string TypePill(string type) => $"<span class=\"rp-pill rp-pill-neutral\">{type}</span>";
+}
+
+<div class="rp-page-header">
+    <div>
+        <a href="@Url.Action("Index")" class="rp-body-sm rp-text-muted text-decoration-none">
+            <i class="fas fa-arrow-left me-1"></i>Back to Submissions
+        </a>
+        <h2 class="rp-display-lg mt-2 mb-1">@Model.AssessmentCode</h2>
+        <p class="rp-body-md mb-0 rp-text-muted">
+            @Model.UnitDesc &middot; @(Model.PeriodStart?.ToString("dd MMM yyyy")) &rarr; @(Model.PeriodEnd?.ToString("dd MMM yyyy"))
+        </p>
+    </div>
+    <div class="text-end">
+        <span id="unitStatusPill">@Html.Raw(StepPill(Model.StatusLabel))</span>
+    </div>
+</div>
+
+<div class="rp-card p-2">
+    <div class="rp-grid-toolbar">
+        <p class="mb-0 rp-body-sm rp-text-muted">Items in this assessment. Complete each questionnaire, then approve or submit.</p>
+    </div>
+    <table id="detailTable" class="table rp-table table-sm w-100 align-middle">
+        <thead>
+            <tr>
+                <th>Type</th>
+                <th>Reference</th>
+                <th>Template</th>
+                <th>Status</th>
+                <th>Submitted / Approved</th>
+                <th class="text-end">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model.Items)
+            {
+                <tr data-item-id="@item.AssessmentItemId" data-step-code="@item.StepCode">
+                    <td>@Html.Raw(TypePill(item.ItemType))</td>
+                    <td>@item.ReferenceCode</td>
+                    <td>@item.ItemTitle</td>
+                    <td>@Html.Raw(StepPill(item.StatusLabel))</td>
+                    <td class="rp-body-sm rp-text-muted">
+                        @if (item.SubmittedOn.HasValue)
+                        {
+                            <span>@item.SubmittedBy &middot; @item.SubmittedOn.Value.ToString("dd MMM yy")</span>
+                        }
+                        else
+                        {
+                            <span>-</span>
+                        }
+                        @if (item.ApprovedOn.HasValue)
+                        {
+                            <div class="mt-1"><i class="fas fa-check-circle text-success me-1"></i>@item.ApprovedBy &middot; @item.ApprovedOn.Value.ToString("dd MMM yy")</div>
+                        }
+                    </td>
+                    <td class="text-end">
+                        @{
+                            var entryAction = item.ItemType == "Saq" ? "SaqEntry" : "KriEntry";
+                            var entryUrl = Url.Action(entryAction, "Submissions", new { id = item.AssessmentItemId });
+                        }
+                        <a href="@entryUrl" class="rp-btn @(item.Editable ? "rp-btn-edit" : "rp-btn-secondary")">
+                            <i class="fas @(item.Editable ? "fa-pen-to-square" : "fa-eye")"></i> @(item.Editable ? "Fill" : "View")
+                        </a>
+                        @if (item.StepCode == "Submitted")
+                        {
+                            <button type="button" class="rp-btn rp-btn-primary approve-item-btn" data-item-id="@item.AssessmentItemId">
+                                <i class="fas fa-check"></i> Approve
+                            </button>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    @if (!Model.Items.Any())
+    {
+        <p class="rp-body-md rp-text-muted text-center py-4 mb-0">No items have been assigned to this assessment.</p>
+    }
+</div>
+
+<div class="d-flex justify-content-end mt-3">
+    <button type="button" id="authorizeUnitBtn" class="rp-btn rp-btn-primary"
+            @(Model.CanAuthorize && Model.ApprovedCount == Model.ItemCount && Model.ItemCount > 0 ? "" : "disabled")
+            title="@(Model.ApprovedCount < Model.ItemCount ? "Approve all items before authorizing." : "")">
+        <i class="fas fa-check-double me-1"></i> Authorize Assessment
+    </button>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.AuthorizedBy))
+{
+    <p class="rp-body-sm rp-text-muted mt-2 mb-0 text-end">
+        Authorized by @Model.AuthorizedBy on @(Model.AuthorizedOn?.ToString("dd MMM yyyy HH:mm"))
+    </p>
+}
+
+@section Scripts {
+    <script>
+        (function ($) {
+
+            /* =================================================================
+               SECTION 1 — ENDPOINTS
+               ================================================================= */
+            var approveUrl = '@Url.Action("ApproveItem", "Submissions")';
+            var authorizeUrl = '@Url.Action("AuthorizeUnit", "Submissions")';
+            var currentAssessmentUnitId = @Model.AssessmentUnitId;
+
+            /* =================================================================
+               SECTION 2 — ACTIONS
+               ================================================================= */
+            function approveItem(itemId) {
+                RiskPulse.postJson(approveUrl, { assessmentItemId: itemId }, {
+                    success: function () {
+                        window.location.reload();
+                    },
+                    fail: function (res) {
+                        RiskPulse.toastError(res.message || 'Unable to approve the item.');
+                    }
+                });
+            }
+
+            function authorizeAssessment() {
+                RiskPulse.postJson(authorizeUrl, { assessmentUnitId: currentAssessmentUnitId }, {
+                    success: function (res) {
+                        window.location.reload();
+                    },
+                    fail: function (res) {
+                        RiskPulse.toastError(res.message || 'Unable to authorize the assessment.');
+                    }
+                });
+            }
+
+            /* =================================================================
+               SECTION 3 — EVENT WIRING
+               ================================================================= */
+            $('#detailTable').on('click', '.approve-item-btn', function () {
+                approveItem(+$(this).data('item-id'));
+            });
+
+            $('#authorizeUnitBtn').on('click', function () {
+                authorizeAssessment();
+            });
+        })(jQuery);
+    </script>
+}

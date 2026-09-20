@@ -922,6 +922,14 @@ body {
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.8125rem;
 }
+.rp-stat-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.625rem;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--primary-container);
+}
 
 /* --- Color & Text Utilities --- */
 .rp-text-muted { color: var(--on-surface-variant); }
@@ -1023,6 +1031,7 @@ body {
 .rp-level-dot.rp-level-success { background-color: var(--success); }
 .rp-level-dot.rp-level-warning { background-color: var(--gold); }
 .rp-level-dot.rp-level-danger { background-color: var(--danger); }
+.rp-level-dot.rp-level-neutral { background-color: var(--outline); }
 
 /* --- Input Fields --- */
 .rp-input {

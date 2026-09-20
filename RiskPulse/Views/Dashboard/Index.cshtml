@@ -1,12 +1,271 @@
+@model RiskPulse.Models.ViewModel.DashboardViewModel
 @{
     ViewData["Title"] = "Dashboard";
+
+    string PillClass(string label) => label switch
+    {
+        "InProgress" => "warning",
+        "Submitted" => "warning",
+        "Approved" => "success",
+        "Authorized" => "success",
+        _ => "neutral"
+    };
+
+    string StepPill(string label) => $"<span class=\"rp-pill rp-pill-{PillClass(label)}\">{label}</span>";
+
+    var submissionsUrl = Url.Action("Index", "Submissions");
 }
 
 <div class="rp-page-header mb-3">
     <div>
         <h2 class="rp-display-lg">Dashboard</h2>
         <p class="rp-body-md mt-1 mb-0 rp-text-muted">
-            Welcome to Risk Pulse — Enterprise Risk Management System.
+            @(string.IsNullOrEmpty(Model.UnitDesc) ? "Welcome to Risk Pulse." : Model.UnitDesc)
+            @if (!string.IsNullOrEmpty(Model.CurrentPeriodLabel))
+            {
+                <span>&middot; @Model.CurrentPeriodLabel</span>
+            }
         </p>
     </div>
+    <div class="text-end">
+        <a href="@submissionsUrl" class="rp-btn rp-btn-secondary">
+            <i class="fas fa-folder-open me-1"></i>Open Submissions
+        </a>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.LoadError))
+{
+    <div class="alert alert-warning rp-body-md">
+        <i class="fas fa-triangle-exclamation me-2"></i>@Model.LoadError
+    </div>
+}
+
+@* ========== Hero stats ========== *@
+<div class="row g-2 mb-2">
+    @foreach (var kpi in Model.Kpis)
+    {
+        <div class="col-6 col-xl-3">
+            <a href="@(string.IsNullOrEmpty(kpi.Href) ? submissionsUrl : kpi.Href)" class="rp-card p-3 h-100 d-block text-decoration-none text-reset">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <p class="rp-label-md mb-0 rp-text-muted">@kpi.Label</p>
+                    <i class="fas @kpi.Icon rp-text-muted"></i>
+                </div>
+                <p class="rp-stat-value mb-1 d-flex align-items-center gap-2">
+                    @kpi.Value
+                    @if (!string.IsNullOrEmpty(kpi.DotKind))
+                    {
+                        <span class="rp-level-dot rp-level-@kpi.DotKind" title="KRI status"></span>
+                    }
+                </p>
+                @if (!string.IsNullOrEmpty(kpi.PillText))
+                {
+                    <p class="mb-0"><span class="rp-pill rp-pill-@kpi.PillKind">@kpi.PillText</span></p>
+                }
+                else
+                {
+                    <p class="mb-0">&nbsp;</p>
+                }
+            </a>
+        </div>
+    }
+</div>
+
+<div class="row g-2 mb-2">
+    @* ========== Status distribution + progress ========== *@
+    <div class="col-12 col-xl-7">
+        <div class="rp-card p-2 h-100">
+            <div class="rp-grid-toolbar">
+                <p class="mb-0 rp-body-sm rp-text-muted">Assessment status across periods.</p>
+            </div>
+            @if (Model.StatusSlices.Any())
+            {
+                <div class="d-flex flex-wrap gap-2 px-1 pb-2">
+                    @foreach (var slice in Model.StatusSlices)
+                    {
+                        <span class="rp-pill rp-pill-@slice.PillKind" title="@slice.StepLabel">
+                            @slice.Count &middot; @slice.StepLabel
+                        </span>
+                    }
+                </div>
+            }
+            <table class="table rp-table table-sm w-100 align-middle">
+                <thead>
+                    <tr>
+                        <th>Code</th>
+                        <th>Period</th>
+                        <th>Status</th>
+                        <th>Progress</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in Model.AssessmentProgress)
+                    {
+                        <tr>
+                            <td>@row.AssessmentCode</td>
+                            <td>@(row.PeriodStart?.ToString("dd MMM yy")) &rarr; @(row.PeriodEnd?.ToString("dd MMM yy"))</td>
+                            <td>@Html.Raw(StepPill(row.StatusLabel))</td>
+                            <td><span class="rp-pill rp-pill-neutral">@row.SubmittedCount of @row.ItemCount</span></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+            @if (!Model.AssessmentProgress.Any())
+            {
+                <p class="rp-body-md rp-text-muted text-center py-4 mb-0">No assessments have been scheduled for your unit yet.</p>
+            }
+        </div>
+    </div>
+
+    @* ========== KRI health (latest period) ========== *@
+    <div class="col-12 col-xl-5">
+        <div class="rp-card p-3 h-100">
+            <p class="rp-body-sm rp-text-muted mb-1">
+                <i class="fas fa-chart-line me-2"></i>KRI Health
+                @if (Model.KriSnapshot.HasData)
+                {
+                    <span>&middot; @Model.KriSnapshot.PeriodLabel</span>
+                }
+            </p>
+            @if (Model.KriSnapshot.HasData)
+            {
+                <div class="d-flex flex-wrap gap-3 mt-2">
+                    <span class="rp-body-md d-inline-flex align-items-center gap-2">
+                        <span class="rp-level-dot rp-level-success" title="Within green threshold"></span>Green
+                        <span class="rp-mono">@Model.KriSnapshot.GreenCount</span>
+                    </span>
+                    <span class="rp-body-md d-inline-flex align-items-center gap-2">
+                        <span class="rp-level-dot rp-level-warning" title="Within amber threshold"></span>Amber
+                        <span class="rp-mono">@Model.KriSnapshot.AmberCount</span>
+                    </span>
+                    <span class="rp-body-md d-inline-flex align-items-center gap-2">
+                        <span class="rp-level-dot rp-level-danger" title="Within red threshold"></span>Red
+                        <span class="rp-mono">@Model.KriSnapshot.RedCount</span>
+                    </span>
+                </div>
+                <p class="rp-body-sm rp-text-muted mt-3 mb-0">
+                    @Model.KriSnapshot.EnteredCount of @Model.KriSnapshot.ExpectedCount values captured for this period.
+                </p>
+            }
+            else
+            {
+                <div class="rp-empty-state">
+                    <i class="fas fa-chart-line rp-empty-state-icon"></i>
+                    <p class="rp-body-md mb-0">No KRI values captured yet.</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@* ========== Needs your attention ========== *@
+<div class="rp-card p-2 mb-2">
+    <div class="rp-grid-toolbar">
+        <p class="mb-0 rp-body-sm rp-text-muted">Items that need your action, soonest deadline first.</p>
+    </div>
+    <table class="table rp-table table-sm w-100 align-middle">
+        <thead>
+            <tr>
+                <th>Assessment</th>
+                <th>Template</th>
+                <th>Status</th>
+                <th>Deadline</th>
+                <th class="text-end">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model.AttentionItems)
+            {
+                var awaitingApproval = item.ActionKind == "approve";
+                var targetUrl = awaitingApproval
+                    ? Url.Action("Detail", "Submissions", new { id = item.AssessmentUnitId })
+                    : Url.Action(item.ItemType == "Saq" ? "SaqEntry" : "KriEntry", "Submissions", new { id = item.AssessmentItemId });
+                <tr>
+                    <td>@item.AssessmentCode</td>
+                    <td>
+                        @item.ItemTitle
+                        <span class="rp-body-xs rp-text-muted">@item.ReferenceCode</span>
+                    </td>
+                    <td>@Html.Raw(StepPill(item.StepLabel))</td>
+                    <td>
+                        @(item.PeriodEnd?.ToString("dd MMM yy"))
+                        @if (item.IsOverdue)
+                        {
+                            <span class="rp-pill rp-pill-warning">overdue</span>
+                        }
+                    </td>
+                    <td class="text-end">
+                        <a href="@targetUrl" class="rp-btn @(awaitingApproval ? "rp-btn-primary" : "rp-btn-edit")">
+                            <i class="fas @(awaitingApproval ? "fa-check" : "fa-pen-to-square")"></i> @item.ActionLabel
+                        </a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    @if (!Model.AttentionItems.Any())
+    {
+        <p class="rp-body-md rp-text-muted text-center py-4 mb-0">
+            <i class="fas fa-circle-check me-2"></i>All caught up — nothing needs your attention.
+        </p>
+    }
+</div>
+
+@* ========== Period history ========== *@
+<div class="rp-card p-2">
+    <div class="rp-grid-toolbar">
+        <p class="mb-0 rp-body-sm rp-text-muted">All assessment periods for your unit.</p>
+    </div>
+    <table class="table rp-table table-sm w-100 align-middle">
+        <thead>
+            <tr>
+                <th>Period</th>
+                <th>Code</th>
+                <th>Status</th>
+                <th>Progress</th>
+                <th>Authorized</th>
+                <th class="text-end">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var row in Model.PeriodHistory)
+            {
+                <tr>
+                    <td>@(row.PeriodStart?.ToString("dd MMM yy")) &rarr; @(row.PeriodEnd?.ToString("dd MMM yy"))</td>
+                    <td>@row.AssessmentCode</td>
+                    <td>@Html.Raw(StepPill(row.StatusLabel))</td>
+                    <td>
+                        <span class="rp-pill rp-pill-neutral">@row.SubmittedCount of @row.ItemCount</span>
+                        <span class="rp-body-xs rp-text-muted ms-1">@row.ApprovedCount approved</span>
+                    </td>
+                    <td>
+                        @if (!string.IsNullOrEmpty(row.AuthorizedBy))
+                        {
+                            <span class="rp-body-md">
+                                <i class="fas fa-check-circle text-success me-1"></i>
+                                @row.AuthorizedBy &middot; @(row.AuthorizedOn?.ToString("dd MMM yy"))
+                            </span>
+                        }
+                        else if (row.ReadyToAuthorize)
+                        {
+                            <span class="rp-pill rp-pill-success">ready to authorize</span>
+                        }
+                        else
+                        {
+                            <span class="rp-body-md rp-text-muted">-</span>
+                        }
+                    </td>
+                    <td class="text-end">
+                        <a href="@Url.Action("Detail", "Submissions", new { id = row.AssessmentUnitId })" class="rp-btn rp-btn-secondary">
+                            <i class="fas fa-folder-open"></i> Open
+                        </a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    @if (!Model.PeriodHistory.Any())
+    {
+        <p class="rp-body-md rp-text-muted text-center py-4 mb-0">No assessment periods have been scheduled for your unit yet.</p>
+    }
 </div>

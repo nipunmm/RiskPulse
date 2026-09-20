@@ -24,6 +24,8 @@ namespace RiskPulse.Data.Entries
 
         public ICollection<ScheduleItem> ScheduleItems { get; set; } = new List<ScheduleItem>();
 
+        public ICollection<AssessmentHeader> AssessmentHeaders { get; set; } = new List<AssessmentHeader>();
+
         public int? RiskRegisterHeaderId { get; set; }
     }
 }

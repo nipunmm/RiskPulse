@@ -1,0 +1,218 @@
+@model RiskPulse.Models.ViewModel.KriEntryViewModel
+@{
+    ViewData["Title"] = $"{Model.AssessmentCode} \u2014 {Model.ItemTitle}";
+
+    string PillClass(string label) => label switch
+    {
+        "InProgress" => "warning",
+        "Submitted" => "warning",
+        "Approved" => "success",
+        "Authorized" => "success",
+        _ => "neutral"
+    };
+}
+
+<div class="rp-page-header">
+    <div>
+        <a href="@Url.Action("Detail", "Submissions", new { id = Model.AssessmentUnitId })" class="rp-body-sm rp-text-muted text-decoration-none">
+            <i class="fas fa-arrow-left me-1"></i>Back to assessment
+        </a>
+        <h2 class="rp-display-lg mt-2 mb-1">@Model.ItemTitle</h2>
+        <p class="rp-body-md mb-0 rp-text-muted">
+            @Model.AssessmentCode &middot; @Model.UnitDesc
+        </p>
+    </div>
+    <div class="text-end">
+        <span class="rp-pill rp-pill-@PillClass(Model.StatusLabel)">@Model.StatusLabel</span>
+    </div>
+</div>
+
+@if (!Model.Editable)
+{
+    <div class="rp-card p-3 mb-3">
+        <p class="mb-0 rp-body-md rp-text-muted">
+            <i class="fas fa-lock me-2"></i>
+            This KRI set has been submitted and is now read-only.
+        </p>
+    </div>
+}
+
+<div class="rp-card p-2 mb-3">
+    <div class="rp-grid-toolbar">
+        <p class="mb-0 rp-body-sm rp-text-muted">
+            The status dot reflects the entered value against the indicator's thresholds (green, amber, red).
+        </p>
+    </div>
+</div>
+
+<form id="kriForm" novalidate>
+    <div class="rp-card p-3">
+        <table class="table rp-table table-sm w-100 align-middle">
+            <thead>
+                <tr>
+                    <th style="width: 40px"></th>
+                    <th>Indicator</th>
+                    <th style="width: 160px">Value</th>
+                    <th style="width: 200px">Comments</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var value in Model.Values)
+                {
+                    <tr class="kri-row" data-kri-id="@value.KriId" data-green="@value.GreenLimit" data-amber="@value.AmberLimit" data-red="@value.RedLimit">
+                        <td>
+                            <span class="rp-level-dot rp-level-neutral kri-status-dot" title="No value entered"></span>
+                        </td>
+                        <td>
+                            <p class="rp-body-md fw-semibold mb-0">@value.KriDesc</p>
+                            <p class="rp-body-sm rp-text-muted mb-0">Green &le; @value.GreenLimit &middot; Amber &le; @value.AmberLimit &middot; Red &gt; @value.AmberLimit</p>
+                        </td>
+                        <td>
+                            <input type="number" step="0.0001" class="rp-input kri-value-input"
+                                   value="@value.Value" @(Model.Editable ? "" : "disabled")
+                                   aria-label="Value for @value.KriDesc" />
+                        </td>
+                        <td>
+                            @if (value.AllowComment)
+                            {
+                                <input type="text" class="rp-input kri-comment-input" autocomplete="off"
+                                       placeholder="Optional note"
+                                       value="@value.Comment" @(Model.Editable ? "" : "disabled") />
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        @if (!Model.Values.Any())
+        {
+            <p class="rp-body-md rp-text-muted text-center py-4 mb-0">No indicators have been defined for this KRI set.</p>
+        }
+    </div>
+
+    @if (Model.Editable)
+    {
+        <div class="d-flex justify-content-end gap-2 mt-3">
+            <button type="button" class="rp-btn rp-btn-secondary" id="saveKriDraftBtn"><i class="fas fa-floppy-disk me-1"></i>Save Draft</button>
+            <button type="button" class="rp-btn rp-btn-primary" id="submitKriBtn"><i class="fas fa-paper-plane me-1"></i>Submit</button>
+        </div>
+    }
+</form>
+
+@section Scripts {
+    <script>
+        (function ($) {
+
+            /* =================================================================
+               SECTION 1 — PAGE DATA & ENDPOINTS
+               ================================================================= */
+            var saveUrl = '@Url.Action("SaveKri", "Submissions")';
+            var submitUrl = '@Url.Action("SubmitItem", "Submissions")';
+            var detailUrl = '@Url.Action("Detail", "Submissions")';
+            var assessmentItemId = @Model.AssessmentItemId;
+            var assessmentUnitId = @Model.AssessmentUnitId;
+
+            /* =================================================================
+               SECTION 2 — STATUS DOT
+               ================================================================= */
+            function updateDot($row) {
+                var $input = $row.find('.kri-value-input');
+                var value = parseFloat($input.val());
+                var green = +$row.data('green');
+                var amber = +$row.data('amber');
+
+                var kind = 'neutral';
+                if (!isNaN(value)) {
+                    kind = value <= green ? 'success' : (value <= amber ? 'warning' : 'danger');
+                }
+
+                $row.find('.kri-status-dot')
+                    .removeClass('rp-level-neutral rp-level-success rp-level-warning rp-level-danger')
+                    .addClass('rp-level-' + kind)
+                    .attr('title', kind === 'neutral' ? 'No value entered' : 'Status: ' + kind);
+            }
+
+            /* =================================================================
+               SECTION 3 — PAYLOAD BUILDERS
+               ================================================================= */
+            function buildPayload() {
+                var values = [];
+                $('.kri-row').each(function () {
+                    var $row = $(this);
+                    var val = $.trim($row.find('.kri-value-input').val());
+                    var comment = $.trim($row.find('.kri-comment-input').val());
+                    values.push({
+                        kriId: +$row.data('kri-id'),
+                        value: val === '' ? null : parseFloat(val),
+                        comment: comment || null
+                    });
+                });
+                return { assessmentItemId: assessmentItemId, values: values };
+            }
+
+            /* =================================================================
+               SECTION 4 — VALIDATION
+               ================================================================= */
+            function validateForSubmit(payload) {
+                var $missing = null;
+                $.each(payload.values, function () {
+                    if (this.value !== null && !isNaN(this.value)) return;
+                    var $row = $('.kri-row[data-kri-id="' + this.kriId + '"]');
+                    $missing = $row.find('.kri-value-input').first();
+                    RiskPulse.validationError($missing, 'Please enter a value for every indicator.');
+                    return false;
+                });
+                return !$missing;
+            }
+
+            /* =================================================================
+               SECTION 5 — ACTIONS
+               ================================================================= */
+            function saveDraft() {
+                RiskPulse.postJson(saveUrl, buildPayload(), {
+                    success: function (res) {
+                        RiskPulse.toastSuccess(res.message || 'Draft saved.');
+                    },
+                    fail: function (res) {
+                        RiskPulse.toastError(res.message || 'Unable to save the draft.');
+                    }
+                });
+            }
+
+            function submitKri() {
+                var payload = buildPayload();
+                if (!validateForSubmit(payload)) return;
+
+                RiskPulse.postJson(submitUrl, { assessmentItemId: assessmentItemId }, {
+                    success: function () {
+                        RiskPulse.toastSuccess('KRI set submitted successfully.');
+                        window.setTimeout(function () {
+                            window.location = detailUrl + '?id=' + assessmentUnitId;
+                        }, 900);
+                    },
+                    fail: function (res) {
+                        RiskPulse.toastError(res.message || 'Unable to submit the KRI set.');
+                    }
+                });
+            }
+
+            /* =================================================================
+               SECTION 6 — EVENT WIRING & INIT
+               ================================================================= */
+            $('#saveKriDraftBtn').on('click', saveDraft);
+            $('#submitKriBtn').on('click', submitKri);
+
+            $('#kriForm').on('input', '.kri-value-input', function () {
+                var $row = $(this).closest('.kri-row');
+                updateDot($row);
+                RiskPulse.clearFieldErrors($('#kriForm'));
+            });
+
+            // Initialise dots from server-rendered values
+            $('.kri-row').each(function () {
+                updateDot($(this));
+            });
+        })(jQuery);
+    </script>
+}

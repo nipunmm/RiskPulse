@@ -2,11 +2,84 @@
     ViewData["Title"] = "Submissions";
 }
 
-<div class="rp-page-header mb-3">
+@section Styles {
+    <link rel="stylesheet" href="~/lib/datatables/dataTables.bootstrap5.min.css" />
+}
+
+<div class="rp-page-header">
     <div>
         <h2 class="rp-display-lg">Submissions</h2>
         <p class="rp-body-md mt-1 mb-0 rp-text-muted">
-            View and manage all submitted risk assessments.
+            Track the risk assessments assigned to your unit and complete their questionnaires.
         </p>
     </div>
 </div>
+
+<div class="rp-card p-2">
+    <div class="rp-grid-toolbar">
+        <p class="mb-0 rp-body-sm rp-text-muted">Assessments for your unit.</p>
+    </div>
+    <table id="submissionTable" class="table rp-table table-sm w-100 align-middle">
+        <thead>
+            <tr>
+                <th>Code</th>
+                <th>Period</th>
+                <th>Status</th>
+                <th>Progress</th>
+                <th class="text-end">Actions</th>
+            </tr>
+        </thead>
+    </table>
+</div>
+
+@section Scripts {
+    <script src="~/lib/datatables/jquery.dataTables.min.js"></script>
+    <script src="~/lib/datatables/dataTables.bootstrap5.min.js"></script>
+    <script>
+        (function ($) {
+
+            /* =================================================================
+               SECTION 1 — PAGE DATA & ENDPOINTS
+               ================================================================= */
+            var gridUrl = '@Url.Action("Grid", "Submissions")';
+            var detailUrl = '@Url.Action("Detail", "Submissions")';
+
+            /* =================================================================
+               SECTION 2 — RENDER HELPERS
+               ================================================================= */
+            function submissionStatusPill(label) {
+                var kind = { Pending: 'neutral', InProgress: 'warning', Submitted: 'warning', Approved: 'success', Authorized: 'success' }[label] || 'neutral';
+                return RiskPulse.pill(label, kind);
+            }
+
+            function dateOnly(value) {
+                return value ? String(value).substring(0, 10) : '';
+            }
+
+            /* =================================================================
+               SECTION 3 — DATA GRID (DataTables)
+               ================================================================= */
+            var submissionTable = RiskPulse.initGrid($('#submissionTable'), {
+                ajax: { url: gridUrl },
+                columns: [
+                    { data: 'assessmentCode' },
+                    { data: null, render: function (d) { return RiskPulse.escapeHtml(dateOnly(d.periodStart) + ' \u2192 ' + dateOnly(d.periodEnd)); } },
+                    { data: 'statusLabel', render: function (d) { return submissionStatusPill(d); } },
+                    { data: null, render: function (d) { return RiskPulse.pill(d.submittedCount + ' of ' + d.itemCount); } },
+                    { data: null, orderable: false, searchable: false, className: 'text-end', render: function (d) {
+                        return '<button type="button" class="rp-btn rp-btn-secondary open-unit-btn"><i class="fas fa-folder-open"></i> Open</button>';
+                    } }
+                ],
+                order: [[1, 'desc']]
+            });
+
+            /* =================================================================
+               SECTION 4 — EVENT WIRING
+               ================================================================= */
+            $('#submissionTable tbody').on('click', '.open-unit-btn', function () {
+                var row = submissionTable.row($(this).closest('tr')).data();
+                window.location = detailUrl + '?id=' + row.assessmentUnitId;
+            });
+        })(jQuery);
+    </script>
+}

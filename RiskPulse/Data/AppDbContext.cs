@@ -150,6 +150,156 @@ namespace RiskPulse.Data
                     .HasForeignKey(k => k.KriHeaderId)
                     .OnDelete(DeleteBehavior.Cascade);
             });
+
+            //AssessmentStatus enum to string conversion + Schedule → AssessmentHeader (Restrict)
+            modelBuilder.Entity<AssessmentHeader>(entity =>
+            {
+                entity.Property(h => h.AssessmentStatus)
+                    .HasConversion<string>()
+                    .HasMaxLength(32);
+
+                entity.Property(h => h.AssessmentCode)
+                    .HasMaxLength(50);
+
+                entity.HasIndex(h => h.AssessmentCode)
+                    .IsUnique();
+
+                entity.HasOne(h => h.Schedule)
+                    .WithMany(s => s.AssessmentHeaders)
+                    .HasForeignKey(h => h.ScheduleId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            //Workflow/WorkflowStep dictionary (statuses are DB-driven, not enums)
+            modelBuilder.Entity<Workflow>(entity =>
+            {
+                entity.Property(w => w.WorkflowCode)
+                    .HasMaxLength(64);
+
+                entity.Property(w => w.WorkflowName)
+                    .HasMaxLength(200);
+
+                entity.HasIndex(w => w.WorkflowCode)
+                    .IsUnique();
+            });
+
+            modelBuilder.Entity<WorkflowStep>(entity =>
+            {
+                entity.Property(s => s.StepCode)
+                    .HasMaxLength(64);
+
+                entity.Property(s => s.StepLabel)
+                    .HasMaxLength(128);
+
+                entity.HasOne(s => s.Workflow)
+                    .WithMany(w => w.WorkflowSteps)
+                    .HasForeignKey(s => s.WorkflowId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(s => new { s.WorkflowId, s.StepCode })
+                    .IsUnique();
+            });
+
+            //AssessmentUnit relationships (Header → Unit Cascade, Unit/WorkflowStep/User Restrict)
+            modelBuilder.Entity<AssessmentUnit>(entity =>
+            {
+                entity.HasOne(u => u.AssessmentHeader)
+                    .WithMany(h => h.AssessmentUnits)
+                    .HasForeignKey(u => u.AssessmentHeaderId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(u => u.Unit)
+                    .WithMany()
+                    .HasForeignKey(u => u.UnitId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(u => u.WorkflowStep)
+                    .WithMany()
+                    .HasForeignKey(u => u.WorkflowStepId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(u => u.AuthorizedBy)
+                    .WithMany()
+                    .HasForeignKey(u => u.AuthorizedById)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(u => new { u.AssessmentHeaderId, u.UnitId })
+                    .IsUnique();
+
+                entity.HasIndex(u => u.UnitId);
+            });
+
+            //AssessmentItem polymorphic links (Unit → Item Cascade, workflow/User Restrict)
+            modelBuilder.Entity<AssessmentItem>(entity =>
+            {
+                entity.Property(i => i.ItemType)
+                    .HasConversion<string>()
+                    .HasMaxLength(32);
+
+                entity.HasOne(i => i.AssessmentUnit)
+                    .WithMany(u => u.AssessmentItems)
+                    .HasForeignKey(i => i.AssessmentUnitId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(i => i.WorkflowStep)
+                    .WithMany()
+                    .HasForeignKey(i => i.WorkflowStepId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(i => i.SubmittedBy)
+                    .WithMany()
+                    .HasForeignKey(i => i.SubmittedById)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(i => i.ApprovedBy)
+                    .WithMany()
+                    .HasForeignKey(i => i.ApprovedById)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(i => new { i.AssessmentUnitId, i.ItemType, i.ItemId })
+                    .IsUnique();
+
+                entity.HasIndex(i => new { i.ItemType, i.ItemId });
+            });
+
+            //SAQ answers (Item → answer Cascade, Question/Option Restrict)
+            modelBuilder.Entity<SaqAssessmentAnswer>(entity =>
+            {
+                entity.HasOne(a => a.AssessmentItem)
+                    .WithMany(i => i.SaqAssessmentAnswers)
+                    .HasForeignKey(a => a.AssessmentItemId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(a => a.Question)
+                    .WithMany()
+                    .HasForeignKey(a => a.QuestionId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(a => a.Option)
+                    .WithMany()
+                    .HasForeignKey(a => a.OptionId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(a => new { a.AssessmentItemId, a.QuestionId })
+                    .IsUnique();
+            });
+
+            //KRI values (Item → value Cascade, Kri Restrict)
+            modelBuilder.Entity<KriAssessmentValue>(entity =>
+            {
+                entity.HasOne(v => v.AssessmentItem)
+                    .WithMany(i => i.KriAssessmentValues)
+                    .HasForeignKey(v => v.AssessmentItemId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(v => v.Kri)
+                    .WithMany()
+                    .HasForeignKey(v => v.KriId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(v => new { v.AssessmentItemId, v.KriId })
+                    .IsUnique();
+            });
         }
 
         public DbSet<User> Users { get; set; }
@@ -179,6 +329,20 @@ namespace RiskPulse.Data
         public DbSet<Schedule> Schedules { get; set; }
 
         public DbSet<ScheduleItem> ScheduleItems { get; set; }
+
+        public DbSet<AssessmentHeader> AssessmentHeaders { get; set; }
+
+        public DbSet<AssessmentUnit> AssessmentUnits { get; set; }
+
+        public DbSet<AssessmentItem> AssessmentItems { get; set; }
+
+        public DbSet<Workflow> Workflows { get; set; }
+
+        public DbSet<WorkflowStep> WorkflowSteps { get; set; }
+
+        public DbSet<SaqAssessmentAnswer> SaqAssessmentAnswers { get; set; }
+
+        public DbSet<KriAssessmentValue> KriAssessmentValues { get; set; }
 
     }
 }

@@ -5,6 +5,7 @@ using RiskPulse.Data.Extensions;
 using RiskPulse.Models.Dto;
 using RiskPulse.Models.Enum;
 using RiskPulse.Models.ViewModel;
+using RiskPulse.Services.Assessment;
 using RiskPulse.Services.Utilities;
 using ScheduleEntity = RiskPulse.Data.Entries.Schedule;
 
@@ -14,11 +15,13 @@ public class ScheduleService
 {
     private readonly AppDbContext _db;
     private readonly CodeGeneratorService _codeService;
+    private readonly AssessmentService _assessmentService;
 
-    public ScheduleService(AppDbContext db, CodeGeneratorService codeService)
+    public ScheduleService(AppDbContext db, CodeGeneratorService codeService, AssessmentService assessmentService)
     {
         _db = db;
         _codeService = codeService;
+        _assessmentService = assessmentService;
     }
 
     // --- Schedule grid ---
@@ -273,6 +276,8 @@ public class ScheduleService
             {
                 throw new InvalidOperationException("Choose at least one KRI template before activating the schedule.");
             }
+
+            await _assessmentService.CreateAssessmentAsync(scheduleId);
         }
 
         schedule.ScheduleStatus = status;

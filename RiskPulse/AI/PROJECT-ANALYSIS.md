@@ -8,7 +8,7 @@
 
 **RiskPulse** is an enterprise risk management application built with **ASP.NET Core MVC**. The domain targets KRI (Key Risk Indicators), SAQ (Self-Assessment Questionnaires), branch-level risk submissions, and RAG (Red/Amber/Green) status tracking for high-stakes financial environments.
 
-**Current Phase:** Access-control scaffolding complete — authentication (cookie + claims), user/role/permission management (working CRUD + DataTables grids). SAQ Templates and KRI Templates implemented — headers, item designers, threshold-config tabs (merged into KRI Templates), and Locked-immutability rules. Each template header is **linked to a required unit group or unit** (`GroupId FK→Groups` XOR `UnitId FK→Units`, selected in the add/edit modals and shown in the grid). **Units page implemented** — two-tab Administration page (Unit CRUD | Unit Group CRUD) under the new `Units` permission with Select2 group→unit assignment. **Assessment wizard implemented** — step flow (name → SAQ → KRI → schedule → finalize) with per-step AJAX persistence, draft edit/re-save through the stages, and activate rules. Remaining domain pages (Dashboard, Submissions, Risk Register templates) are **stubs**. PostgreSQL persistence is live via EF Core; the schema was formerly created by EF migration `20260816161300_UserPermissionControl`, which was then **removed from the repo** — the DB is now provisioned manually via `Database/Seed.sql`, which also carries a legacy SQL Server `dbo.tbl*` draft. Structure is convention-aligned: controllers are **flat** in `Controllers/` (thin, 1:1 with `Views/{Controller}/`), services are **grouped by workflow** (`Login`/`Administration`/`Templates`/`Assessment`), and `Models/` is split by layer distinction into `Models/Dto/` (inter-system data, `*Dto` postfix), `Models/ViewModel/` (UI-shaped data, `*ViewModel` postfix), and `Models/Enum/` (domain enums, persisted as strings).
+**Current Phase:** Access-control scaffolding complete — authentication (cookie + claims), user/role/permission management (working CRUD + DataTables grids). SAQ Templates and KRI Templates implemented — headers, item designers, threshold-config tabs (merged into KRI Templates), and Locked-immutability rules. Each template header is **linked to a required unit group or unit** (`GroupId FK→Groups` XOR `UnitId FK→Units`, selected in the add/edit modals and shown in the grid). **Units page implemented** — two-tab Administration page (Unit CRUD | Unit Group CRUD) under the new `Units` permission with Select2 group→unit assignment. **Assessment wizard implemented** — step flow (name → SAQ → KRI → schedule → finalize) with per-step AJAX persistence, draft edit/re-save through the stages, and activate rules. **Submissions implemented** — own-unit grid, per-item SAQ/KRI entry (draft save, submit, approve), unit authorize, all gated on workflow step codes. **Dashboard implemented** — fully server-rendered landing page (hero KPIs, status distribution, KRI RAG snapshot, needs-attention list, period history), own-unit scoped. Remaining domain page (Risk Register templates) is a **stub**. PostgreSQL persistence is live via EF Core migrations (`Migrations/20260920123931_UserPermissionControl`, git-ignored); seed data (permissions/roles/unit/test user) lives only in the live DB. Structure is convention-aligned: controllers are **flat** in `Controllers/` (thin, 1:1 with `Views/{Controller}/`), services are **grouped by workflow** (`Login`/`Administration`/`Templates`/`Assessment`/`Dashboard`), and `Models/` is split by layer distinction into `Models/Dto/` (inter-system data, `*Dto` postfix), `Models/ViewModel/` (UI-shaped data, `*ViewModel` postfix), and `Models/Enum/` (domain enums, persisted as strings).
 
 ---
 
@@ -32,7 +32,7 @@
 | Icons | Font Awesome 6 | `all.min.css` |
 | Fonts | Inter, JetBrains Mono | Self-hosted `.woff2` |
 | Client Validation | jQuery Validate (vendored) + custom JS rules | Manual `validateXxx()` functions, not unobtrusive tags |
-| Scaffolding | EF Core Migrations | Migration `20260816161300_UserPermissionControl` **removed from the repo** (commit `f8cacd2`); DB provisioned manually via `Database/Seed.sql` |
+| Scaffolding | EF Core Migrations | Baseline migration `20260920123931_UserPermissionControl` exists in `Migrations/` (git-ignored via `.gitignore` `**/Migrations/`); `dotnet ef database update` provisions the schema |
 
 **NuGet packages:** `Microsoft.EntityFrameworkCore`, `Microsoft.EntityFrameworkCore.Tools`, `Npgsql.EntityFrameworkCore.PostgreSQL`. Nothing else.
 
@@ -57,8 +57,8 @@ RiskPulse/
 │   ├── SaqTemplatesController.cs # Grid/Save/Delete headers + QuestionsGrid/SaveQuestion/DeleteQuestion (JSON)
 │   ├── KriTemplatesController.cs # Templates + config: Grid/Save/Delete headers, KrisGrid/SaveKri/DeleteKri, Colors/Groups/Bands CRUD (JSON)
 │   ├── RiskRegisterTemplatesController.cs # Stub, [Authorize(Policy="Permission:Risk Register")]
-│   ├── DashboardController.cs    # Stub, [Authorize(Policy="Permission:Dashboard")]
-│   ├── SubmissionsController.cs  # Stub, [Authorize(Policy="Permission:Submissions")]
+│   ├── DashboardController.cs    # GET Index → server-rendered DashboardViewModel, [Authorize(Policy="Permission:Dashboard")]
+│   ├── SubmissionsController.cs  # Index + Grid (JSON) + Detail/SaqEntry/KriEntry (views) + SaveSaq/SaveKri/SubmitItem/ApproveItem/AuthorizeUnit (JSON), own-unit scoped
 │   ├── AssessmentController.cs   # Wizard: Index (grid), Wizard (step flow), SaveName/SaveSaq/SaveKri/SaveSchedule/Finalize/Delete (JSON)
 │   ├── ErrorController.cs        # GET /Error/Index
 │   └── ControllerHelpers.cs      # Static helpers: ValidateModel, TryExecute, TrySave, TryDelete (null-guard + ModelState + ApiResponse)
@@ -88,6 +88,8 @@ RiskPulse/
 │   │   ├── Saq*.cs                 # SaqTemplatesIndexViewModel, SaqGridRowViewModel, SaqQuestionGridRowViewModel, SaqOptionGridRowViewModel, SaqStatusOptionViewModel
 │   │   ├── Kri*.cs                 # KriTemplatesIndexViewModel, KriStatusOptionViewModel, KriGridRowViewModel, KriItemGridRowViewModel, KriGroupGridRowViewModel, KriColorGridRowViewModel, KriColorOptionViewModel, KriBandGridRowViewModel
 │   │   └── Assessment*.cs          # AssessmentGridRowViewModel, AssessmentWizardViewModel
+│   │   └── Submission*.cs          # SubmissionGridRowViewModel, AssessmentDetailViewModel, AssessmentItemRowViewModel, SaqEntryViewModel, SaqEntryQuestionViewModel, KriEntryViewModel, KriEntryValueViewModel
+│   │   └── Dashboard*.cs           # DashboardViewModel, DashboardKpiViewModel, DashboardStatusSliceViewModel, AssessmentProgressRowViewModel, KriSnapshotViewModel, DashboardAttentionRowViewModel, PeriodHistoryRowViewModel
 │   └── Enum/                       # Domain enums, persisted as varchar(32)
 │       ├── UnitType.cs  QuestionType.cs  SaqStatus.cs  KriStatus.cs  AssessmentStatus.cs
 │
@@ -106,10 +108,13 @@ RiskPulse/
 │   │   ├── SaqTemplatesService.cs           # SAQ header CRUD (Group XOR Unit rule, lock rules) + question/option designer (dup question guard)
 │   │   └── KriTemplatesService.cs           # KRI header CRUD + KRI items + threshold config (colors/groups/bands) + lock/duplicate rules
 │   └── Assessment/                   # Assessment wizard workflow
-│       └── AssessmentService.cs             # Draft create/rename, SAQ+KRI template pick (non-Locked), schedule upsert (UTC timestamptz), finalize (Active requires SAQ+KRI), delete (drafts only)
+│       ├── AssessmentService.cs             # Draft create/rename, SAQ+KRI template pick (non-Locked), schedule upsert (UTC timestamptz), finalize (Active requires SAQ+KRI), delete (drafts only)
+│       └── SubmissionsService.cs            # Own-unit grid + detail; SAQ/KRI entry (draft save); submit/approve/authorize step transitions; own-unit scoping helpers
+│   └── Dashboard/                   # Server-rendered landing page
+│       └── DashboardService.cs             # Own-unit KPIs, status slices, KRI RAG snapshot (latest period), needs-attention list, period history
 │
-├── Database/
-│   └── Seed.sql                       # Manual permission/role/unit/user inserts (lines 1–35 live) + legacy dbo schema draft (line 39+, non-PostgreSQL)
+├── Database/                       # (folder absent — no Seed.sql in repo; seed lives in the live DB)
+│
 │
 ├── Views/
 │   ├── _ViewImports.cshtml  _ViewStart.cshtml
@@ -123,7 +128,9 @@ RiskPulse/
 │   ├── SaqTemplates/Index.cshtml    # DataTables grid + Add/Edit modals + Design modal (question cards + option editor)
 │   ├── KriTemplates/Index.cshtml    # Tabs (KRI Templates | Threshold Colors | KRI Groups) + grids + Design/Color/Group/Bands modals
 │   ├── Assessment/                  # Wizard flow: Index (DataTables grid) + Wizard (step bar + 5 step partials `_StepName|Saq|Kri|Schedule|Finalize.cshtml`)
-│   └── Dashboard|Submissions|RiskRegisterTemplates/Index.cshtml  # Stubs
+│   ├── Submissions/               # Index (DataTables grid) + Detail (item table) + SaqEntry + KriEntry (draft save/submit, RAG dots)
+│   ├── Dashboard/Index.cshtml     # Server-rendered landing page (no DataTables/JS)
+│   └── RiskRegisterTemplates/Index.cshtml  # Stub
 │
 ├── AI/
 │   ├── DESIGN.md                      # Stasis Enterprise design-system spec
@@ -183,7 +190,7 @@ Default entry route is **Login/Index**. The sidebar (`_Layout.cshtml`) gates eac
   2. Controllers — `[Authorize(Policy = $"Permission:{PermissionCatalog.X}")]`
   3. `Views/Shared/_Layout.cshtml` — `User.HasClaim("Permission", PermissionCatalog.X)`
   4. `Services/Login/PermissionPageMapper.cs` — dict keys keyed by `PermissionCatalog.X`
-- The **data source** remains the DB `riskpulse.Permissions.PermissionDesc` (`Database/Seed.sql`) — constant values must match those rows exactly. One value contains a space: `"Risk Register"`.
+- The **data source** remains the DB `riskpulse.Permissions.PermissionDesc` (live DB seed rows; no seed script is committed) — constant values must match those rows exactly. One value contains a space: `"Risk Register"`.
 - At login, `DbAuthorizationService` loads User → Role → RolePermissions → Permissions, and `LoginOrchestratorService` writes each `PermissionDesc` as a `Claim("Permission", ...)` plus `Name`, `NameIdentifier`, `Role`, `DefaultPage`, `Unit` claims into the auth cookie.
 
 ---
@@ -313,8 +320,8 @@ All AJAX responses use the shared **`ApiResponse<T>`** envelope (`Models/Dto/Api
 | **Business logic** | `Services/*Service` | no repository layer; each service uses `AppDbContext` directly; business rules throw `InvalidOperationException` (duplicate, self-edit, locked-template, group-vs-unit XOR, active-requires-SAQ+KRI, draft-only edits) |
 | **Controller boilerplate** | `Controllers/ControllerHelpers.cs` | `ValidateModel`, `TryExecute`, `TrySave`, `TryDelete` — null-guard, ModelState, ApiResponse envelope, exception→message passthrough |
 | **Data access** | `Data/AppDbContext` via services | `Include`/`AsNoTracking`/`ExecuteDeleteAsync`/`SaveChanges` in services; `DbSetExtensions.EnsureUniqueAsync`/`ToOptionListAsync` |
-| **DB schema/DDL** | No `Migrations/` folder — migration `20260816161300_UserPermissionControl` was removed from the repo (commit `f8cacd2`) | `HasDefaultSchema("riskpulse")`; live DB provisioned manually via `Database/Seed.sql` |
-| **Seed data** | `Database/Seed.sql` (manual) | lines 1–35 live (9 permissions, 2 roles, 1 unit, 1 test user); NOT an EF `HasData` seed — see mismatch #6 |
+| **DB schema/DDL** | `Migrations/` (git-ignored via `.gitignore` `**/Migrations/`) — baseline `20260920123931_UserPermissionControl`, created 2026-09-20 | `HasDefaultSchema("riskpulse")`; `dotnet ef database update` provisions the schema |
+| **Seed data** | None in repo (no `Database/` folder, no `Seed.sql`) | permissions/roles/unit/test-user rows live only in the dev DB; apply from the live DB or re-create manually |
 | **Client validation** | `validateUserPayload`/`validateRolePayload`/`validateLoginForm` + `RiskPulse.validationError` in views | hand-rolled, not DataAnnotations-driven; server DataAnnotations are the source of truth |
 | **Auth policies** | `PermissionCatalog` (single source) → `Program.cs` + `[Authorize]` + sidebar `HasClaim` + `PermissionPageMapper` | constant values must match `LoginOrchestratorService` claims + DB `Permissions` rows |
 | **Auth cookie claims** | `LoginOrchestratorService` | `Name`, `NameIdentifier`, `Role`, `DefaultPage`, `Unit`, `Permission*` |
@@ -348,11 +355,11 @@ ScheduleHeaders     (ScheduleHeaderId PK, AssessmentHeaderId FK→AssessmentHead
 
 - **Enum→string conversion:** `Unit.UnitType`, `SaqStatus`, `QuestionType`, `KriStatus`, `AssessmentStatus` stored as `character varying(32)` (`AppDbContext.cs:11-153`).
 - **Cascade/restrict rules** (`AppDbContext.cs:25-152`): `SaqHeader→SaqQuestions→SaqQuestionOptions` cascade; `KriHeader→Kri` cascade with `Kri→KriThresholdGroup` restrict; `KriThresholdGroup→KriThresholds` cascade with `KriThreshold→KriThresholdColor` restrict; `AssessmentHeader→ScheduleHeaders` cascade with `AssessmentHeader→Saq/KriHeaders` restrict; `UnitGroup→Group/Unit` cascade with a unique `(GroupId, UnitId)` index; `SaqHeader/KriHeader→Group` and `SaqHeader/KriHeader→Unit` restrict (a group or unit in use by a template can't be deleted; exactly one of GroupId/UnitId must be set — enforced as a business rule in the service). AccessControl FKs (Users→Roles/Units, RolePermissions→Roles/Permissions) cascade by convention.
-- **Implemented via:** migration `20260816161300_UserPermissionControl` applied to the live DB but **removed from the repo** (commit `f8cacd2`, "fix/remove-migrations"). DB is otherwise provisioned manually via `Database/Seed.sql`.
+- **Implemented via:** baseline migration in `Migrations/20260920123931_UserPermissionControl.cs` (git-ignored), created 2026-09-20 from the live `AppDbContext`. Seed rows (permissions/roles/unit/test user) are not part of any migration — apply them from the live DB or re-create manually.
 
-### 7.2 `Database/Seed.sql` — legacy content & risk
+### 7.2 Seed data — no `Seed.sql` in the repo
 
-Seed.sql inserts the 9 permissions, 2 roles, 1 unit, and 1 test user (lines 1–35, live). **However** line 39+ contain an entire **legacy SQL Server schema** (`dbo.tblAssessmentModuleType`, `tblAssessmentHeader`, `tblSAQ*`, `tblKRI*`, `tblRiskRegister*` — `IDENTITY(1,1)`, `NVARCHAR`, `GETDATE()`; line 40 is bare DDL, line 60 onwards is block-commented) inside a "Do not run this manually" comment. This is not PostgreSQL-compatible and is a copy of a different-era design. It should be extracted to a separate reference document (see mismatch #6).
+No seed artifact is committed or present locally: there is **no `Database/` folder and no `Seed.sql`**. The dev DB holds the 9 permissions, 2 roles, 1 unit, and 1 test user directly. Any fresh DB needs these rows re-applied manually (ideally as an EF `HasData` seed or a committed SQL script — see mismatch #6/#7).
 
 ---
 
@@ -374,8 +381,8 @@ Seed.sql inserts the 9 permissions, 2 roles, 1 unit, and 1 test user (lines 1–
 
 | # | Mismatch | Evidence | Recommended fix |
 |---|---|---|---|
-| 6 | **Seed data is manual SQL that also embeds a legacy SQL Server schema** — `Database/Seed.sql` mixes live PostgreSQL inserts (permissions, roles, unit, test user) with a non-PostgreSQL `dbo.tbl*` design (`IDENTITY(1,1)`, `NVARCHAR`, `GETDATE()`). | `Database/Seed.sql` (lines 1–35 live; line 39+ legacy `dbo.tbl*`; line 40 is bare DDL, rest block-commented) | Move seed into EF Core (`modelBuilder.HasData` / seed extension) and extract the legacy schema to a reference doc, out of executable SQL. |
-| 7 | **No migrate/seed bootstrap at startup** — the app assumes the DB was provisioned externally; a fresh DB will fail at first query. Migrations were removed from the repo, so there is no `dotnet ef database update` path either. | `Program.cs:12-14` (no `Db.Database.Migrate()`), no `Migrations/` folder | Add dev-only `Migrate()` (+ data seed) bootstrap and regenerate a baseline migration, or document the manual Seed.sql step in a README. |
+| 6 | **No seed artifact for a fresh DB** — permissions/roles/unit/test-user rows exist only in the dev DB (no `Database/Seed.sql`, no EF `HasData`). | no `Database/` folder, no `Seed.sql`; `Migrations/20260920123931_UserPermissionControl.cs` contains no seed data | Move seed into EF Core (`modelBuilder.HasData` / seed extension) so a fresh DB is reproducible end-to-end. |
+| 7 | **No migrate/seed bootstrap at startup** — the app assumes the DB was provisioned externally; a fresh DB will fail at first query. The git-ignored migration exists but is not auto-applied. | `Program.cs:12-14` (no `Db.Database.Migrate()`) | Add dev-only `Migrate()` (+ data seed) bootstrap, or document the manual `dotnet ef database update` + seed-resync step in a README. |
 | 8 | **No logging (`ILogger`) anywhere** — service/DB exceptions bubble with no trace and the catch blocks can't be audited. | all `Services/*` and `Controllers/*` | Inject `ILogger<T>` and log at service and catch boundaries. |
 
 ### 8.3 Security
@@ -425,7 +432,7 @@ Key decisions for the target:
 2. **Uniform JSON contract** — `{ success, message, data, errors }` via `ApiResponse<T>` (already live).
 3. **Server-side validation is the source of truth** — DataAnnotations on save models + custom validators; client JS mirrors it for UX only (already live).
 4. **Single source for permissions/policies** — `PermissionCatalog` shared by `Program.cs`, sidebar, and `PermissionPageMapper` (already live).
-5. **EF seed via `HasData`**; remove legacy SQL Server DDL from `Seed.sql` (mismatch #6).
+5. **EF seed via `HasData`** so a fresh DB provisions seed rows (mismatch #6).
 6. **Real AD provider** behind `IAdAuthenticationService` (or explicitly dev-gated) (mismatch #5).
 7. **Logging** (`ILogger`) at service boundaries (mismatch #8).
 8. **Server-side DataTables** when row counts grow (mismatch #3).
@@ -441,12 +448,14 @@ Key decisions for the target:
 | Cookie auth + claims + permission policies | ✅ Complete |
 | User / Role / Permission CRUD (models, services, views) | ✅ Complete — incl. self-edit rule in `UsersService` (controller left thin) |
 | Units page (Unit CRUD \| Unit Group CRUD, Select2 group→unit assignment) | ✅ Complete — two-tab Administration page; group requires ≥2 units; delete guards for units/groups referenced by users or templates |
-| PostgreSQL + EF Core | ✅ Live — schema formerly created by migration `20260816161300_UserPermissionControl` (removed from repo, commit `f8cacd2`); DB provisioned manually via `Database/Seed.sql` |
+| PostgreSQL + EF Core | ✅ Live — baseline migration `20260920123931_UserPermissionControl` (created 2026-09-20, git-ignored) provisions the `riskpulse` schema via `dotnet ef database update`; seed rows applied manually from the dev DB |
 | DataTables AJAX grids + JSON save flows | ✅ Working — every grid returns a named `*GridRowViewModel` (Users, Roles, Units, Groups, SAQ headers/questions/options, KRI headers/items, KRI colors/groups/bands, Assessment) |
 | Bootstrap 5 modals (programmatic open/close) | ✅ Fixed — open/close via `RiskPulse.showModal(id)` / `RiskPulse.hideModal(formEl)` in the shared module; modals re-hosted under `<body>`; no jQuery `$.fn.modal` or raw `getOrCreateInstance` in views |
 | Design system (CSS) + AI specs | ✅ Complete |
 | Project structure conventions | ✅ Complete — controllers flat & 1:1 with Views; services grouped by workflow; Models split `Dto`/`ViewModel`/`Enum`; entities in `Data/Entries`; Views folder=controller, file=action |
-| Domain pages (Dashboard, Submissions, Risk Register Templates) | ⬜ Stubs |
+| Domain page: Risk Register Templates | ⬜ Stub |
+| Submissions (fill/submit/approve/authorize, own-unit) | ✅ Implemented — grid, detail, SAQ entry, KRI entry (RAG dots), workflow step transitions; maker/checker separation deferred |
+| Dashboard (landing page) | ✅ Implemented — fully server-rendered (no DataTables/JS): hero KPIs, status distribution, KRI RAG snapshot (latest period), needs-attention list, period history |
 | SAQ Templates (grid, header CRUD, question/option designer, Locked immutable rule, Group XOR Unit link) | ✅ Implemented |
 | KRI Templates (grid, header CRUD, KRI builder with value/comment/group, Locked immutable rule, Group XOR Unit link) | ✅ Implemented |
 | KRI Config (threshold colors, groups, value-band editor) | ✅ Merged into KRI Templates as tabs |
@@ -487,6 +496,6 @@ Key decisions for the target:
 15. **Move DB credentials out of source** — user-secrets / environment variables (§8 #10).
 16. **Extract interfaces + register DI** — `IUsersService`, `IRolesService`, `IUnitsService`, `IAssessmentService`, `IAdAuthenticationService`, `IDbAuthorizationService` (§8 #1–#2).
 17. **Implement real AD** or dev-gate explicitly (§8 #5).
-18. **EF seed + clean `Seed.sql`** of legacy SQL Server DDL; regenerate a baseline migration so `dotnet ef database update` works (§8 #6–#7).
+18. **EF seed via `HasData`** so `dotnet ef database update` produces a fully-working DB including permissions/roles/unit/test user (§8 #6–#7).
 19. **Add logging** at service boundaries (§8 #8).
 20. Then build domain: keep this file current for Dashboard/Submissions with the standardized flow (server-side grid for submissions volume, §8 #3).

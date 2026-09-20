@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using RiskPulse.Data;
 using RiskPulse.Services;
 using RiskPulse.Services.Administration;
+using RiskPulse.Services.Assessment;
+using RiskPulse.Services.Dashboard;
 using RiskPulse.Services.Login;
 using RiskPulse.Services.Schedule;
 using RiskPulse.Services.Templates;
@@ -30,6 +32,9 @@ builder.Services.AddScoped<UnitsService>();
 builder.Services.AddScoped<SaqTemplatesService>();
 builder.Services.AddScoped<KriTemplatesService>();
 builder.Services.AddScoped<ScheduleService>();
+builder.Services.AddScoped<AssessmentService>();
+builder.Services.AddScoped<SubmissionsService>();
+builder.Services.AddScoped<DashboardService>();
 builder.Services.AddScoped<CodeGeneratorService>();
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
