@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using RiskPulse.Data;
 using RiskPulse.Data.Entries;
-using RiskPulse.Data.Extensions;
 using RiskPulse.Models.Dto;
 using RiskPulse.Models.Enum;
 using RiskPulse.Models.ViewModel;
@@ -41,12 +40,17 @@ public class KriTemplatesService
             .ToListAsync();
     }
 
-    public async Task<SaveResultDto> SaveHeaderAsync(KriHeaderSaveDto model)
+    public async Task<SaveResultDto> SaveFullAsync(KriTemplateSaveDto model)
     {
-        var desc = model.KriHeaderDesc?.Trim() ?? string.Empty;
+        var headerDto = model.Header;
+        var desc = headerDto.KriHeaderDesc?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(desc))
+        {
+            throw new InvalidOperationException("Template description is required.");
+        }
 
-        var hasGroup = model.GroupId.HasValue && model.GroupId.Value > 0;
-        var hasUnit = model.UnitId.HasValue && model.UnitId.Value > 0;
+        var hasGroup = headerDto.GroupId.HasValue && headerDto.GroupId.Value > 0;
+        var hasUnit = headerDto.UnitId.HasValue && headerDto.UnitId.Value > 0;
         if (hasGroup == hasUnit)
         {
             throw new InvalidOperationException("Please select either a unit group or a unit, not both.");
@@ -54,7 +58,7 @@ public class KriTemplatesService
 
         if (hasGroup)
         {
-            var groupExists = await _db.Groups.AnyAsync(g => g.GroupId == model.GroupId!.Value);
+            var groupExists = await _db.Groups.AnyAsync(g => g.GroupId == headerDto.GroupId!.Value);
             if (!groupExists)
             {
                 throw new InvalidOperationException("Please select a valid unit group.");
@@ -63,43 +67,93 @@ public class KriTemplatesService
 
         if (hasUnit)
         {
-            var unitExists = await _db.Units.AnyAsync(u => u.UnitId == model.UnitId!.Value);
+            var unitExists = await _db.Units.AnyAsync(u => u.UnitId == headerDto.UnitId!.Value);
             if (!unitExists)
             {
                 throw new InvalidOperationException("Please select a valid unit.");
             }
         }
 
-        if (model.KriHeaderId == 0)
+        // --- Validate the KRI set (final-state semantics) before mutating anything ---
+        var kris = NormalizeKris(model.Kris);
+
+        if (headerDto.KriHeaderId == 0)
         {
+            if (kris.Count == 0)
+            {
+                throw new InvalidOperationException("At least one KRI is required.");
+            }
+
             var code = await _codeService.GenerateKriCodeAsync();
 
             var header = new KriHeader
             {
                 KriHeaderDesc = desc,
-                GroupId = hasGroup ? model.GroupId : null,
-                UnitId = hasUnit ? model.UnitId : null,
-                KriStatus = model.KriStatus,
+                GroupId = hasGroup ? headerDto.GroupId : null,
+                UnitId = hasUnit ? headerDto.UnitId : null,
+                KriStatus = headerDto.KriStatus,
                 KriCode = code
             };
 
             _db.KriHeaders.Add(header);
+
+            foreach (var kriDto in kris)
+            {
+                header.Kris.Add(BuildKri(kriDto));
+            }
+
             await _db.SaveChangesAsync();
             return new SaveResultDto { Id = header.KriHeaderId };
         }
 
-        var existing = await _db.KriHeaders.FindAsync(model.KriHeaderId)
-            ?? throw new InvalidOperationException($"Template with Id {model.KriHeaderId} was not found.");
+        var existing = await _db.KriHeaders
+            .Include(h => h.Kris)
+            .FirstOrDefaultAsync(h => h.KriHeaderId == headerDto.KriHeaderId)
+            ?? throw new InvalidOperationException($"Template with Id {headerDto.KriHeaderId} was not found.");
 
         if (existing.KriStatus == KriStatus.Locked)
         {
             throw new InvalidOperationException("Cannot modify a locked template.");
         }
 
+        // Reject stale kri ids (deleted by another session) instead of silently creating them.
+        var byId = existing.Kris.ToDictionary(k => k.KriId);
+        var incomingIds = kris.Where(k => k.KriId != 0).Select(k => k.KriId).ToHashSet();
+        foreach (var kriId in incomingIds)
+        {
+            if (!byId.ContainsKey(kriId))
+            {
+                throw new InvalidOperationException($"KRI with Id {kriId} was not found.");
+            }
+        }
+
         existing.KriHeaderDesc = desc;
-        existing.GroupId = hasGroup ? model.GroupId : null;
-        existing.UnitId = hasUnit ? model.UnitId : null;
-        existing.KriStatus = model.KriStatus;
+        existing.GroupId = hasGroup ? headerDto.GroupId : null;
+        existing.UnitId = hasUnit ? headerDto.UnitId : null;
+        existing.KriStatus = headerDto.KriStatus;
+
+        // Remove persisted KRIs that are not part of the payload (mirror DeleteKriAsync).
+        foreach (var kri in existing.Kris.Where(k => !incomingIds.Contains(k.KriId)).ToList())
+        {
+            _db.Kris.Remove(kri);
+        }
+
+        // Upsert KRIs in payload order.
+        foreach (var kriDto in kris)
+        {
+            if (kriDto.KriId == 0)
+            {
+                existing.Kris.Add(BuildKri(kriDto));
+                continue;
+            }
+
+            var kri = byId[kriDto.KriId];
+            kri.KriDesc = kriDto.KriDesc;
+            kri.AllowComment = kriDto.AllowComment;
+            kri.GreenLimit = kriDto.GreenLimit;
+            kri.AmberLimit = kriDto.AmberLimit;
+            kri.RedLimit = kriDto.RedLimit;
+        }
 
         await _db.SaveChangesAsync();
         return new SaveResultDto { Id = existing.KriHeaderId };
@@ -125,7 +179,7 @@ public class KriTemplatesService
         await _db.SaveChangesAsync();
     }
 
-    // --- KRI items (grid/save/delete) ---
+    // --- KRI items (grid used to load a template into the designer / previews) ---
     public async Task<List<KriItemGridRowViewModel>> GetKrisAsync(int kriHeaderId)
     {
         return await _db.Kris
@@ -142,75 +196,6 @@ public class KriTemplatesService
                 RedLimit = k.RedLimit
             })
             .ToListAsync();
-    }
-
-    public async Task<SaveResultDto> SaveKriAsync(KriSaveDto model)
-    {
-        var header = await _db.KriHeaders.FindAsync(model.KriHeaderId)
-            ?? throw new InvalidOperationException($"Template with Id {model.KriHeaderId} was not found.");
-
-        if (header.KriStatus == KriStatus.Locked)
-        {
-            throw new InvalidOperationException("Cannot modify a locked template.");
-        }
-
-        if (model.GreenLimit > model.AmberLimit)
-        {
-            throw new InvalidOperationException("Green limit must not exceed amber limit.");
-        }
-
-        if (model.AmberLimit > model.RedLimit)
-        {
-            throw new InvalidOperationException("Amber limit must not exceed red limit.");
-        }
-
-        var desc = model.KriDesc.Trim();
-
-        await _db.Kris.EnsureUniqueAsync(k => k.KriHeaderId == model.KriHeaderId && k.KriId != model.KriId && k.KriDesc.ToLower() == desc.ToLower(), "KRI description", desc);
-
-        if (model.KriId == 0)
-        {
-            var kri = new Kri
-            {
-                KriHeaderId = model.KriHeaderId,
-                KriDesc = desc,
-                AllowComment = model.AllowComment,
-                GreenLimit = model.GreenLimit,
-                AmberLimit = model.AmberLimit,
-                RedLimit = model.RedLimit
-            };
-
-            _db.Kris.Add(kri);
-            await _db.SaveChangesAsync();
-            return new SaveResultDto { Id = kri.KriId };
-        }
-
-        var existing = await _db.Kris.FindAsync(model.KriId)
-            ?? throw new InvalidOperationException($"KRI with Id {model.KriId} was not found.");
-
-        existing.KriDesc = desc;
-        existing.AllowComment = model.AllowComment;
-        existing.GreenLimit = model.GreenLimit;
-        existing.AmberLimit = model.AmberLimit;
-        existing.RedLimit = model.RedLimit;
-
-        await _db.SaveChangesAsync();
-        return new SaveResultDto { Id = existing.KriId };
-    }
-
-    public async Task DeleteKriAsync(int kriId)
-    {
-        var kri = await _db.Kris.FindAsync(kriId)
-            ?? throw new InvalidOperationException($"KRI with Id {kriId} was not found.");
-
-        var header = await _db.KriHeaders.FindAsync(kri.KriHeaderId);
-        if (header?.KriStatus == KriStatus.Locked)
-        {
-            throw new InvalidOperationException("Cannot modify a locked template.");
-        }
-
-        _db.Kris.Remove(kri);
-        await _db.SaveChangesAsync();
     }
 
     // --- Preview ---
@@ -238,6 +223,71 @@ public class KriTemplatesService
             KriStatus = header.KriStatus.ToString(),
             AssignmentLabel = header.AssignmentLabel,
             Kris = await GetKrisAsync(kriHeaderId)
+        };
+    }
+
+    // --- KRI normalization + validation (pending payload is the source of truth) ---
+    private static List<KriSaveDto> NormalizeKris(List<KriSaveDto>? kris)
+    {
+        var incoming = kris ?? new List<KriSaveDto>();
+        var normalized = new List<KriSaveDto>();
+
+        foreach (var kriDto in incoming)
+        {
+            var desc = kriDto.KriDesc?.Trim() ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(desc))
+            {
+                throw new InvalidOperationException("KRI description is required.");
+            }
+
+            if (kriDto.GreenLimit > kriDto.AmberLimit)
+            {
+                throw new InvalidOperationException("Green limit must not exceed amber limit.");
+            }
+
+            if (kriDto.AmberLimit > kriDto.RedLimit)
+            {
+                throw new InvalidOperationException("Amber limit must not exceed red limit.");
+            }
+
+            normalized.Add(new KriSaveDto
+            {
+                KriId = kriDto.KriId,
+                KriDesc = desc,
+                AllowComment = kriDto.AllowComment,
+                GreenLimit = kriDto.GreenLimit,
+                AmberLimit = kriDto.AmberLimit,
+                RedLimit = kriDto.RedLimit
+            });
+        }
+
+        // Duplicate description check against the effective final state.
+        // A DB-only check would be wrong here: KRIs absent from the payload are
+        // deleted by the same atomic save, so a persisted row can collide with an
+        // incoming one without the final template holding a duplicate.
+        for (var i = 0; i < normalized.Count; i++)
+        {
+            for (var j = i + 1; j < normalized.Count; j++)
+            {
+                if (string.Equals(normalized[i].KriDesc, normalized[j].KriDesc, StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new InvalidOperationException($"KRI description '{normalized[i].KriDesc}' already exists.");
+                }
+            }
+        }
+
+        return normalized;
+    }
+
+    private static Kri BuildKri(KriSaveDto kriDto)
+    {
+        return new Kri
+        {
+            KriDesc = kriDto.KriDesc,
+            AllowComment = kriDto.AllowComment,
+            GreenLimit = kriDto.GreenLimit,
+            AmberLimit = kriDto.AmberLimit,
+            RedLimit = kriDto.RedLimit
         };
     }
 }

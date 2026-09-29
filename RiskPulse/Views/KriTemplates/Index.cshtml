@@ -15,215 +15,147 @@
     <div>
         <h2 class="rp-display-lg">KRI Templates</h2>
         <p class="rp-body-md mt-1 mb-0 rp-text-muted">
-            Manage Key Risk Indicator templates — build KRIs and set per-item thresholds (Green / Amber / Red).
+            Manage Key Risk Indicator templates — define indicators and their Green / Amber / Red thresholds.
         </p>
     </div>
 </div>
 
-<!-- ============================================================
-     KRI TEMPLATES GRID
-     ============================================================ -->
 <div class="rp-card p-2">
-    <div>
-        <div class="rp-grid-toolbar">
-            <p class="mb-0 rp-body-sm rp-text-muted">Build KRI template headers and their KRIs.</p>
-            <button type="button" class="rp-btn rp-btn-primary" data-bs-toggle="modal" data-bs-target="#addKriModal">
-                <i class="fas fa-plus"></i> Add Template
-            </button>
-        </div>
-        <table id="kriTable" class="table rp-table table-sm w-100 align-middle">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Code</th>
-                    <th>Description</th>
-                    <th>Assigned To</th>
-                    <th>Status</th>
-                    <th>KRIs</th>
-                    <th class="text-end">Actions</th>
-                </tr>
-            </thead>
-        </table>
+    <div class="rp-grid-toolbar">
+        <p class="mb-0 rp-body-sm rp-text-muted">Define indicators and their Green / Amber / Red thresholds.</p>
+        <button type="button" class="rp-btn rp-btn-primary" id="addKriTemplateBtn">
+            <i class="fas fa-plus"></i> Add Template
+        </button>
     </div>
+    <table id="kriTable" class="table rp-table table-sm w-100 align-middle">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Code</th>
+                <th>Description</th>
+                <th>Assigned To</th>
+                <th>Status</th>
+                <th>KRIs</th>
+                <th class="text-end">Actions</th>
+            </tr>
+        </thead>
+    </table>
 </div>
 
 <!-- ============================================================
-     ADD TEMPLATE MODAL
+     TEMPLATE MODAL — Header Fields + Split-Pane KRI Builder
      ============================================================ -->
-<div class="modal fade" id="addKriModal" tabindex="-1" aria-labelledby="addKriModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <form id="addKriForm" novalidate>
-                <div class="modal-header">
-                    <h5 class="modal-title" id="addKriModalLabel">Add Template</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="rp-label" for="addKriDesc">Description</label>
-                        <input type="text" id="addKriDesc" name="kriHeaderDesc" class="rp-input" autocomplete="off" />
-                    </div>
-                    <div class="mb-3">
-                        <label class="rp-label" for="addKriLinkType">Link Type</label>
-                        <select id="addKriLinkType" class="rp-input">
-                            <option value="group">Unit Group</option>
-                            <option value="unit">Unit</option>
-                        </select>
-                    </div>
-                    <div class="mb-3" id="addKriGroupRow">
-                        <label class="rp-label" for="addKriGroupId">Unit Group</label>
-                        <select id="addKriGroupId" name="groupId" class="rp-input"></select>
-                    </div>
-                    <div class="mb-3 d-none" id="addKriUnitRow">
-                        <label class="rp-label" for="addKriUnitId">Unit</label>
-                        <select id="addKriUnitId" name="unitId" class="rp-input"></select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="rp-label" for="addKriStatus">Status</label>
-                        <select id="addKriStatus" name="kriStatus" class="rp-input"></select>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="rp-btn rp-btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="rp-btn rp-btn-primary"><i class="fas fa-check"></i> Create</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- ============================================================
-     EDIT TEMPLATE MODAL
-     ============================================================ -->
-<div class="modal fade" id="editKriModal" tabindex="-1" aria-labelledby="editKriModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <form id="editKriForm" novalidate>
-                <input type="hidden" id="editKriHeaderId" name="kriHeaderId" value="0" />
-                <div class="modal-header">
-                    <h5 class="modal-title" id="editKriModalLabel">Edit Template</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="rp-label" for="editKriCode">Code</label>
-                        <input type="text" id="editKriCode" name="kriCode" class="rp-input" readonly />
-                    </div>
-                    <div class="mb-3">
-                        <label class="rp-label" for="editKriDesc">Description</label>
-                        <input type="text" id="editKriDesc" name="kriHeaderDesc" class="rp-input" autocomplete="off" />
-                    </div>
-                    <div class="mb-3">
-                        <label class="rp-label" for="editKriLinkType">Link Type</label>
-                        <select id="editKriLinkType" class="rp-input">
-                            <option value="group">Unit Group</option>
-                            <option value="unit">Unit</option>
-                        </select>
-                    </div>
-                    <div class="mb-3" id="editKriGroupRow">
-                        <label class="rp-label" for="editKriGroupId">Unit Group</label>
-                        <select id="editKriGroupId" name="groupId" class="rp-input"></select>
-                    </div>
-                    <div class="mb-3 d-none" id="editKriUnitRow">
-                        <label class="rp-label" for="editKriUnitId">Unit</label>
-                        <select id="editKriUnitId" name="unitId" class="rp-input"></select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="rp-label" for="editKriStatus">Status</label>
-                        <select id="editKriStatus" name="kriStatus" class="rp-input"></select>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="rp-btn rp-btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="rp-btn rp-btn-primary"><i class="fas fa-check"></i> Save</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- ============================================================
-     DESIGN MODAL — Split-Pane KRI Builder
-     ============================================================ -->
-<div class="modal fade" id="designModal" tabindex="-1" aria-labelledby="designModalLabel" aria-hidden="true">
+<div class="modal fade" id="kriTemplateModal" tabindex="-1" aria-labelledby="kriTemplateModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-xl">
         <div class="modal-content">
-            <div class="modal-header py-2">
-                <div>
-                    <h5 class="modal-title" id="designModalLabel">Design Template</h5>
-                    <div id="designStatusPill" class="mt-1"></div>
-                </div>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body p-0">
-                <div class="rp-design-split">
-                    <!-- LEFT PANEL: KRI List -->
-                    <div class="rp-design-left">
-                        <div class="p-2 border-bottom d-flex justify-content-between align-items-center">
-                            <span class="rp-label-md rp-text-muted">KRIs (<span id="kriCount">0</span>)</span>
-                            <button type="button" class="rp-btn rp-btn-primary" id="addKriItemBtn">
-                                <i class="fas fa-plus"></i> Add
-                            </button>
-                        </div>
-                        <div class="rp-design-left-list" id="kriList"></div>
+            <form id="kriTemplateForm" novalidate>
+                <input type="hidden" id="kriHeaderId" name="kriHeaderId" value="0" />
+                <div class="modal-header py-2">
+                    <div>
+                        <h5 class="modal-title" id="kriTemplateModalLabel">Add KRI Template</h5>
+                        <div id="kriTemplateStatusPill" class="mt-1"></div>
                     </div>
-                    <!-- RIGHT PANEL: Editor -->
-                    <div class="rp-design-right">
-                        <div id="editorEmptyState" class="rp-empty-state">
-                            <i class="fas fa-gauge-high fa-2x mb-3 rp-empty-state-icon"></i>
-                            <p class="rp-body-md mb-0">Select a KRI on the left, or click <strong>Add</strong> to create one.</p>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-0">
+                    <!-- HEADER FIELDS -->
+                    <div class="p-3 border-bottom" id="kriHeaderFields">
+                        <div class="row g-3">
+                            <div class="col-md-8">
+                                <label class="rp-label" for="kriDesc">Description</label>
+                                <input type="text" id="kriDesc" name="kriDesc" class="rp-input" autocomplete="off" />
+                            </div>
+                            <div class="col-md-4 d-none" id="kriCodeCol">
+                                <label class="rp-label" for="kriCode">Code</label>
+                                <input type="text" id="kriCode" name="kriCode" class="rp-input" readonly />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="rp-label" for="kriLinkType">Link Type</label>
+                                <select id="kriLinkType" class="rp-input">
+                                    <option value="group">Unit Group</option>
+                                    <option value="unit">Unit</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4" id="kriGroupRow">
+                                <label class="rp-label" for="kriGroup">Unit Group</label>
+                                <select id="kriGroup" name="groupId" class="rp-input"></select>
+                            </div>
+                            <div class="col-md-4 d-none" id="kriUnitRow">
+                                <label class="rp-label" for="kriUnit">Unit</label>
+                                <select id="kriUnit" name="unitId" class="rp-input"></select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="rp-label" for="kriStatus">Status</label>
+                                <select id="kriStatus" name="kriStatus" class="rp-input"></select>
+                            </div>
                         </div>
-                        <div id="kriEditor" class="p-3 d-none">
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <h6 class="mb-0" id="editorTitle">New KRI</h6>
-                                <input type="hidden" id="editorKriId" value="0" />
+                    </div>
+                    <!-- SPLIT-PANE DESIGNER -->
+                    <div class="rp-design-split">
+                        <!-- LEFT PANEL: KRI List -->
+                        <div class="rp-design-left">
+                            <div class="p-2 border-bottom d-flex justify-content-between align-items-center">
+                                <span class="rp-label-md rp-text-muted">Indicators (<span id="kriCount">0</span>)</span>
+                                <button type="button" class="rp-btn rp-btn-primary" id="addKriBtn">
+                                    <i class="fas fa-plus"></i> Add
+                                </button>
                             </div>
-                            <div class="mb-2">
-                                <label class="rp-label" for="editorKriDesc">KRI Description</label>
-                                <textarea id="editorKriDesc" class="rp-input w-100" rows="2" autocomplete="off" placeholder="e.g. Number of late cash counts this month"></textarea>
+                            <div class="rp-design-left-list" id="kriList"></div>
+                        </div>
+                        <!-- RIGHT PANEL: Editor -->
+                        <div class="rp-design-right">
+                            <div id="editorEmptyState" class="rp-empty-state">
+                                <i class="fas fa-chart-line fa-2x mb-3 rp-empty-state-icon"></i>
+                                <p class="rp-body-md mb-0">Select an indicator on the left, or click <strong>Add</strong> to create one.</p>
                             </div>
-                            <div class="mb-2">
-                                <label class="rp-label">Thresholds</label>
-                                <div class="d-flex gap-2">
-                                    <div class="flex-fill">
-                                        <label class="rp-label rp-body-sm" for="editorGreenLimit">
-                                            <span class="d-inline-flex align-items-center gap-1"><span class="rp-level-dot rp-level-success"></span>Green (up to)</span>
-                                        </label>
-                                        <input type="number" id="editorGreenLimit" class="rp-input w-100" min="0" value="0" autocomplete="off" />
+                            <div id="kriEditor" class="p-3 d-none">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h6 class="mb-0" id="editorTitle">New Indicator</h6>
+                                    <input type="hidden" id="editorKriId" value="0" />
+                                </div>
+                                <div class="mb-2">
+                                    <label class="rp-label" for="editorKriDesc">Indicator Description</label>
+                                    <textarea id="editorKriDesc" class="rp-input w-100" rows="2" autocomplete="off" placeholder="e.g. Number of cash shortage incidents per week"></textarea>
+                                </div>
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="checkbox" id="editorAllowComment" checked />
+                                    <label class="form-check-label rp-body-md" for="editorAllowComment">Allow comments for this indicator</label>
+                                </div>
+                                <label class="rp-label mb-2">Thresholds (Green / Amber / Red)</label>
+                                <div class="row g-2 mb-2">
+                                    <div class="col-4">
+                                        <label class="rp-label rp-body-sm" for="editorGreenLimit">Green ≤</label>
+                                        <input type="number" min="0" step="1" id="editorGreenLimit" class="rp-input" />
                                     </div>
-                                    <div class="flex-fill">
-                                        <label class="rp-label rp-body-sm" for="editorAmberLimit">
-                                            <span class="d-inline-flex align-items-center gap-1"><span class="rp-level-dot rp-level-warning"></span>Amber (up to)</span>
-                                        </label>
-                                        <input type="number" id="editorAmberLimit" class="rp-input w-100" min="0" value="0" autocomplete="off" />
+                                    <div class="col-4">
+                                        <label class="rp-label rp-body-sm" for="editorAmberLimit">Amber ≤</label>
+                                        <input type="number" min="0" step="1" id="editorAmberLimit" class="rp-input" />
                                     </div>
-                                    <div class="flex-fill">
-                                        <label class="rp-label rp-body-sm" for="editorRedLimit">
-                                            <span class="d-inline-flex align-items-center gap-1"><span class="rp-level-dot rp-level-danger"></span>Red (from)</span>
-                                        </label>
-                                        <input type="number" id="editorRedLimit" class="rp-input w-100" min="0" value="0" autocomplete="off" />
+                                    <div class="col-4">
+                                        <label class="rp-label rp-body-sm" for="editorRedLimit">Red &gt;</label>
+                                        <input type="number" min="0" step="1" id="editorRedLimit" class="rp-input" />
                                     </div>
                                 </div>
-                            </div>
-                            <div class="mb-2 rp-body-md rp-text-muted">
-                                <i class="fas fa-comment me-1"></i> Comments are always allowed for KRI items.
-                            </div>
-                            <div class="mt-3 d-flex gap-2">
-                                <button type="button" class="rp-btn rp-btn-primary" id="saveKriItemBtn">
-                                    <i class="fas fa-check"></i> Save KRI
-                                </button>
-                                <button type="button" class="rp-btn rp-btn-secondary" id="cancelKriItemBtn">Cancel</button>
+                                <div class="mt-3 d-flex gap-2">
+                                    <button type="button" class="rp-btn rp-btn-primary" id="saveKriBtn">
+                                        <i class="fas fa-check"></i> Save Indicator
+                                    </button>
+                                    <button type="button" class="rp-btn rp-btn-secondary" id="cancelKriBtn">Cancel</button>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
-            <div class="modal-footer py-2">
-                <span class="rp-locked-note text-muted rp-body-sm me-auto" id="lockedNotice">
-                    <i class="fas fa-lock me-1"></i> This template is locked and cannot be modified.
-                </span>
-                <button type="button" class="rp-btn rp-btn-secondary" data-bs-dismiss="modal">Close</button>
-            </div>
+                <div class="modal-footer py-2">
+                    <span class="rp-locked-note text-muted rp-body-sm me-auto" id="lockedNotice">
+                        <i class="fas fa-lock me-1"></i> This template is locked and cannot be modified.
+                    </span>
+                    <button type="button" class="rp-btn rp-btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="rp-btn rp-btn-primary" id="saveKriTemplateBtn">
+                        <i class="fas fa-check"></i> Save Template
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -240,29 +172,35 @@
             var statuses = @Html.Raw(statusesJson);
             var unitGroups = @Html.Raw(unitGroupsJson);
             var units = @Html.Raw(unitsJson);
-
             var gridUrl = '@Url.Action("Grid", "KriTemplates")';
-            var saveUrl = '@Url.Action("Save", "KriTemplates")';
+            var saveFullUrl = '@Url.Action("SaveFull", "KriTemplates")';
             var deleteUrl = '@Url.Action("Delete", "KriTemplates")';
             var krisGridUrl = '@Url.Action("KrisGrid", "KriTemplates")';
-            var saveKriUrl = '@Url.Action("SaveKri", "KriTemplates")';
-            var deleteKriUrl = '@Url.Action("DeleteKri", "KriTemplates")';
 
             var currentKriId = 0;
             var currentKriLocked = false;
             var loadedKris = [];
             var selectedKriId = null;
+            var nextTempKriId = 0;
 
             /* =================================================================
                SECTION 2 — UI RENDERERS
                ================================================================= */
+            function limitPills(kri) {
+                return [
+                    '<span class="rp-pill rp-pill-success">G ≤ ' + kri.greenLimit + '</span>',
+                    '<span class="rp-pill rp-pill-warning">A ≤ ' + kri.amberLimit + '</span>',
+                    '<span class="rp-pill rp-pill-danger">R > ' + kri.redLimit + '</span>'
+                ].join(' ');
+            }
+
             function renderKriList(kris) {
                 loadedKris = kris || [];
                 var $container = $('#kriList').empty();
                 $('#kriCount').text(loadedKris.length);
 
                 if (!loadedKris.length) {
-                    $container.append('<div class="text-center text-muted rp-body-sm py-4">No KRIs yet.</div>');
+                    $container.append('<div class="text-center text-muted rp-body-sm py-4">No indicators yet.</div>');
                     return;
                 }
 
@@ -272,6 +210,7 @@
 
                     var $top = $('<div class="d-flex justify-content-between align-items-center gap-1">');
                     var $label = $('<div class="rp-body-md fw-semibold rp-truncate">');
+                    $label.append($('<span class="text-muted me-1">').text('K' + (i + 1) + '.'));
                     $label.append($('<span>').text(k.kriDesc));
                     $top.append($label);
 
@@ -284,9 +223,9 @@
                     }
                     $item.append($top);
 
-                    var $meta = $('<div class="rp-body-sm text-muted mt-1">');
-                    $meta.text('G ' + k.greenLimit + ' \u00B7 A ' + k.amberLimit + ' \u00B7 R ' + k.redLimit);
-                    $item.append($meta);
+                    $item.append(
+                        $('<div class="rp-body-sm text-muted mt-1 d-flex flex-wrap gap-1">').append(limitPills(k))
+                    );
 
                     $container.append($item);
                 });
@@ -296,10 +235,12 @@
                 selectedKriId = kri ? kri.kriId : null;
                 $('#editorKriId').val(kri ? kri.kriId : 0);
                 $('#editorKriDesc').val(kri ? kri.kriDesc : '');
+                $('#editorAllowComment').prop('checked', kri ? kri.allowComment : true);
                 $('#editorGreenLimit').val(kri ? kri.greenLimit : 0);
                 $('#editorAmberLimit').val(kri ? kri.amberLimit : 0);
                 $('#editorRedLimit').val(kri ? kri.redLimit : 0);
-                $('#editorTitle').text(kri ? 'Edit KRI #' + kri.kriId : 'New KRI');
+                var num = kri ? (loadedKris.indexOf(kri) + 1) : 0;
+                $('#editorTitle').text(kri ? 'Edit Indicator #' + num : 'New Indicator');
 
                 $('#editorEmptyState').addClass('d-none');
                 $('#kriEditor').removeClass('d-none');
@@ -325,28 +266,52 @@
                 }
             }
 
+            function setLockedMode(locked) {
+                currentKriLocked = locked;
+                $('#lockedNotice').toggle(locked);
+                $('#addKriBtn').toggle(!locked);
+                $('#saveKriTemplateBtn').prop('disabled', locked);
+                $('#kriHeaderFields :input').prop('disabled', locked);
+                $('#kriEditor :input').prop('disabled', locked);
+            }
+
             /* =================================================================
                SECTION 3 — FORM PAYLOAD BUILDERS
                ================================================================= */
-            function getHeaderPayload($form, prefix) {
+            function getHeaderPayload($form) {
                 var payload = RiskPulse.serializeForm($form, {
                     numbers: ['kriHeaderId']
                 });
-                var isGroup = $('#' + prefix + 'LinkType').val() === 'group';
-                payload.groupId = isGroup ? (+$('#' + prefix + 'GroupId').val() || null) : null;
-                payload.unitId = !isGroup ? (+$('#' + prefix + 'UnitId').val() || null) : null;
+                var isGroup = $('#kriLinkType').val() === 'group';
+                payload.groupId = isGroup ? (+$('#kriGroup').val() || null) : null;
+                payload.unitId = !isGroup ? (+$('#kriUnit').val() || null) : null;
                 return payload;
             }
 
             function getKriPayload() {
+                var payload = {};
+                payload.kriId = +$('#editorKriId').val() || 0;
+                payload.kriDesc = $.trim($('#editorKriDesc').val());
+                payload.allowComment = $('#editorAllowComment').is(':checked');
+                payload.greenLimit = +$('#editorGreenLimit').val() || 0;
+                payload.amberLimit = +$('#editorAmberLimit').val() || 0;
+                payload.redLimit = +$('#editorRedLimit').val() || 0;
+                return payload;
+            }
+
+            function getFullPayload($form) {
                 return {
-                    kriId: +$('#editorKriId').val() || 0,
-                    kriHeaderId: currentKriId,
-                    kriDesc: $.trim($('#editorKriDesc').val()),
-                    allowComment: true,
-                    greenLimit: +$('#editorGreenLimit').val() || 0,
-                    amberLimit: +$('#editorAmberLimit').val() || 0,
-                    redLimit: +$('#editorRedLimit').val() || 0
+                    header: getHeaderPayload($form),
+                    kris: $.map(loadedKris, function (k) {
+                        return {
+                            kriId: k.kriId < 0 ? 0 : k.kriId,
+                            kriDesc: k.kriDesc,
+                            allowComment: k.allowComment,
+                            greenLimit: k.greenLimit,
+                            amberLimit: k.amberLimit,
+                            redLimit: k.redLimit
+                        };
+                    })
                 };
             }
 
@@ -361,20 +326,29 @@
             }
 
             function validateKriPayload(payload) {
-                if (!payload.kriDesc) { return RiskPulse.validationError($('#editorKriDesc'), 'KRI description is required.'); }
-                if (payload.greenLimit < 0) { return RiskPulse.validationError($('#editorGreenLimit'), 'Green limit must be a non-negative number.'); }
-                if (payload.amberLimit < 0) { return RiskPulse.validationError($('#editorAmberLimit'), 'Amber limit must be a non-negative number.'); }
-                if (payload.redLimit < 0) { return RiskPulse.validationError($('#editorRedLimit'), 'Red limit must be a non-negative number.'); }
-                if (payload.greenLimit > payload.amberLimit) { return RiskPulse.validationError($('#editorGreenLimit'), 'Green limit must not exceed amber limit.'); }
-                if (payload.amberLimit > payload.redLimit) { return RiskPulse.validationError($('#editorAmberLimit'), 'Amber limit must not exceed red limit.'); }
+                if (!payload.kriDesc) { return RiskPulse.validationError($('#editorKriDesc'), 'Indicator description is required.'); }
+                if (payload.greenLimit > payload.amberLimit) { return RiskPulse.validationError(null, 'Green limit must not exceed amber limit.'); }
+                if (payload.amberLimit > payload.redLimit) { return RiskPulse.validationError(null, 'Amber limit must not exceed red limit.'); }
+                return true;
+            }
+
+            function validateFullPayload(payload, $form) {
+                if (!validateHeaderPayload(payload.header, $form)) return false;
+                if (currentKriId === 0 && !payload.kris.length) { return RiskPulse.validationError(null, 'At least one KRI is required.'); }
+                for (var i = 0; i < payload.kris.length; i++) {
+                    var k = payload.kris[i];
+                    if (!$.trim(k.kriDesc)) { return RiskPulse.validationError(null, 'Indicator description is required.'); }
+                    if (k.greenLimit > k.amberLimit) { return RiskPulse.validationError(null, 'Green limit must not exceed amber limit.'); }
+                    if (k.amberLimit > k.redLimit) { return RiskPulse.validationError(null, 'Amber limit must not exceed red limit.'); }
+                }
                 return true;
             }
 
             /* =================================================================
                SECTION 5 — CONTROLLER CALLS (AJAX)
                ================================================================= */
-            function submitHeader(payload, $form) {
-                RiskPulse.postJson(saveUrl, payload, {
+            function submitFull(payload, $form) {
+                RiskPulse.postJson(saveFullUrl, payload, {
                     success: function (res) {
                         RiskPulse.hideModal($form);
                         kriTable.ajax.reload(null, false);
@@ -383,14 +357,14 @@
                     fail: function (res) {
                         RiskPulse.toastError(res.message || 'Unable to save template.');
                     }
-                });
+                }, $('#saveKriTemplateBtn'));
             }
 
             function deleteHeader(kriHeaderId, desc, code) {
                 var display = desc || code;
                 RiskPulse.confirmDelete(
                     'Delete template?',
-                    'This will permanently delete "' + display + '" and all of its KRIs.',
+                    'This will permanently delete "' + display + '" and all of its indicators.',
                     function () {
                         RiskPulse.postJson(deleteUrl, { id: kriHeaderId }, {
                             success: function (res) {
@@ -405,47 +379,15 @@
                 );
             }
 
-            function loadKris() {
-                RiskPulse.getJson(krisGridUrl, { kriHeaderId: currentKriId }, {
+            function loadKris(kriHeaderId) {
+                RiskPulse.getJson(krisGridUrl, { kriHeaderId: kriHeaderId }, {
                     success: function (res) {
                         renderKriList(res.data);
                     },
                     fail: function (res) {
-                        RiskPulse.toastError(res.message || 'Unable to load KRIs.');
+                        RiskPulse.toastError(res.message || 'Unable to load indicators.');
                     }
                 });
-            }
-
-            function submitKri(payload) {
-                RiskPulse.postJson(saveKriUrl, payload, {
-                    success: function (res) {
-                        hideEditor();
-                        loadKris();
-                        RiskPulse.toastSuccess(res.message || 'KRI saved successfully.');
-                    },
-                    fail: function (res) {
-                        RiskPulse.toastError(res.message || 'Unable to save KRI.');
-                    }
-                });
-            }
-
-            function deleteKri(kri) {
-                RiskPulse.confirmDelete(
-                    'Delete KRI?',
-                    'This will permanently delete "' + kri.kriDesc + '".',
-                    function () {
-                        RiskPulse.postJson(deleteKriUrl, { id: kri.kriId }, {
-                            success: function (res) {
-                                if (selectedKriId === kri.kriId) hideEditor();
-                                loadKris();
-                                RiskPulse.toastSuccess(res.message || 'KRI deleted successfully.');
-                            },
-                            fail: function (res) {
-                                RiskPulse.toastError(res.message || 'Unable to delete KRI.');
-                            }
-                        });
-                    }
-                );
             }
 
             /* =================================================================
@@ -463,7 +405,6 @@
                     { data: null, orderable: false, searchable: false, className: 'text-end', render: function (data, type, row) {
                         var locked = row.kriStatus === 'Locked';
                         return [
-                            '<button type="button" class="rp-btn rp-btn-secondary design-kri-btn"><i class="fas fa-pen-ruler"></i> Design</button>',
                             locked
                                 ? '<button type="button" class="rp-btn rp-btn-secondary" disabled title="Locked templates cannot be edited"><i class="fas fa-pen-to-square"></i> Edit</button>'
                                 : '<button type="button" class="rp-btn rp-btn-edit edit-kri-btn"><i class="fas fa-pen-to-square"></i> Edit</button>',
@@ -479,58 +420,81 @@
             /* =================================================================
                SECTION 7 — EVENT WIRING & INIT
                ================================================================= */
-            RiskPulse.populateSelect($('#addKriStatus'), statuses);
-            RiskPulse.populateSelect($('#editKriStatus'), statuses);
+            RiskPulse.populateSelect($('#kriStatus'), statuses);
+            $('#kriGroup').empty();
+            RiskPulse.populateSelect($('#kriGroup'), unitGroups, '0', 'Select a unit group...');
+            $('#kriUnit').empty();
+            RiskPulse.populateSelect($('#kriUnit'), units, '0', 'Select a unit...');
 
-            $('#addKriGroupId').empty();
-            RiskPulse.populateSelect($('#addKriGroupId'), unitGroups, '0', 'Select a unit group...');
-            $('#addKriUnitId').empty();
-            RiskPulse.populateSelect($('#addKriUnitId'), units, '0', 'Select a unit...');
-            $('#editKriGroupId').empty();
-            RiskPulse.populateSelect($('#editKriGroupId'), unitGroups, '0', 'Select a unit group...');
-            $('#editKriUnitId').empty();
-            RiskPulse.populateSelect($('#editKriUnitId'), units, '0', 'Select a unit...');
-
-            function toggleKriLinkType(prefix) {
-                var isGroup = $('#' + prefix + 'LinkType').val() === 'group';
-                $('#' + prefix + 'GroupRow').toggleClass('d-none', !isGroup);
-                $('#' + prefix + 'UnitRow').toggleClass('d-none', isGroup);
-                if (isGroup) { $('#' + prefix + 'UnitId').val(0).trigger('change'); }
-                else { $('#' + prefix + 'GroupId').val(0).trigger('change'); }
+            function toggleKriLinkType() {
+                var isGroup = $('#kriLinkType').val() === 'group';
+                $('#kriGroupRow').toggleClass('d-none', !isGroup);
+                $('#kriUnitRow').toggleClass('d-none', isGroup);
+                if (isGroup) { $('#kriUnit').val(0).trigger('change'); }
+                else { $('#kriGroup').val(0).trigger('change'); }
             }
-            $('#addKriLinkType').on('change', function () { toggleKriLinkType('addKri'); });
-            $('#editKriLinkType').on('change', function () { toggleKriLinkType('editKri'); });
+            $('#kriLinkType').on('change', toggleKriLinkType);
 
-            $('#addKriModal').on('shown.bs.modal', function () {
-                $('#addKriDesc').val('').trigger('focus');
-                $('#addKriLinkType').val('group').trigger('change');
-                $('#addKriGroupId').val(0).trigger('change');
-                $('#addKriUnitId').val(0).trigger('change');
-                $('#addKriStatus').val('Active').trigger('change');
-                RiskPulse.clearFieldErrors($('#addKriForm'));
-            });
+            function resetHeaderFields() {
+                $('#kriHeaderId').val(0);
+                $('#kriCode').val('').prop('readonly', true);
+                $('#kriCodeCol').addClass('d-none');
+                $('#kriDesc').val('');
+                $('#kriLinkType').val('group').trigger('change');
+                $('#kriGroup').val(0).trigger('change');
+                $('#kriUnit').val(0).trigger('change');
+                $('#kriStatus').val('Active').trigger('change');
+                RiskPulse.clearFieldErrors($('#kriTemplateForm'));
+            }
 
-            $('#editKriModal').on('shown.bs.modal', function () {
-                $('#editKriDesc').focus();
-                RiskPulse.clearFieldErrors($('#editKriForm'));
-            });
+            function openAddTemplateModal() {
+                currentKriId = 0;
+                selectedKriId = null;
+                nextTempKriId = 0;
+                setLockedMode(false);
+                resetHeaderFields();
+                $('#kriTemplateModalLabel').text('Add KRI Template');
+                $('#kriTemplateStatusPill').html(RiskPulse.statusPill('Active'));
+                hideEditor();
+                renderKriList([]);
+                RiskPulse.showModal('kriTemplateModal');
+            }
+
+            function openEditTemplateModal(row) {
+                currentKriId = row.kriHeaderId;
+                currentKriLocked = row.kriStatus === 'Locked';
+                selectedKriId = null;
+                nextTempKriId = 0;
+                setLockedMode(currentKriLocked);
+
+                $('#kriHeaderId').val(row.kriHeaderId);
+                $('#kriCode').val(row.kriCode).prop('readonly', true);
+                $('#kriCodeCol').removeClass('d-none');
+                $('#kriDesc').val(row.kriHeaderDesc);
+                if (row.groupId) {
+                    $('#kriLinkType').val('group').trigger('change');
+                    $('#kriGroup').val(row.groupId).trigger('change');
+                    $('#kriUnit').val(0).trigger('change');
+                } else {
+                    $('#kriLinkType').val('unit').trigger('change');
+                    $('#kriUnit').val(row.unitId).trigger('change');
+                    $('#kriGroup').val(0).trigger('change');
+                }
+                $('#kriStatus').val(row.kriStatus).trigger('change');
+                RiskPulse.clearFieldErrors($('#kriTemplateForm'));
+
+                $('#kriTemplateModalLabel').text('Edit KRI Template');
+                $('#kriTemplateStatusPill').html(RiskPulse.statusPill(row.kriStatus));
+                hideEditor();
+                loadKris(currentKriId);
+                RiskPulse.showModal('kriTemplateModal');
+            }
+
+            $('#addKriTemplateBtn').on('click', openAddTemplateModal);
 
             $('#kriTable tbody').on('click', '.edit-kri-btn', function () {
                 var row = kriTable.row($(this).closest('tr')).data();
-                $('#editKriHeaderId').val(row.kriHeaderId);
-                $('#editKriCode').val(row.kriCode);
-                $('#editKriDesc').val(row.kriHeaderDesc);
-                if (row.groupId) {
-                    $('#editKriLinkType').val('group').trigger('change');
-                    $('#editKriGroupId').val(row.groupId).trigger('change');
-                    $('#editKriUnitId').val(0).trigger('change');
-                } else {
-                    $('#editKriLinkType').val('unit').trigger('change');
-                    $('#editKriUnitId').val(row.unitId).trigger('change');
-                    $('#editKriGroupId').val(0).trigger('change');
-                }
-                $('#editKriStatus').val(row.kriStatus).trigger('change');
-                RiskPulse.showModal('editKriModal');
+                openEditTemplateModal(row);
             });
 
             $('#kriTable tbody').on('click', '.delete-kri-btn', function () {
@@ -538,57 +502,31 @@
                 deleteHeader(row.kriHeaderId, row.kriHeaderDesc, row.kriCode);
             });
 
-            $('#addKriForm').on('submit', function (e) {
+            $('#kriTemplateForm').on('submit', function (e) {
                 e.preventDefault();
-                var payload = getHeaderPayload($(this), 'addKri');
-                if (validateHeaderPayload(payload, $(this))) submitHeader(payload, $(this));
+                if (currentKriLocked) return;
+                var $form = $(this);
+                var payload = getFullPayload($form);
+                if (validateFullPayload(payload, $form)) submitFull(payload, $form);
             });
 
-            $('#editKriForm').on('submit', function (e) {
-                e.preventDefault();
-                var payload = getHeaderPayload($(this), 'editKri');
-                if (validateHeaderPayload(payload, $(this))) submitHeader(payload, $(this));
-            });
-
-            // Open Design modal
-            $('#kriTable tbody').on('click', '.design-kri-btn', function () {
-                var row = kriTable.row($(this).closest('tr')).data();
-                currentKriId = row.kriHeaderId;
-                currentKriLocked = row.kriStatus === 'Locked';
-
-                var displayDesc = row.kriHeaderDesc || row.kriCode;
-                $('#designModalLabel').text('Design: ' + displayDesc);
-                $('#designStatusPill').html(RiskPulse.statusPill(row.kriStatus));
-
-                if (currentKriLocked) {
-                    $('#lockedNotice').show();
-                    $('#addKriItemBtn').hide();
-                } else {
-                    $('#lockedNotice').hide();
-                    $('#addKriItemBtn').show();
-                }
-
-                hideEditor();
-                loadKris();
-                RiskPulse.showModal('designModal');
-            });
-
-            // Reload the grid when the designer closes so KRI counts stay fresh
-            $('#designModal').on('hidden.bs.modal', function () {
-                kriTable.ajax.reload(null, false);
-            });
-
-            // Left panel: click KRI to edit
+            // Left panel: click indicator to edit
             $('#kriList').on('click', '.rp-design-item', function (e) {
                 if ($(e.target).closest('.rp-design-item-delete').length) return;
                 if (currentKriLocked) return;
                 showEditor($(this).data('kri'));
             });
 
-            // Left panel: delete button
+            // Left panel: delete button (local list only — SaveFull reconciles the server)
             $('#kriList').on('click', '.rp-design-item-delete', function (e) {
                 e.stopPropagation();
-                deleteKri($(this).data('kri'));
+                var kri = $(this).data('kri');
+                var index = $.inArray(kri, loadedKris);
+                if (index >= 0) {
+                    loadedKris.splice(index, 1);
+                    if (selectedKriId === kri.kriId) hideEditor();
+                    renderKriList(loadedKris);
+                }
             });
 
             // Keyboard navigation for designer items
@@ -603,22 +541,54 @@
                 if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
                     e.stopPropagation();
-                    deleteKri($(this).data('kri'));
+                    var kri = $(this).data('kri');
+                    var index = $.inArray(kri, loadedKris);
+                    if (index >= 0) {
+                        loadedKris.splice(index, 1);
+                        if (selectedKriId === kri.kriId) hideEditor();
+                        renderKriList(loadedKris);
+                    }
                 }
             });
 
-            // Add KRI
-            $('#addKriItemBtn').on('click', function () {
+            // Add Indicator
+            $('#addKriBtn').on('click', function () {
                 if (!currentKriLocked) showEditor(null);
             });
 
-            // Save / Cancel KRI
-            $('#saveKriItemBtn').on('click', function () {
+            // Commit the editor into the local list (no per-KRI POST anymore)
+            $('#saveKriBtn').on('click', function () {
                 var payload = getKriPayload();
-                if (validateKriPayload(payload)) submitKri(payload);
+                if (!validateKriPayload(payload)) return;
+
+                var kid = payload.kriId;
+                var found = false;
+                $.each(loadedKris, function (i, k) {
+                    if (k.kriId === kid) {
+                        k.kriDesc = payload.kriDesc;
+                        k.allowComment = payload.allowComment;
+                        k.greenLimit = payload.greenLimit;
+                        k.amberLimit = payload.amberLimit;
+                        k.redLimit = payload.redLimit;
+                        found = true;
+                        return false;
+                    }
+                });
+                if (!found) {
+                    loadedKris.push({
+                        kriId: --nextTempKriId,
+                        kriDesc: payload.kriDesc,
+                        allowComment: payload.allowComment,
+                        greenLimit: payload.greenLimit,
+                        amberLimit: payload.amberLimit,
+                        redLimit: payload.redLimit
+                    });
+                }
+                renderKriList(loadedKris);
+                hideEditor();
             });
 
-            $('#cancelKriItemBtn').on('click', function () {
+            $('#cancelKriBtn').on('click', function () {
                 hideEditor();
             });
         })(jQuery);

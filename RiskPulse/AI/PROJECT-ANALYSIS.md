@@ -56,8 +56,8 @@ RiskPulse/
 │   ├── UsersController.cs        # Index (View), Grid (JSON incl. role desc), Save (JSON [FromBody]), Delete (JSON)
 │   ├── RolesController.cs        # Index (View), Grid (JSON incl. permissionIds/descs), Save (JSON [FromBody]), Delete (JSON)
 │   ├── UnitsController.cs        # 2-tab Units page: UnitGrid/SaveUnit/DeleteUnit + GroupGrid/SaveGroup/DeleteGroup (JSON)
-│   ├── SaqTemplatesController.cs # Grid/Save/Delete headers + QuestionsGrid/SaveQuestion/DeleteQuestion (JSON)
-│   ├── KriTemplatesController.cs # Grid/Save/Delete headers + KrisGrid/SaveKri/DeleteKri (JSON); KRI limits on the item
+│   ├── SaqTemplatesController.cs # Grid/SaveFull/Delete headers + QuestionsGrid (JSON); SaveFull = atomic header+questions in one modal
+│   ├── KriTemplatesController.cs # Grid/SaveFull/Delete headers + KrisGrid (JSON); SaveFull = atomic header+KRIs in one modal; KRI limits on the item
 │   ├── ScheduleController.cs     # Schedule wizard: Index/Grid, Wizard (4 steps), SaveSchedule/SaveSaq/SaveKri, SaqPreview/KriPreview, Finalize, Delete (JSON)
 │   ├── SubmissionsController.cs  # Index + Grid (JSON) + Detail/SaqEntry/KriEntry (views) + SaveSaq/SaveKri/SubmitItem/ApproveItem/AuthorizeUnit (JSON), own-unit scoped
 │   ├── DashboardController.cs    # GET Index → server-rendered DashboardViewModel, [Authorize(Policy="Permission:Dashboard")]
@@ -84,8 +84,8 @@ RiskPulse/
 │   │   ├── ApiResponse.cs          # Shared JSON envelope { success, message, data, errors } — only DTO with file-scoped namespace
 │   │   ├── LoginResultDto.cs  LoginRequestDto.cs  UserAuthorizationDto.cs
 │   │   ├── UserSaveDto.cs  RoleSaveDto.cs  UnitSaveDto.cs  GroupSaveDto.cs  DeleteRequestDto.cs  SaveResultDto.cs
-│   │   ├── Saq*.cs                 # SaqHeaderSaveDto, SaqQuestionSaveDto, SaqOptionSaveDto
-│   │   ├── Kri*.cs                 # KriHeaderSaveDto, KriSaveDto
+│   │   ├── Saq*.cs                 # SaqTemplateSaveDto (Header + Questions), SaqHeaderSaveDto, SaqQuestionSaveDto, SaqOptionSaveDto
+│   │   ├── Kri*.cs                 # KriTemplateSaveDto (Header + Kris), KriHeaderSaveDto, KriSaveDto
 │   │   ├── Schedule*.cs            # ScheduleSaveDto, ScheduleTemplatesSaveDto, ScheduleFinalizeDto
 │   │   └── Submission*.cs          # SaveSaqAnswersDto (+SaqAnswerSaveDto), SaveKriValuesDto (+KriValueSaveDto), ItemTransitionDto, UnitAuthorizeDto
 │   ├── ViewModel/                  # Data shaped specifically for a UI/view (38 files, `*ViewModel` postfix)
@@ -112,8 +112,8 @@ RiskPulse/
 │   │   ├── RolesService.cs                 # CRUD for roles + permission mapping + default-permission rule (direct AppDbContext)
 │   │   └── UnitsService.cs                 # Unit CRUD (duplicate guard, block delete when referenced) + group CRUD (≥2 units, clear/re-add UnitGroups)
 │   ├── Templates/                    # SAQ + KRI templates
-│   │   ├── SaqTemplatesService.cs           # SAQ header CRUD (Group XOR Unit rule, lock rules, unique SaqCode) + question/option designer (dup question guard)
-│   │   └── KriTemplatesService.cs           # KRI header CRUD + item designer (limits sort rule, dup KRI guard, lock rules, unique KriCode)
+│   │   ├── SaqTemplatesService.cs           # SAQ header CRUD (Group XOR Unit rule, lock rules, unique SaqCode) + atomic question/option designer (SaveFullAsync: header+questions in one SaveChanges, dup question guard)
+│   │   └── KriTemplatesService.cs           # KRI header CRUD + atomic item designer (SaveFullAsync: header+KRIs in one SaveChanges, limits sort rule, dup KRI guard, lock rules, unique KriCode)
 │   ├── Schedule/                     # Schedule wizard engine
 │   │   └── ScheduleService.cs               # Draft create/rename (SCH code), multi-template SAQ/KRI pick (Active only), finalize (Active requires SAQ+KRI; triggers assessment creation), draft-only delete
 │   ├── Assessment/                   # Assessment auto-creation + submissions workflow
@@ -255,7 +255,7 @@ Browser (DataTables.ajax) ──GET /Schedule/Grid─────► ScheduleCon
 
 ### 5.3 Flow C — AJAX JSON Form Submit (Create / Update)
 
-Used by `Users/Save`, `Roles/Save`, `Units/SaveUnit|SaveGroup`, `SaqTemplates/Save|SaveQuestion`, `KriTemplates/Save|SaveKri`, `Schedule/SaveSchedule`, `*/Delete`.
+Used by `Users/Save`, `Roles/Save`, `Units/SaveUnit|SaveGroup`, `SaqTemplates/SaveFull`, `KriTemplates/SaveFull`, `Schedule/SaveSchedule`, `*/Delete`.
 
 ```
 Browser (jQuery serializeArray) ──POST /Schedule/SaveSchedule──► ScheduleController.SaveSchedule
@@ -268,8 +268,9 @@ Browser (jQuery serializeArray) ──POST /Schedule/SaveSchedule──► Sched
                                                                 └─ DbContext.SaveChangesAsync()  → PostgreSQL
 ```
 
-- **Model binding:** `[FromBody]` deserializes the JSON body into dedicated `*SaveDto` types (`UserSaveDto`, `RoleSaveDto`, `UnitSaveDto`, `GroupSaveDto`, `SaqHeaderSaveDto`, `SaqQuestionSaveDto`, `KriHeaderSaveDto`, `KriSaveDto`, `ScheduleSaveDto`).
+- **Model binding:** `[FromBody]` deserializes the JSON body into dedicated `*SaveDto` types (`UserSaveDto`, `RoleSaveDto`, `UnitSaveDto`, `GroupSaveDto`, `SaqTemplateSaveDto`, `KriTemplateSaveDto`, `ScheduleSaveDto`).
 - **Return:** `ApiResponse<T>` envelope via `ControllerHelpers.TrySave` / `TryDelete` — success `{ success, message, data:{ id, code } }`, failure `{ success:false, message }`.
+- **Atomic template saves (SaveFull):** `SaqTemplates/SaveFull` / `KriTemplates/SaveFull` accept a whole template — a `*TemplateSaveDto` wrapping the header DTO plus an array of item DTOs — and persist it in a single `SaveChangesAsync` (upsert header, delete persisted items absent from the payload, upsert/create the rest). The editor is one modal; per-item endpoints (`SaveQuestion`/`SaveKri`) are gone. Duplicate checks (question-with-same-options, KRI description) run against the payload's final state rather than the DB, because items absent from the payload are deleted by the same save — a DB-only check would false-positive on delete+re-add or text swaps. New templates require ≥ 1 item; edits may drop to 0.
 
 ### 5.4 Flow D — AJAX Login (JSON)
 
@@ -329,7 +330,7 @@ Browser (entry JS) ──POST /Submissions/SaveSaq       { assessmentItemId, ans
 |---|---|---|---|---|---|
 | A — Page load | `GET /{Users,Roles,Units,SaqTemplates,KriTemplates,Schedule}/Index`, `Schedule/Wizard`, `Submissions/{Index,Detail,SaqEntry,KriEntry}`, `Dashboard/Index` | — | — | HTML + embedded `Json.Serialize` | ViewModel from service |
 | B — Grid | `GET /{Users,Roles}/Grid`, `Units/{UnitGrid,GroupGrid}`, `SaqTemplates/{Grid,QuestionsGrid}`, `KriTemplates/{Grid,KrisGrid}`, `Schedule/Grid`, `Submissions/Grid` | — | — | `{success:true, data:[…]}` (`*GridRowViewModel`) | service → EF Core |
-| C — Save/Delete | `POST /{Users,Roles}/Save`, `Units/{SaveUnit,SaveGroup}`, `SaqTemplates/{Save,SaveQuestion}`, `KriTemplates/{Save,SaveKri}`, `Schedule/SaveSchedule`, `*/Delete` | JSON | `[FromBody]` (`*SaveDto` / `DeleteRequestDto`) | `{success,message,data:{id,code}}` | service → `SaveChanges` |
+| C — Save/Delete | `POST /{Users,Roles}/Save`, `Units/{SaveUnit,SaveGroup}`, `SaqTemplates/SaveFull`, `KriTemplates/SaveFull`, `Schedule/SaveSchedule`, `*/Delete` | JSON | `[FromBody]` (`*SaveDto` / `DeleteRequestDto`) | `{success,message,data:{id,code}}` | service → `SaveChanges` |
 | D — Login | `POST /Login/Login` | JSON | `[FromBody]` (`LoginRequestDto`) | `{success, data:{redirectUrl}}` | orchestrator → cookie |
 | E — Wizard | `POST /Schedule/{SaveSchedule,SaveSaq,SaveKri,Finalize}` | JSON | `[FromBody]` (`ScheduleSaveDto` / `ScheduleTemplatesSaveDto` / `ScheduleFinalizeDto`) | `{success,message,data}` | service → `SaveChanges` (+ auto-assessment) |
 | F — Submissions | `POST /Submissions/{SaveSaq,SaveKri,SubmitItem,ApproveItem,AuthorizeUnit}` | JSON | `[FromBody]` (`SaveSaqAnswersDto` / `SaveKriValuesDto` / `ItemTransitionDto` / `UnitAuthorizeDto`) | `{success,message}` | service → `SaveChanges` |

@@ -37,7 +37,7 @@ public class SaqTemplatesController : Controller
         });
     }
 
-    // --- SAQ template headers (grid/save/delete) ---
+    // --- SAQ templates (grid/full-save/delete) ---
     [HttpGet]
     public async Task<IActionResult> Grid()
     {
@@ -46,10 +46,10 @@ public class SaqTemplatesController : Controller
     }
 
     [HttpPost]
-    public async Task<IActionResult> Save([FromBody] SaqHeaderSaveDto model)
+    public async Task<IActionResult> SaveFull([FromBody] SaqTemplateSaveDto model)
     {
-        return await ControllerHelpers.TrySave(model, ModelState, m => m.SaqHeaderId,
-            m => _saqTemplatesService.SaveHeaderAsync(m), "Template");
+        return await ControllerHelpers.TrySave(model, ModelState, m => m.Header.SaqHeaderId,
+            m => _saqTemplatesService.SaveFullAsync(m), "Template");
     }
 
     [HttpPost]
@@ -59,25 +59,11 @@ public class SaqTemplatesController : Controller
             id => _saqTemplatesService.DeleteHeaderAsync(id), "Template");
     }
 
-    // --- SAQ questions (grid/save/delete) ---
+    // --- SAQ questions (grid used to load a template into the editor) ---
     [HttpGet]
     public async Task<IActionResult> QuestionsGrid(int saqHeaderId)
     {
         var rows = await _saqTemplatesService.GetQuestionRowsAsync(saqHeaderId);
         return Json(ApiResponse.Ok(rows));
-    }
-
-    [HttpPost]
-    public async Task<IActionResult> SaveQuestion([FromBody] SaqQuestionSaveDto model)
-    {
-        return await ControllerHelpers.TrySave(model, ModelState, m => m.QuestionId,
-            m => _saqTemplatesService.SaveQuestionAsync(m), "Question");
-    }
-
-    [HttpPost]
-    public async Task<IActionResult> DeleteQuestion([FromBody] DeleteRequestDto request)
-    {
-        return await ControllerHelpers.TryDelete(request, ModelState,
-            id => _saqTemplatesService.DeleteQuestionAsync(id), "Question");
     }
 }

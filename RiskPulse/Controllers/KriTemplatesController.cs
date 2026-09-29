@@ -37,7 +37,7 @@ public class KriTemplatesController : Controller
         });
     }
 
-    // --- KRI template headers (grid/save/delete) ---
+    // --- KRI template headers (grid/full-save/delete) ---
     [HttpGet]
     public async Task<IActionResult> Grid()
     {
@@ -46,10 +46,10 @@ public class KriTemplatesController : Controller
     }
 
     [HttpPost]
-    public async Task<IActionResult> Save([FromBody] KriHeaderSaveDto model)
+    public async Task<IActionResult> SaveFull([FromBody] KriTemplateSaveDto model)
     {
-        return await ControllerHelpers.TrySave(model, ModelState, m => m.KriHeaderId,
-            m => _kriTemplatesService.SaveHeaderAsync(m), "Template");
+        return await ControllerHelpers.TrySave(model, ModelState, m => m.Header.KriHeaderId,
+            m => _kriTemplatesService.SaveFullAsync(m), "Template");
     }
 
     [HttpPost]
@@ -59,25 +59,11 @@ public class KriTemplatesController : Controller
             id => _kriTemplatesService.DeleteHeaderAsync(id), "Template");
     }
 
-    // --- KRI items (grid/save/delete) ---
+    // --- KRI items (grid used to load a template into the editor) ---
     [HttpGet]
     public async Task<IActionResult> KrisGrid(int kriHeaderId)
     {
         var rows = await _kriTemplatesService.GetKrisAsync(kriHeaderId);
         return Json(ApiResponse.Ok(rows));
-    }
-
-    [HttpPost]
-    public async Task<IActionResult> SaveKri([FromBody] KriSaveDto model)
-    {
-        return await ControllerHelpers.TrySave(model, ModelState, m => m.KriId,
-            m => _kriTemplatesService.SaveKriAsync(m), "KRI");
-    }
-
-    [HttpPost]
-    public async Task<IActionResult> DeleteKri([FromBody] DeleteRequestDto request)
-    {
-        return await ControllerHelpers.TryDelete(request, ModelState,
-            id => _kriTemplatesService.DeleteKriAsync(id), "KRI");
     }
 }
