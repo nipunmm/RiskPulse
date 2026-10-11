@@ -12,20 +12,18 @@
     };
 }
 
-<div class="rp-page-header">
-    <div>
-        <a href="@Url.Action("Detail", "Submissions", new { id = Model.AssessmentUnitId })" class="rp-body-sm rp-text-muted text-decoration-none">
-            <i class="fas fa-arrow-left me-1"></i>Back to assessment
-        </a>
-        <h2 class="rp-display-lg mt-2 mb-1">@Model.ItemTitle</h2>
-        <p class="rp-body-md mb-0 rp-text-muted">
-            @Model.AssessmentCode &middot; @Model.UnitDesc
-        </p>
-    </div>
-    <div class="text-end">
+<header class="rp-hero rp-hero--blue">
+    <a href="@Url.Action("Detail", "Submissions", new { id = Model.AssessmentUnitId })" class="rp-hero-back">
+        <i class="fas fa-arrow-left"></i>Back to assessment
+    </a>
+    <h1 class="rp-display-lg">@Model.ItemTitle</h1>
+    <p class="rp-hero-sub">
+        @Model.AssessmentCode &middot; @Model.UnitDesc
+    </p>
+    <div class="rp-hero-actions">
         <span class="rp-pill rp-pill-@PillClass(Model.StatusLabel)">@Model.StatusLabel</span>
     </div>
-</div>
+</header>
 
 @if (!Model.Editable)
 {
@@ -146,10 +144,9 @@
 
                 RiskPulse.postJson(submitUrl, { assessmentItemId: assessmentItemId }, {
                     success: function () {
-                        RiskPulse.toastSuccess('Questionnaire submitted successfully.');
-                        window.setTimeout(function () {
+                        RiskPulse.toastSuccess('Questionnaire submitted successfully.').then(function () {
                             window.location = detailUrl + '?id=' + assessmentUnitId;
-                        }, 900);
+                        });
                     },
                     fail: function (res) {
                         RiskPulse.toastError(res.message || 'Unable to submit the questionnaire.');

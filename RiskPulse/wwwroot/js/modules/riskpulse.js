@@ -2,33 +2,41 @@
    Risk Pulse shared JS module — single home for cross-page UI + AJAX helpers.
    Referenced from Views/Shared/_Layout.cshtml; page views call the RiskPulse.*
    namespace and keep only their own validation, column configs, and wiring.
-   Requires jQuery + SweetAlert2 (Toast) + Bootstrap 5 bundle + Select2 at
-   call time (selects are auto-enhanced with the rp theme on page load).
+   Requires jQuery + SweetAlert2 + Bootstrap 5 bundle + Select2 at call time
+   (selects are auto-enhanced with the rp theme on page load). Feedback is
+   delivered via centered SweetAlert2 dialogs (no toast pills).
    ============================================================================ */
 window.RiskPulse = (function ($, Swal) {
     'use strict';
 
     var genericError = 'An error occurred. Please try again.';
 
-    // Shared toast (top-end, auto-dismiss) used by toastSuccess/toastError.
-    var Toast = Swal.mixin({
-        toast: true,
-        position: 'top-end',
-        showConfirmButton: false,
-        timer: 3000,
-        timerProgressBar: true
-    });
-
-    function toastSuccess(title) {
-        Toast.fire({ icon: 'success', title: title });
+    // Shared SweetAlert2 dialog (centered, OK action). Success/error helpers
+    // below add the icon; title + optional text make up the message body.
+    function alertDialog(icon, title, text) {
+        return Swal.fire({
+            icon: icon,
+            title: title,
+            text: text || '',
+            confirmButtonText: 'OK',
+            customClass: {
+                popup: 'rp-swal-alert',
+                title: 'rp-swal-alert',
+                htmlContainer: 'rp-swal-alert'
+            }
+        });
     }
 
-    function toastError(title) {
-        Toast.fire({ icon: 'error', title: title });
+    function toastSuccess(title, text) {
+        return alertDialog('success', title, text);
+    }
+
+    function toastError(title, text) {
+        return alertDialog('error', title, text);
     }
 
     function toastGenericError() {
-        toastError(genericError);
+        return alertDialog('error', genericError);
     }
 
     // Escapes &, <, >, ", ' so DB text can be safely interpolated into HTML
@@ -60,6 +68,28 @@ window.RiskPulse = (function ($, Swal) {
         return requestJson({ url: url, type: 'GET', data: data }, handlers, $trigger);
     }
 
+    // Shared loading overlay (created on first use, covers modals too).
+    // requestJson shows it around every transport call; handlers.overlay
+    // === false opts a call out (e.g. silent background refreshes).
+    function showLoading() {
+        var $overlay = $('#rp-loading-overlay');
+        if (!$overlay.length) {
+            $overlay = $(
+                '<div id="rp-loading-overlay" role="status" aria-live="polite">' +
+                '  <div class="rp-loading-card">' +
+                '    <span class="rp-spinner" aria-hidden="true"></span>' +
+                '    <span class="rp-loading-text">Loading…</span>' +
+                '  </div>' +
+                '</div>'
+            ).appendTo(document.body);
+        }
+        $overlay.addClass('show');
+    }
+
+    function hideLoading() {
+        $('#rp-loading-overlay').removeClass('show');
+    }
+
     // Shared transport for postJson/getJson; owns ApiResponse routing + lock.
     // handlers.complete (optional) runs after every outcome (success/fail/http
     // error) so callers can reset their own UI state alongside the unlock.
@@ -67,12 +97,15 @@ window.RiskPulse = (function ($, Swal) {
         var locked = $trigger && $trigger.length ? $trigger : null;
         if (locked && locked.prop('disabled')) return;
         if (locked) locked.prop('disabled', true);
+        var withOverlay = handlers.overlay !== false;
+        if (withOverlay) showLoading();
         $.ajax($.extend(ajaxOpts, {
             success: function (res) {
                 if (res.success) { handlers.success(res); } else { handlers.fail(res); }
             },
             error: function () { toastGenericError(); },
             complete: function () {
+                if (withOverlay) hideLoading();
                 if (locked) locked.prop('disabled', false);
                 if (handlers.complete) handlers.complete();
             }
@@ -179,30 +212,44 @@ window.RiskPulse = (function ($, Swal) {
         bootstrap.Modal.getOrCreateInstance($(formEl).closest('.modal')[0]).hide();
     }
 
-    // Shared delete-confirmation dialog; calls onConfirmed only on confirm.
+    // Shared confirmation dialog (guide: "Please Confirm" title, Yes/No
+    // actions); calls onConfirmed only on confirm. The caller's title/text
+    // become the question line so context is never lost.
     function confirmDelete(title, text, onConfirmed) {
         Swal.fire({
-            title: title,
-            text: text,
+            title: 'Please Confirm',
+            text: $.trim((title || '') + ' ' + (text || '')),
             icon: 'warning',
             showCancelButton: true,
-            customClass: { confirmButton: 'rp-swal-confirm' },
-            confirmButtonText: 'Delete',
-            cancelButtonText: 'Cancel'
+            customClass: { popup: 'rp-swal-confirm', title: 'rp-swal-confirm' },
+            confirmButtonText: 'Yes',
+            cancelButtonText: 'No'
         }).then(function (result) {
             if (result.isConfirmed) onConfirmed();
         });
     }
 
-    // DataTables init with the shared client-side defaults. cfg must supply
+    // DataTables init with the shared client-side defaults: paginated at
+    // 10 rows/page with a page-size selector (10/25/50/All); the info line
+    // shows the current window across the filtered total. cfg must supply
     // ajax, columns, and order (dataSrc: 'data' is DataTables' own default).
     function initGrid($table, cfg) {
         return $table.DataTable($.extend({
             pageLength: 10,
-            lengthMenu: [10, 25, 50],
+            lengthMenu: [[10, 25, 50, -1], [10, 25, 50, 'All']],
+            lengthChange: true,
+            paging: true,
+            info: true,
+            dom: "<'rp-dt-top'lf><'rp-dt-body't><'rp-dt-bottom'ip>",
             language: {
                 emptyTable: 'No records found.',
-                zeroRecords: 'No records found.'
+                zeroRecords: 'No records found.',
+                info: 'Showing _START_ to _END_ of _TOTAL_ records',
+                infoEmpty: 'No records found',
+                infoFiltered: '(filtered from _TOTAL_ total)',
+                lengthMenu: 'Show _MENU_ entries per page',
+                search: '',
+                paginate: { first: '«', previous: '‹', next: '›', last: '»' }
             }
         }, cfg));
     }
@@ -218,10 +265,10 @@ window.RiskPulse = (function ($, Swal) {
     // Maps a template/user/assessment status to its RAG pill markup.
     function statusPill(status) {
         switch (status) {
-            case 'Active': return pill('Active', 'success');
-            case 'Locked': return pill('Locked', 'warning');
-            case 'Draft': return pill('Draft', 'neutral');
-            default: return pill('Inactive', 'neutral');
+            case 'Active': return pill('Active', 'success', 'circle-check');
+            case 'Locked': return pill('Locked', 'warning', 'triangle-exclamation');
+            case 'Draft': return pill('Draft', 'neutral', 'circle-minus');
+            default: return pill('Inactive', 'neutral', 'circle-minus');
         }
     }
 
@@ -236,9 +283,9 @@ window.RiskPulse = (function ($, Swal) {
         }
     }
 
-    // Marks a field as invalid: toast + red highlight + focus. The highlight
-    // clears on the field's first input/change. A missing $el (rules that map
-    // to no single field) still shows the toast and returns false. Enhanced
+    // Marks a field as invalid: error dialog + red highlight + focus. The
+    // highlight clears on the field's first input/change. A missing $el (rules
+    // that map to no single field) still shows the dialog and returns false. Enhanced
     // selects hide their <select>, so the error class lands on the visible
     // rp-themed select2 container instead; picking an option fires the hidden
     // select's change event, which clears it.
@@ -285,6 +332,8 @@ window.RiskPulse = (function ($, Swal) {
         statusPill: statusPill,
         statusKind: statusKind,
         validationError: validationError,
-        clearFieldErrors: clearFieldErrors
+        clearFieldErrors: clearFieldErrors,
+        showLoading: showLoading,
+        hideLoading: hideLoading
     };
 })(jQuery, Swal);

@@ -16,17 +16,17 @@
     var kriHeaderIdsJson = Json.Serialize(Model.KriHeaderIds);
 }
 
-<div class="rp-page-header gap-3 mb-3">
-    <div>
-        <h2 class="rp-display-lg">@(isEdit ? "Edit Schedule" : "New Schedule")</h2>
-        <p class="rp-body-md mt-1 mb-0 rp-text-muted">
-            Complete the steps below to build the schedule. Each step is saved as you go; a draft can be reopened and edited later.
-        </p>
+<header class="rp-hero rp-hero--green">
+    <h1 class="rp-display-lg">@(isEdit ? "Edit Schedule" : "New Schedule")</h1>
+    <p class="rp-hero-sub">
+        Complete the steps below to build the schedule. Each step is saved as you go; a draft can be reopened and edited later.
+    </p>
+    <div class="rp-hero-actions">
+        <a href="@Url.Action("Index", "Schedule")" class="rp-btn rp-btn-secondary d-inline-flex align-items-center gap-2">
+            <i class="fas fa-arrow-left"></i> Back to Schedules
+        </a>
     </div>
-    <a href="@Url.Action("Index", "Schedule")" class="rp-btn rp-btn-secondary d-inline-flex align-items-center gap-2">
-        <i class="fas fa-arrow-left"></i> Back to Schedules
-    </a>
-</div>
+</header>
 
 @if (!Model.CanEdit)
 {
@@ -259,8 +259,9 @@
                 if (state.id === 0) { RiskPulse.toastError('The schedule has not been saved yet.'); return; }
                 RiskPulse.postJson(finalizeUrl, { scheduleId: state.id, status: status }, {
                     success: function (res) {
-                        RiskPulse.toastSuccess(res.message || 'Schedule saved.');
-                        setTimeout(function () { window.location.href = indexUrl; }, 800);
+                        RiskPulse.toastSuccess(res.message || 'Schedule saved.').then(function () {
+                            window.location.href = indexUrl;
+                        });
                     },
                     fail: function (res) { RiskPulse.toastError(res.message || 'Unable to finalize the schedule.'); }
                 });
@@ -682,11 +683,11 @@
                     $('<span class="rp-body-md rp-preview-kri-desc">').text(k.kriDesc).appendTo($row);
 
                     var $limits = $('<span class="rp-preview-kri-limits">');
-                    $('<span class="rp-level-dot rp-level-dot--green" title="Green"></span>').appendTo($limits);
+                    $('<span class="rp-level-dot rp-level-dot--green" role="img" aria-label="Green threshold" title="Green"></span>').appendTo($limits);
                     $('<span class="rp-preview-kri-limit">').text(k.greenLimit).appendTo($limits);
-                    $('<span class="rp-level-dot rp-level-dot--amber" title="Amber"></span>').appendTo($limits);
+                    $('<span class="rp-level-dot rp-level-dot--amber" role="img" aria-label="Amber threshold" title="Amber"></span>').appendTo($limits);
                     $('<span class="rp-preview-kri-limit">').text(k.amberLimit).appendTo($limits);
-                    $('<span class="rp-level-dot rp-level-dot--red" title="Red"></span>').appendTo($limits);
+                    $('<span class="rp-level-dot rp-level-dot--red" role="img" aria-label="Red threshold" title="Red"></span>').appendTo($limits);
                     $('<span class="rp-preview-kri-limit">').text(k.redLimit).appendTo($limits);
                     $limits.appendTo($row);
 

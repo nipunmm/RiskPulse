@@ -9,14 +9,12 @@
     <link rel="stylesheet" href="~/lib/datatables/dataTables.bootstrap5.min.css" />
 }
 
-<div class="rp-page-header">
-    <div>
-        <h2 class="rp-display-lg">Unit Management</h2>
-        <p class="rp-body-md mt-1 mb-0 rp-text-muted">
-            Maintain the organizational units and group them for assessments and reporting.
-        </p>
-    </div>
-</div>
+<header class="rp-hero rp-hero--teal">
+    <h1 class="rp-display-lg">Unit Management</h1>
+    <p class="rp-hero-sub">
+        Maintain the organizational units and group them for assessments and reporting.
+    </p>
+</header>
 
 <!-- ============================================================
      TABS — UNITS | UNIT GROUPS
@@ -40,12 +38,12 @@
              UNITS PANE
              ============================================================ -->
         <div class="tab-pane fade show active" id="unitsPane" role="tabpanel" aria-labelledby="unitsTab">
-            <div class="rp-grid-toolbar">
-                <p class="mb-0 rp-body-sm rp-text-muted">Manage units (departments / branches).</p>
+            <div class="rp-grid-toolbar rp-grid-toolbar--end">
                 <button type="button" class="rp-btn rp-btn-primary" data-bs-toggle="modal" data-bs-target="#addUnitModal">
                     <i class="fas fa-plus"></i> Add Unit
                 </button>
             </div>
+            <div class="table-responsive">
             <table id="unitTable" class="table rp-table table-sm w-100 align-middle">
                 <thead>
                     <tr>
@@ -57,18 +55,19 @@
                     </tr>
                 </thead>
             </table>
+            </div>
         </div>
 
         <!-- ============================================================
              UNIT GROUPS PANE
              ============================================================ -->
         <div class="tab-pane fade" id="groupsPane" role="tabpanel" aria-labelledby="groupsTab">
-            <div class="rp-grid-toolbar">
-                <p class="mb-0 rp-body-sm rp-text-muted">Group units together for assessments and reporting.</p>
+            <div class="rp-grid-toolbar rp-grid-toolbar--end">
                 <button type="button" class="rp-btn rp-btn-primary" data-bs-toggle="modal" data-bs-target="#addGroupModal">
                     <i class="fas fa-plus"></i> Add Group
                 </button>
             </div>
+            <div class="table-responsive">
             <table id="groupTable" class="table rp-table table-sm w-100 align-middle">
                 <thead>
                     <tr>
@@ -79,6 +78,7 @@
                     </tr>
                 </thead>
             </table>
+            </div>
         </div>
     </div>
 </div>

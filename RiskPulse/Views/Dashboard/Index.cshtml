@@ -16,23 +16,21 @@
     var submissionsUrl = Url.Action("Index", "Submissions");
 }
 
-<div class="rp-page-header mb-3">
-    <div>
-        <h2 class="rp-display-lg">Dashboard</h2>
-        <p class="rp-body-md mt-1 mb-0 rp-text-muted">
-            @(string.IsNullOrEmpty(Model.UnitDesc) ? "Welcome to Risk Pulse." : Model.UnitDesc)
-            @if (!string.IsNullOrEmpty(Model.CurrentPeriodLabel))
-            {
-                <span>&middot; @Model.CurrentPeriodLabel</span>
-            }
-        </p>
-    </div>
-    <div class="text-end">
-        <a href="@submissionsUrl" class="rp-btn rp-btn-secondary">
-            <i class="fas fa-folder-open me-1"></i>Open Submissions
+<header class="rp-hero rp-hero--ink">
+    <h1 class="rp-display-lg">Dashboard</h1>
+    <p class="rp-hero-sub">
+        @(string.IsNullOrEmpty(Model.UnitDesc) ? "Welcome to Risk Pulse." : Model.UnitDesc)
+        @if (!string.IsNullOrEmpty(Model.CurrentPeriodLabel))
+        {
+            <span>&middot; @Model.CurrentPeriodLabel</span>
+        }
+    </p>
+    <div class="rp-hero-actions">
+        <a href="@submissionsUrl" class="rp-btn rp-btn-secondary d-inline-flex align-items-center gap-2">
+            <i class="fas fa-folder-open"></i> Open Submissions
         </a>
     </div>
-</div>
+</header>
 
 @if (!string.IsNullOrEmpty(Model.LoadError))
 {
@@ -55,7 +53,7 @@
                     @kpi.Value
                     @if (!string.IsNullOrEmpty(kpi.DotKind))
                     {
-                        <span class="rp-level-dot rp-level-@kpi.DotKind" title="KRI status"></span>
+                        <span class="rp-level-dot rp-level-@kpi.DotKind" role="img" aria-label="KRI status: @(kpi.DotKind == "success" ? "Low" : kpi.DotKind == "warning" ? "Medium" : "High")" title="KRI status"></span>
                     }
                 </p>
                 @if (!string.IsNullOrEmpty(kpi.PillText))
@@ -89,6 +87,7 @@
                     }
                 </div>
             }
+            <div class="table-responsive">
             <table class="table rp-table table-sm w-100 align-middle">
                 <thead>
                     <tr>
@@ -110,6 +109,7 @@
                     }
                 </tbody>
             </table>
+            </div>
             @if (!Model.AssessmentProgress.Any())
             {
                 <p class="rp-body-md rp-text-muted text-center py-4 mb-0">No assessments have been scheduled for your unit yet.</p>
@@ -163,6 +163,7 @@
     <div class="rp-grid-toolbar">
         <p class="mb-0 rp-body-sm rp-text-muted">Items that need your action, soonest deadline first.</p>
     </div>
+    <div class="table-responsive">
     <table class="table rp-table table-sm w-100 align-middle">
         <thead>
             <tr>
@@ -203,6 +204,7 @@
             }
         </tbody>
     </table>
+    </div>
     @if (!Model.AttentionItems.Any())
     {
         <p class="rp-body-md rp-text-muted text-center py-4 mb-0">
@@ -216,6 +218,7 @@
     <div class="rp-grid-toolbar">
         <p class="mb-0 rp-body-sm rp-text-muted">All assessment periods for your unit.</p>
     </div>
+    <div class="table-responsive">
     <table class="table rp-table table-sm w-100 align-middle">
         <thead>
             <tr>
@@ -264,6 +267,7 @@
             }
         </tbody>
     </table>
+    </div>
     @if (!Model.PeriodHistory.Any())
     {
         <p class="rp-body-md rp-text-muted text-center py-4 mb-0">No assessment periods have been scheduled for your unit yet.</p>

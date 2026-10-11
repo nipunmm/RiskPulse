@@ -11,22 +11,18 @@
     <link rel="stylesheet" href="~/lib/datatables/dataTables.bootstrap5.min.css" />
 }
 
-<div class="rp-page-header">
-    <div>
-        <h2 class="rp-display-lg">User Management</h2>
-        <p class="rp-body-md mt-1 mb-0 rp-text-muted">
-            Manage system users.
-        </p>
-    </div>
-</div>
-
-<div class="rp-card p-2">
-    <div class="rp-grid-toolbar">
-        <p class="mb-0 rp-body-sm rp-text-muted">Add, edit, or deactivate users.</p>
+<header class="rp-hero rp-hero--ink">
+    <h1 class="rp-display-lg">User Management</h1>
+    <p class="rp-hero-sub">Manage system users.</p>
+    <div class="rp-hero-actions">
         <button type="button" class="rp-btn rp-btn-primary" data-bs-toggle="modal" data-bs-target="#addUserModal">
             <i class="fas fa-user-plus"></i> Add User
         </button>
     </div>
+</header>
+
+<div class="rp-card p-2">
+    <div class="table-responsive">
     <table id="userTable" class="table rp-table table-sm w-100 align-middle">
         <thead>
             <tr>
@@ -39,6 +35,7 @@
             </tr>
         </thead>
     </table>
+    </div>
 </div>
 
 <!-- ============================================================
@@ -223,9 +220,9 @@
             $('#addUserModal').on('shown.bs.modal', function () {
                 $('#addUsername').val('').trigger('focus');
                 var units = unitOptions();
-                if (units.length) $('#addUnitId').val(units[0].value);
+                if (units.length) $('#addUnitId').val(units[0].value).trigger('change.select2');
                 var roles = roleOptions();
-                if (roles.length) $('#addRoleId').val(roles[0].value);
+                if (roles.length) $('#addRoleId').val(roles[0].value).trigger('change.select2');
                 RiskPulse.clearFieldErrors($('#addUserForm'));
             });
 
@@ -234,8 +231,8 @@
                 var row = $('#userTable').DataTable().row($(this).closest('tr')).data();
                 $('#editUserId').val(row.id);
                 $('#editUsername').val(row.username);
-                $('#editUnitId').val(row.unitId);
-                $('#editRoleId').val(row.roleId);
+                $('#editUnitId').val(row.unitId).trigger('change.select2');
+                $('#editRoleId').val(row.roleId).trigger('change.select2');
                 $('#editIsActive').prop('checked', !!row.isActive);
                 RiskPulse.clearFieldErrors($('#editUserForm'));
                 RiskPulse.showModal('editUserModal');

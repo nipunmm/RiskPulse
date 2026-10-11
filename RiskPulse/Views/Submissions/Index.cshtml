@@ -6,19 +6,15 @@
     <link rel="stylesheet" href="~/lib/datatables/dataTables.bootstrap5.min.css" />
 }
 
-<div class="rp-page-header">
-    <div>
-        <h2 class="rp-display-lg">Submissions</h2>
-        <p class="rp-body-md mt-1 mb-0 rp-text-muted">
-            Track the risk assessments assigned to your unit and complete their questionnaires.
-        </p>
-    </div>
-</div>
+<header class="rp-hero rp-hero--slate">
+    <h1 class="rp-display-lg">Submissions</h1>
+    <p class="rp-hero-sub">
+        Track the risk assessments assigned to your unit and complete their questionnaires.
+    </p>
+</header>
 
 <div class="rp-card p-2">
-    <div class="rp-grid-toolbar">
-        <p class="mb-0 rp-body-sm rp-text-muted">Assessments for your unit.</p>
-    </div>
+    <div class="table-responsive">
     <table id="submissionTable" class="table rp-table table-sm w-100 align-middle">
         <thead>
             <tr>
@@ -31,6 +27,7 @@
             </tr>
         </thead>
     </table>
+    </div>
 </div>
 
 @section Scripts {

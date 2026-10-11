@@ -17,67 +17,29 @@
     <!-- Select2 (styled by the rp theme in site.css) -->
     <link rel="stylesheet" href="~/lib/select2/select2.min.css" />
 
-    <!-- Stasis Enterprise Design System -->
+    <!-- RiskPulse Design System (UI Style Guide) -->
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 
     @await RenderSectionAsync("Styles", required: false)
-
-    <!-- Apply saved sidebar state before first paint to avoid FOUC -->
-    <script>
-        (function () {
-            try {
-                if (localStorage.getItem('sidebarCollapsed') === 'true') {
-                    document.documentElement.setAttribute('data-sidebar', 'collapsed');
-                }
-            } catch (e) { }
-        })();
-    </script>
 </head>
-<body class="d-flex">
+<body class="d-flex flex-column">
 
-    <!-- ================================ -->
-    <!-- SIDEBAR (Dark Navy Enterprise)   -->
-    <!-- ================================ -->
-    <nav id="sidebarNav" class="rp-sidebar d-flex flex-column" aria-label="Main navigation">
-        <!-- Logo Header -->
-        <div class="rp-sidebar-brand d-flex align-items-center gap-3 px-3">
-            <div class="rp-sidebar-brand-icon d-flex align-items-center justify-content-center rounded-circle flex-shrink-0">
-                <i class="fas fa-shield-halved"></i>
+<a href="#main-content" class="rp-skip-link">Skip to content</a>
+
+<!-- ================================ -->
+<!-- TOP NAVIGATION (standard shell)  -->
+<!-- ================================ -->
+<nav id="rpTopnav" class="rp-topnav rp-shell-fade" aria-label="Main navigation">
+        <div class="rp-topnav-inner">
+            <div class="rp-brand">
+                <span class="rp-brand-badge"><i class="fas fa-shield-halved"></i></span>
+                <span class="rp-brand-name">Risk Pulse</span>
             </div>
-            <div class="rp-sidebar-brand-text text-truncate">
-                <h5 class="mb-0 fw-semibold">Risk Pulse</h5>
-                <small>Risk Management System</small>
-            </div>
-        </div>
 
-        <!-- Navigation Links Container -->
-        <div class="rp-sidebar-nav d-flex flex-column gap-1 px-2 py-3">
-            @if (User.HasClaim("Permission", PermissionCatalog.Dashboard))
-            {
-                <a asp-controller="Dashboard" asp-action="Index"
-                   class="nav-link d-flex align-items-center gap-3 px-3 py-2 rounded @(ViewContext.RouteData.Values["controller"]?.ToString() == "Dashboard" ? "active" : "")">
-                    <i class="fas fa-chart-line"></i>
-                    <span class="text-truncate">Dashboard</span>
-                </a>
-            }
-
-            @if (User.HasClaim("Permission", PermissionCatalog.Submissions))
-            {
-                <a asp-controller="Submissions" asp-action="Index"
-                   class="nav-link d-flex align-items-center gap-3 px-3 py-2 rounded @(ViewContext.RouteData.Values["controller"]?.ToString() == "Submissions" ? "active" : "")">
-                    <i class="fas fa-inbox"></i>
-                    <span class="text-truncate">Submissions</span>
-                </a>
-            }
-
-            @if (User.HasClaim("Permission", PermissionCatalog.Schedule))
-            {
-                <a asp-controller="Schedule" asp-action="Index"
-                   class="nav-link d-flex align-items-center gap-3 px-3 py-2 rounded @(ViewContext.RouteData.Values["controller"]?.ToString() == "Schedule" ? "active" : "")">
-                    <i class="fas fa-calendar-check"></i>
-                    <span class="text-truncate">Schedule</span>
-                </a>
-            }
+            <button type="button" class="rp-nav-toggle" id="rpNavToggle"
+                    aria-expanded="false" aria-controls="rpNav" aria-label="Toggle navigation">
+                <i class="fas fa-bars"></i>
+            </button>
 
             @{
                 var currentCtrl = ViewContext.RouteData.Values["controller"]?.ToString();
@@ -86,155 +48,164 @@
                 var canViewUnits = User.HasClaim("Permission", PermissionCatalog.Units);
                 var canViewAdministration = canViewUsers || canViewRoles || canViewUnits;
                 var isAdministrationActive = currentCtrl == "Roles" || currentCtrl == "Users" || currentCtrl == "Units";
-            }
-
-            @{
                 var canViewTemplates = User.HasClaim("Permission", PermissionCatalog.Saq)
                     || User.HasClaim("Permission", PermissionCatalog.Kri)
                     || User.HasClaim("Permission", PermissionCatalog.RiskRegister);
                 var isTemplatesActive = currentCtrl == "SaqTemplates" || currentCtrl == "KriTemplates" || currentCtrl == "RiskRegisterTemplates";
             }
 
-            @if (canViewTemplates)
-            {
-                <!-- Parent Item: Template Management -->
-                <div class="rp-sidebar-group w-100">
-                    <button type="button"
-                            class="rp-sidebar-toggle nav-link d-flex align-items-center gap-3 px-3 py-2 rounded @(isTemplatesActive ? "expanded" : "")"
-                            onclick="toggleSubmenu(this)"
-                            aria-expanded="@(isTemplatesActive ? "true" : "false")">
-                        <i class="fas fa-copy"></i>
-                        <span class="text-truncate me-auto">Templates</span>
-                        <i class="fas fa-chevron-right rp-sidebar-caret ms-auto"></i>
-                    </button>
-                    <div class="rp-sidebar-submenu @(isTemplatesActive ? "open" : "")">
-                        @if (User.HasClaim("Permission", PermissionCatalog.Saq))
-                        {
-                            <a asp-controller="SaqTemplates" asp-action="Index"
-                               class="rp-sidebar-child nav-link d-flex align-items-center gap-2 py-2 @(currentCtrl == "SaqTemplates" ? "active" : "")">
-                                <i class="fas fa-clipboard-question"></i>
-                                <span class="text-truncate">SAQ</span>
-                            </a>
-                        }
-                        @if (User.HasClaim("Permission", PermissionCatalog.Kri))
-                        {
-                            <a asp-controller="KriTemplates" asp-action="Index"
-                               class="rp-sidebar-child nav-link d-flex align-items-center gap-2 py-2 @(currentCtrl == "KriTemplates" ? "active" : "")">
-                                <i class="fas fa-gauge-high"></i>
-                                <span class="text-truncate">KRI</span>
-                            </a>
-                        }
-                        @if (User.HasClaim("Permission", PermissionCatalog.RiskRegister))
-                        {
-                            <a asp-controller="RiskRegisterTemplates" asp-action="Index"
-                               class="rp-sidebar-child nav-link d-flex align-items-center gap-2 py-2 @(currentCtrl == "RiskRegisterTemplates" ? "active" : "")">
-                                <i class="fas fa-triangle-exclamation"></i>
-                                <span class="text-truncate">Risk Register</span>
-                            </a>
-                        }
-                    </div>
-                </div>
-            }
+            <div class="rp-nav" id="rpNav">
+                @if (User.HasClaim("Permission", PermissionCatalog.Dashboard))
+                {
+                    <a asp-controller="Dashboard" asp-action="Index"
+                       class="rp-nav-link @(currentCtrl == "Dashboard" ? "active" : "")">
+                        <i class="fas fa-chart-line"></i><span>Dashboard</span>
+                    </a>
+                }
 
-            @if (canViewAdministration)
-            {
-                <!-- Parent Item: Administration -->
-                <div class="rp-sidebar-group w-100">
-                    <button type="button" 
-                            class="rp-sidebar-toggle nav-link d-flex align-items-center gap-3 px-3 py-2 rounded @(isAdministrationActive ? "expanded" : "")" 
-                            onclick="toggleSubmenu(this)" 
-                            aria-expanded="@(isAdministrationActive ? "true" : "false")">
-                        <i class="fas fa-users-gear"></i>
-                        <span class="text-truncate me-auto">Administration</span>
-                        <i class="fas fa-chevron-right rp-sidebar-caret ms-auto"></i>
-                    </button>
-                    <div class="rp-sidebar-submenu @(isAdministrationActive ? "open" : "")">
-                        @if (canViewUsers)
-                        {
-                            <a asp-controller="Users" asp-action="Index"
-                               class="rp-sidebar-child nav-link d-flex align-items-center gap-2 py-2 @(currentCtrl == "Users" ? "active" : "")">
-                                <i class="fas fa-user-group"></i>
-                                <span class="text-truncate">Users</span>
-                            </a>
-                        }
-                        @if (canViewRoles)
-                        {
-                            <a asp-controller="Roles" asp-action="Index"
-                               class="rp-sidebar-child nav-link d-flex align-items-center gap-2 py-2 @(currentCtrl == "Roles" ? "active" : "")">
-                                <i class="fas fa-user-shield"></i>
-                                <span class="text-truncate">Roles</span>
-                            </a>
-                        }
-                        @if (canViewUnits)
-                        {
-                            <a asp-controller="Units" asp-action="Index"
-                               class="rp-sidebar-child nav-link d-flex align-items-center gap-2 py-2 @(currentCtrl == "Units" ? "active" : "")">
-                                <i class="fas fa-building"></i>
-                                <span class="text-truncate">Units</span>
-                            </a>
-                        }
-                    </div>
-                </div>
-            }
-        </div>
+                @if (User.HasClaim("Permission", PermissionCatalog.Submissions))
+                {
+                    <a asp-controller="Submissions" asp-action="Index"
+                       class="rp-nav-link @(currentCtrl == "Submissions" ? "active" : "")">
+                        <i class="fas fa-inbox"></i><span>Submissions</span>
+                    </a>
+                }
 
-        <!-- Sidebar Footer -->
-        <div class="rp-sidebar-footer px-2 py-3 mt-auto">
-            <a asp-controller="Login" asp-action="Logout" class="nav-link d-flex align-items-center gap-3 px-3 py-2 rounded">
-                <i class="fas fa-right-from-bracket"></i>
-                <span class="text-truncate">Logout</span>
-            </a>
+                @if (User.HasClaim("Permission", PermissionCatalog.Schedule))
+                {
+                    <a asp-controller="Schedule" asp-action="Index"
+                       class="rp-nav-link @(currentCtrl == "Schedule" ? "active" : "")">
+                        <i class="fas fa-calendar-check"></i><span>Schedule</span>
+                    </a>
+                }
+
+                @if (canViewTemplates)
+                {
+                    <div class="dropdown">
+                        <button type="button" class="rp-nav-link dropdown-toggle @(isTemplatesActive ? "active" : "")"
+                                data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-copy"></i><span>Templates</span><i class="fas fa-chevron-down rp-caret"></i>
+                        </button>
+                        <ul class="dropdown-menu rp-nav-menu">
+                            <li class="dropdown-header">Template management</li>
+                            @if (User.HasClaim("Permission", PermissionCatalog.Saq))
+                            {
+                                <li>
+                                    <a asp-controller="SaqTemplates" asp-action="Index"
+                                       class="dropdown-item @(currentCtrl == "SaqTemplates" ? "active" : "")">
+                                        <i class="fas fa-clipboard-question"></i><span>SAQ</span>
+                                    </a>
+                                </li>
+                            }
+                            @if (User.HasClaim("Permission", PermissionCatalog.Kri))
+                            {
+                                <li>
+                                    <a asp-controller="KriTemplates" asp-action="Index"
+                                       class="dropdown-item @(currentCtrl == "KriTemplates" ? "active" : "")">
+                                        <i class="fas fa-gauge-high"></i><span>KRI</span>
+                                    </a>
+                                </li>
+                            }
+                            @if (User.HasClaim("Permission", PermissionCatalog.RiskRegister))
+                            {
+                                <li>
+                                    <a asp-controller="RiskRegisterTemplates" asp-action="Index"
+                                       class="dropdown-item @(currentCtrl == "RiskRegisterTemplates" ? "active" : "")">
+                                        <i class="fas fa-triangle-exclamation"></i><span>Risk Register</span>
+                                    </a>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                }
+
+                @if (canViewAdministration)
+                {
+                    <div class="dropdown">
+                        <button type="button" class="rp-nav-link dropdown-toggle @(isAdministrationActive ? "active" : "")"
+                                data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-users-gear"></i><span>Administration</span><i class="fas fa-chevron-down rp-caret"></i>
+                        </button>
+                        <ul class="dropdown-menu rp-nav-menu">
+                            <li class="dropdown-header">Access administration</li>
+                            @if (canViewUsers)
+                            {
+                                <li>
+                                    <a asp-controller="Users" asp-action="Index"
+                                       class="dropdown-item @(currentCtrl == "Users" ? "active" : "")">
+                                        <i class="fas fa-user-group"></i><span>Users</span>
+                                    </a>
+                                </li>
+                            }
+                            @if (canViewRoles)
+                            {
+                                <li>
+                                    <a asp-controller="Roles" asp-action="Index"
+                                       class="dropdown-item @(currentCtrl == "Roles" ? "active" : "")">
+                                        <i class="fas fa-user-shield"></i><span>Roles</span>
+                                    </a>
+                                </li>
+                            }
+                            @if (canViewUnits)
+                            {
+                                <li>
+                                    <a asp-controller="Units" asp-action="Index"
+                                       class="dropdown-item @(currentCtrl == "Units" ? "active" : "")">
+                                        <i class="fas fa-building"></i><span>Units</span>
+                                    </a>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                }
+            </div>
+
+            <div class="rp-nav-right">
+                <span class="rp-user-chip">
+                    <i class="fas fa-circle-user"></i>
+                    <span class="rp-chip-name">@User.Identity?.Name</span>
+                    <span class="rp-chip-role">@(User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? "User")</span>
+                </span>
+                <a asp-controller="Login" asp-action="Logout" class="rp-nav-logout">
+                    <i class="fas fa-right-from-bracket"></i><span>Log out</span>
+                </a>
+            </div>
         </div>
     </nav>
 
     <!-- ================================ -->
     <!-- MAIN CONTENT AREA                -->
     <!-- ================================ -->
-    <main class="rp-main">
+    <main id="main-content" class="rp-main" tabindex="-1">
         <div class="rp-bg-pattern"></div>
         <div class="rp-main-ambient" aria-hidden="true"></div>
 
-        <!-- Top Header Bar -->
-        <header class="rp-topbar">
-            <div class="d-flex align-items-center gap-3">
-                <button id="sidebarToggle" class="rp-icon-btn" onclick="toggleSidebar()" aria-label="Toggle navigation" aria-expanded="true" aria-controls="sidebarNav">
-                    <i class="fas fa-bars fa-lg"></i>
-                </button>
-            </div>
-            <div class="d-flex align-items-center gap-3">
-                <div class="rp-user-profile">
-                    <div class="rp-user-avatar">
-                        <i class="fas fa-user-tie"></i>
-                    </div>
-                    <div class="rp-user-info">
-                        <span class="rp-user-name">@User.Identity?.Name</span>
-                        <span class="rp-user-role">@(User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? "User")</span>
-                    </div>
-                </div>
-            </div>
-        </header>
-
         <!-- Page Canvas -->
-        <div class="rp-page container-fluid px-3 px-md-4 py-3">
+        <div class="rp-page">
             @RenderBody()
         </div>
+
+        <footer class="rp-footer">
+            <hr />
+            <p>Risk Pulse — Risk Management System</p>
+        </footer>
     </main>
 
-    <!-- Re-host modals as direct children of <body> so their z-index (1055) escapes
-         the .rp-page stacking context; otherwise Bootstrap's body-level backdrop
-         (z-index 1050) paints over them and blocks all interaction. -->
-    <script>
-        document.querySelectorAll('.modal').forEach(function (m) { document.body.appendChild(m); });
-    </script>
+<!-- Re-host modals as direct children of <body> so their z-index (1055) escapes
+     the .rp-page stacking context; otherwise Bootstrap's body-level backdrop
+     (z-index 1050) paints over them and blocks all interaction. -->
+<script>
+    document.querySelectorAll('.modal').forEach(function (m) { document.body.appendChild(m); });
+</script>
 
-    <!-- Scripts -->
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="~/lib/sweetalert2/sweetalert2.min.js"></script>
-    <script src="~/lib/select2/select2.min.js"></script>
-    <script src="~/js/site.js" asp-append-version="true"></script>
-    <script src="~/js/modules/riskpulse.js" asp-append-version="true"></script>
+<!-- Scripts -->
+<script src="~/lib/jquery/dist/jquery.min.js"></script>
+<script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+<script src="~/lib/sweetalert2/sweetalert2.min.js"></script>
+<script src="~/lib/select2/select2.min.js"></script>
+<script src="~/js/site.js" asp-append-version="true"></script>
+<script src="~/js/modules/riskpulse.js" asp-append-version="true"></script>
 
-    @await RenderSectionAsync("Scripts", required: false)
+@await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

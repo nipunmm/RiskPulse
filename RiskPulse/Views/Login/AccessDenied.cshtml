@@ -36,11 +36,14 @@
             You don't have permission to access this page. If you believe this is a mistake, please contact your administrator.
         </p>
 
-        <div class="rp-request-chip">
-            <span class="rp-mono rp-text-muted">
-                Request ID: @ViewData["RequestId"]
-            </span>
-        </div>
+        @if (ViewData["RequestId"] != null)
+        {
+            <div class="rp-request-chip">
+                <span class="rp-mono rp-text-muted">
+                    Request ID: @ViewData["RequestId"]
+                </span>
+            </div>
+        }
 
         <div class="d-flex flex-column gap-2 w-100">
             <a href="@Url.Action(returnAction, returnController)"

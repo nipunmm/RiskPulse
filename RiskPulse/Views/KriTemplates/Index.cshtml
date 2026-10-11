@@ -11,22 +11,20 @@
     <link rel="stylesheet" href="~/lib/datatables/dataTables.bootstrap5.min.css" />
 }
 
-<div class="rp-page-header">
-    <div>
-        <h2 class="rp-display-lg">KRI Templates</h2>
-        <p class="rp-body-md mt-1 mb-0 rp-text-muted">
-            Manage Key Risk Indicator templates — define indicators and their Green / Amber / Red thresholds.
-        </p>
-    </div>
-</div>
-
-<div class="rp-card p-2">
-    <div class="rp-grid-toolbar">
-        <p class="mb-0 rp-body-sm rp-text-muted">Define indicators and their Green / Amber / Red thresholds.</p>
+<header class="rp-hero rp-hero--violet">
+    <h1 class="rp-display-lg">KRI Templates</h1>
+    <p class="rp-hero-sub">
+        Manage Key Risk Indicator templates — define indicators and their Green / Amber / Red thresholds.
+    </p>
+    <div class="rp-hero-actions">
         <button type="button" class="rp-btn rp-btn-primary" id="addKriTemplateBtn">
             <i class="fas fa-plus"></i> Add Template
         </button>
     </div>
+</header>
+
+<div class="rp-card p-2">
+    <div class="table-responsive">
     <table id="kriTable" class="table rp-table table-sm w-100 align-middle">
         <thead>
             <tr>
@@ -40,6 +38,7 @@
             </tr>
         </thead>
     </table>
+    </div>
 </div>
 
 <!-- ============================================================

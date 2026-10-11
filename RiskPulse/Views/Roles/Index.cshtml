@@ -9,22 +9,18 @@
     <link rel="stylesheet" href="~/lib/datatables/dataTables.bootstrap5.min.css" />
 }
 
-<div class="rp-page-header">
-    <div>
-        <h2 class="rp-display-lg">Role Management</h2>
-        <p class="rp-body-md mt-1 mb-0 rp-text-muted">
-            Define roles, set their landing page, and assign system permissions.
-        </p>
-    </div>
-</div>
-
-<div class="rp-card p-2">
-    <div class="rp-grid-toolbar">
-        <p class="mb-0 rp-body-sm rp-text-muted">Define roles and assign system permissions.</p>
+<header class="rp-hero rp-hero--slate">
+    <h1 class="rp-display-lg">Role Management</h1>
+    <p class="rp-hero-sub">Define roles, set their landing page, and assign system permissions.</p>
+    <div class="rp-hero-actions">
         <button type="button" class="rp-btn rp-btn-primary" data-bs-toggle="modal" data-bs-target="#addRoleModal">
             <i class="fas fa-plus"></i> Add Role
         </button>
     </div>
+</header>
+
+<div class="rp-card p-2">
+    <div class="table-responsive">
     <table id="roleTable" class="table rp-table table-sm w-100 align-middle">
         <thead>
             <tr>
@@ -36,6 +32,7 @@
             </tr>
         </thead>
     </table>
+    </div>
 </div>
 
 <!-- ============================================================

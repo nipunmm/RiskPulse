@@ -6,22 +6,20 @@
     <link rel="stylesheet" href="~/lib/datatables/dataTables.bootstrap5.min.css" />
 }
 
-<div class="rp-page-header gap-3 mb-3">
-    <div>
-        <h2 class="rp-display-lg">Schedule</h2>
-        <p class="rp-body-md mt-1 mb-0 rp-text-muted">
-            Set up scheduled risk assessments as a guided flow — choose the schedule type and the SAQ and KRI templates, then activate.
-        </p>
-    </div>
-</div>
-
-<div class="rp-card p-2">
-    <div class="rp-grid-toolbar">
-        <p class="mb-0 rp-body-sm rp-text-muted">Create scheduled risk assessments as a guided flow.</p>
+<header class="rp-hero rp-hero--green">
+    <h1 class="rp-display-lg">Schedule</h1>
+    <p class="rp-hero-sub">
+        Set up scheduled risk assessments as a guided flow — choose the schedule type and the SAQ and KRI templates, then activate.
+    </p>
+    <div class="rp-hero-actions">
         <a href="@Url.Action("Wizard", "Schedule")" class="rp-btn rp-btn-primary d-inline-flex align-items-center gap-2">
             <i class="fas fa-plus"></i> New Schedule
         </a>
     </div>
+</header>
+
+<div class="rp-card p-2">
+    <div class="table-responsive">
     <table id="scheduleTable" class="table rp-table table-sm w-100 align-middle">
         <thead>
             <tr>
@@ -36,6 +34,7 @@
             </tr>
         </thead>
     </table>
+    </div>
 </div>
 
 @section Scripts {

@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Risk Pulse — Design Demo</title>
+
+    <!-- Real vendored assets from the live app -->
+    <link rel="stylesheet" href="../../wwwroot/lib/font-awesome/css/all.min.css" />
+    <link rel="stylesheet" href="../../wwwroot/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <!-- The actual Risk Pulse design system -->
+    <link rel="stylesheet" href="../../wwwroot/css/site.css" />
+    <!-- Demo-only chrome -->
+    <link rel="stylesheet" href="demo.css" />
+</head>
+
+<body class="d-flex flex-column demo-body">
+
+<a href="#main-content" class="rp-skip-link">Skip to content</a>
+
+<!-- ===================== TOP NAV ===================== -->
+<nav id="rpTopnav" class="rp-topnav rp-shell-fade" aria-label="Main navigation">
+    <div class="rp-topnav-inner">
+        <a class="rp-brand" href="#" onclick="return false;">
+            <span class="rp-brand-badge">RP</span>
+            <span class="rp-brand-name">Risk Pulse</span>
+        </a>
+
+        <div class="rp-nav" id="rpNav">
+            <button type="button" class="rp-nav-link demo-tab active" data-screen="dashboard"><i class="fas fa-chart-line"></i><span>Dashboard</span></button>
+            <button type="button" class="rp-nav-link demo-tab" data-screen="users"><i class="fas fa-users"></i><span>Users</span></button>
+            <button type="button" class="rp-nav-link demo-tab" data-screen="saq"><i class="fas fa-clipboard-question"></i><span>SAQ Templates</span></button>
+            <button type="button" class="rp-nav-link demo-tab" data-screen="login"><i class="fas fa-right-to-bracket"></i><span>Login</span></button>
+
+            <div class="dropdown demo-dd" id="templatesDd">
+                <button type="button" class="rp-nav-link dropdown-toggle">
+                    <i class="fas fa-copy"></i><span>Templates</span><i class="fas fa-chevron-down rp-caret"></i>
+                </button>
+                <ul class="dropdown-menu rp-nav-menu">
+                    <li class="dropdown-header">Template management</li>
+                    <li><a class="dropdown-item demo-tab" href="#" data-screen="saq" onclick="return false;"><i class="fas fa-clipboard-question"></i><span>SAQ</span></a></li>
+                    <li><a class="dropdown-item" href="#" onclick="return false;"><i class="fas fa-gauge-high"></i><span>KRI</span></a></li>
+                    <li><a class="dropdown-item" href="#" onclick="return false;"><i class="fas fa-triangle-exclamation"></i><span>Risk Register</span></a></li>
+                </ul>
+            </div>
+
+            <button type="button" class="rp-nav-link demo-tab" data-screen="design"><i class="fas fa-palette"></i><span>Design</span></button>
+        </div>
+
+        <div class="rp-nav-right">
+            <span class="rp-user-chip">
+                <i class="fas fa-circle-user"></i>
+                <span class="rp-chip-name">nipunmm</span>
+                <span class="rp-chip-role">Administrator</span>
+            </span>
+            <a class="rp-nav-logout" href="#" onclick="return false;"><i class="fas fa-right-from-bracket"></i><span>Log out</span></a>
+        </div>
+    </div>
+</nav>
+
+<!-- ===================== MAIN ===================== -->
+<main id="main-content" class="rp-main" tabindex="-1">
+    <div class="rp-bg-pattern"></div>
+    <div class="rp-main-ambient" aria-hidden="true"></div>
+
+    <div class="rp-page">
+
+        <!-- =================== DASHBOARD =================== -->
+        <section class="demo-screen" data-screen="dashboard">
+            <header class="rp-hero rp-hero--ink">
+                <h1 class="rp-display-lg">Dashboard</h1>
+                <p class="rp-hero-sub">Group Risk &amp; Compliance Unit &middot; FY 2026 / Q2</p>
+                <div class="rp-hero-actions">
+                    <a href="#" class="rp-btn rp-btn-secondary" onclick="return false;"><i class="fas fa-folder-open"></i> Open Submissions</a>
+                </div>
+            </header>
+
+            <div class="row g-2 mb-2">
+                <div class="col-6 col-xl-3">
+                    <div class="rp-card p-3 h-100">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <p class="rp-label-md mb-0">Assessments</p>
+                            <i class="fas fa-clipboard-check rp-text-muted"></i>
+                        </div>
+                        <p class="rp-stat-value mb-1">12</p>
+                        <p class="mb-0"><span class="rp-pill rp-pill-info">3 open</span></p>
+                    </div>
+                </div>
+                <div class="col-6 col-xl-3">
+                    <div class="rp-card p-3 h-100">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <p class="rp-label-md mb-0">KRI health</p>
+                            <i class="fas fa-gauge-high rp-text-muted"></i>
+                        </div>
+                        <p class="rp-stat-value mb-1 d-flex align-items-center gap-2">82% <span class="rp-level-dot rp-level-success" role="img" aria-label="KRI status: Low"></span></p>
+                        <p class="mb-0"><span class="rp-pill rp-pill-success">within limits</span></p>
+                    </div>
+                </div>
+                <div class="col-6 col-xl-3">
+                    <div class="rp-card p-3 h-100">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <p class="rp-label-md mb-0">Pending approval</p>
+                            <i class="fas fa-user-check rp-text-muted"></i>
+                        </div>
+                        <p class="rp-stat-value mb-1 d-flex align-items-center gap-2">4 <span class="rp-level-dot rp-level-warning" role="img" aria-label="KRI status: Medium"></span></p>
+                        <p class="mb-0"><span class="rp-pill rp-pill-warning">needs action</span></p>
+                    </div>
+                </div>
+                <div class="col-6 col-xl-3">
+                    <div class="rp-card p-3 h-100">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <p class="rp-label-md mb-0">Overdue</p>
+                            <i class="fas fa-clock rp-text-muted"></i>
+                        </div>
+                        <p class="rp-stat-value mb-1 d-flex align-items-center gap-2">2 <span class="rp-level-dot rp-level-danger" role="img" aria-label="KRI status: High"></span></p>
+                        <p class="mb-0"><span class="rp-pill rp-pill-danger">breached</span></p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-2 mb-2">
+                <div class="col-12 col-xl-7">
+                    <div class="rp-card p-2 h-100">
+                        <div class="rp-grid-toolbar"><p class="mb-0 rp-body-sm rp-text-muted">Assessment status across periods.</p></div>
+                        <div class="d-flex flex-wrap gap-2 px-1 pb-2">
+                            <span class="rp-pill rp-pill-neutral">5 &middot; Pending</span>
+                            <span class="rp-pill rp-pill-warning">3 &middot; InProgress</span>
+                            <span class="rp-pill rp-pill-warning">2 &middot; Submitted</span>
+                            <span class="rp-pill rp-pill-success">2 &middot; Approved</span>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table rp-table table-sm w-100 align-middle">
+                                <thead><tr><th>Code</th><th>Period</th><th>Status</th><th>Progress</th></tr></thead>
+                                <tbody>
+                                    <tr><td>ASM-20260401-0001</td><td>01 Apr 26 &rarr; 30 Jun 26</td><td><span class="rp-pill rp-pill-success">Approved</span></td><td><span class="rp-pill rp-pill-neutral">9 of 10</span></td></tr>
+                                    <tr><td>ASM-20260401-0002</td><td>01 Apr 26 &rarr; 30 Jun 26</td><td><span class="rp-pill rp-pill-warning">Submitted</span></td><td><span class="rp-pill rp-pill-neutral">7 of 10</span></td></tr>
+                                    <tr><td>ASM-20260101-0004</td><td>01 Jan 26 &rarr; 31 Mar 26</td><td><span class="rp-pill rp-pill-success">Authorized</span></td><td><span class="rp-pill rp-pill-neutral">10 of 10</span></td></tr>
+                                    <tr><td>ASM-20260101-0005</td><td>01 Jan 26 &rarr; 31 Mar 26</td><td><span class="rp-pill rp-pill-warning">InProgress</span></td><td><span class="rp-pill rp-pill-neutral">4 of 10</span></td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 col-xl-5">
+                    <div class="rp-card p-3 h-100">
+                        <p class="rp-body-sm rp-text-muted mb-1"><i class="fas fa-chart-line me-2"></i>KRI Health &middot; FY 2026 / Q2</p>
+                        <div class="d-flex flex-wrap gap-3 mt-2">
+                            <span class="rp-body-md d-inline-flex align-items-center gap-2"><span class="rp-level-dot rp-level-success" title="Within green threshold"></span>Green <span class="rp-mono">18</span></span>
+                            <span class="rp-body-md d-inline-flex align-items-center gap-2"><span class="rp-level-dot rp-level-warning" title="Within amber threshold"></span>Amber <span class="rp-mono">5</span></span>
+                            <span class="rp-body-md d-inline-flex align-items-center gap-2"><span class="rp-level-dot rp-level-danger" title="Within red threshold"></span>Red <span class="rp-mono">2</span></span>
+                        </div>
+                        <p class="rp-body-sm rp-text-muted mt-3 mb-0">25 of 28 values captured for this period.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="rp-card p-2">
+                <div class="rp-grid-toolbar"><p class="mb-0 rp-body-sm rp-text-muted">Items that need your action, soonest deadline first.</p></div>
+                <div class="table-responsive">
+                    <table class="table rp-table table-sm w-100 align-middle">
+                        <thead><tr><th>Assessment</th><th>Template</th><th>Status</th><th>Deadline</th><th class="text-end">Actions</th></tr></thead>
+                        <tbody>
+                            <tr>
+                                <td>ASM-20260401-0002</td>
+                                <td>Credit Risk SAQ <span class="rp-body-xs rp-text-muted">SAQ-20260301-0003</span></td>
+                                <td><span class="rp-pill rp-pill-warning">Submitted</span></td>
+                                <td>30 Jun 26 <span class="rp-pill rp-pill-warning">overdue</span></td>
+                                <td class="text-end"><a href="#" class="rp-btn rp-btn-primary" onclick="return false;"><i class="fas fa-check"></i> Approve</a></td>
+                            </tr>
+                            <tr>
+                                <td>ASM-20260401-0002</td>
+                                <td>Liquidity KRI <span class="rp-body-xs rp-text-muted">KRI-20260301-0007</span></td>
+                                <td><span class="rp-pill rp-pill-warning">InProgress</span></td>
+                                <td>28 Jun 26</td>
+                                <td class="text-end"><a href="#" class="rp-btn rp-btn-edit" onclick="return false;"><i class="fas fa-pen-to-square"></i> Continue</a></td>
+                            </tr>
+                            <tr>
+                                <td>ASM-20260401-0001</td>
+                                <td>Operational Risk SAQ <span class="rp-body-xs rp-text-muted">SAQ-20260301-0001</span></td>
+                                <td><span class="rp-pill rp-pill-neutral">Pending</span></td>
+                                <td>15 Jul 26</td>
+                                <td class="text-end"><a href="#" class="rp-btn rp-btn-edit" onclick="return false;"><i class="fas fa-pen-to-square"></i> Start</a></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- =================== USERS =================== -->
+        <section class="demo-screen" data-screen="users" hidden>
+            <header class="rp-hero rp-hero--blue">
+                <h1 class="rp-display-lg">Users</h1>
+                <p class="rp-hero-sub">Manage system users.</p>
+                <div class="rp-hero-actions">
+                    <button type="button" class="rp-btn rp-btn-primary" data-modal="addUserModal"><i class="fas fa-user-plus"></i> Add User</button>
+                </div>
+            </header>
+
+            <div class="rp-card p-2">
+                <div class="table-responsive">
+                    <table class="table rp-table table-sm w-100 align-middle">
+                        <thead><tr><th>ID</th><th>Username</th><th>Unit</th><th>Role</th><th>Status</th><th class="text-end">Actions</th></tr></thead>
+                        <tbody>
+                            <tr>
+                                <td>1</td><td>nipunmm</td><td>Group Risk &amp; Compliance</td><td>Administrator</td>
+                                <td><span class="rp-pill rp-pill-success">Active</span></td>
+                                <td class="text-end">
+                                    <button class="rp-btn rp-btn-edit" disabled title="You cannot edit your own record"><i class="fas fa-pen-to-square"></i> Edit</button>
+                                    <button class="rp-btn rp-btn-delete" disabled title="You cannot delete your own record"><i class="fas fa-trash-can"></i> Delete</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>2</td><td>sithumip</td><td>Retail Banking</td><td>Unit Coordinator</td>
+                                <td><span class="rp-pill rp-pill-success">Active</span></td>
+                                <td class="text-end">
+                                    <button class="rp-btn rp-btn-edit" data-modal="editUserModal"><i class="fas fa-pen-to-square"></i> Edit</button>
+                                    <button class="rp-btn rp-btn-delete"><i class="fas fa-trash-can"></i> Delete</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>3</td><td>kasund</td><td>Treasury</td><td>Approver</td>
+                                <td><span class="rp-pill rp-pill-warning">Locked</span></td>
+                                <td class="text-end">
+                                    <button class="rp-btn rp-btn-edit" data-modal="editUserModal"><i class="fas fa-pen-to-square"></i> Edit</button>
+                                    <button class="rp-btn rp-btn-delete"><i class="fas fa-trash-can"></i> Delete</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>4</td><td>amalaj</td><td>Internal Audit</td><td>Viewer</td>
+                                <td><span class="rp-pill rp-pill-neutral">Inactive</span></td>
+                                <td class="text-end">
+                                    <button class="rp-btn rp-btn-edit" data-modal="editUserModal"><i class="fas fa-pen-to-square"></i> Edit</button>
+                                    <button class="rp-btn rp-btn-delete"><i class="fas fa-trash-can"></i> Delete</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- =================== SAQ TEMPLATES =================== -->
+        <section class="demo-screen" data-screen="saq" hidden>
+            <header class="rp-hero rp-hero--violet">
+                <h1 class="rp-display-lg">SAQ Templates</h1>
+                <p class="rp-hero-sub">Manage Self Assessment Questionnaire templates — build questions and their dropdown answers.</p>
+                <div class="rp-hero-actions">
+                    <button type="button" class="rp-btn rp-btn-primary"><i class="fas fa-plus"></i> Add Template</button>
+                </div>
+            </header>
+
+            <div class="rp-card p-2">
+                <div class="rp-grid-toolbar">
+                    <p class="mb-0 rp-body-sm rp-text-muted">Self-assessment questionnaires assigned to a unit or unit group.</p>
+                </div>
+                <div class="table-responsive">
+                    <table class="table rp-table table-sm w-100 align-middle">
+                        <thead><tr><th>Code</th><th>Title</th><th>Assigned to</th><th>Questions</th><th>Status</th><th class="text-end">Actions</th></tr></thead>
+                        <tbody>
+                            <tr>
+                                <td>SAQ-20260301-0001</td><td>Operational Risk SAQ</td><td>Group Risk &amp; Compliance</td><td>24</td>
+                                <td><span class="rp-pill rp-pill-success">Active</span></td>
+                                <td class="text-end">
+                                    <button class="rp-btn rp-btn-edit"><i class="fas fa-pen-to-square"></i> Edit</button>
+                                    <button class="rp-btn rp-btn-delete"><i class="fas fa-trash-can"></i> Delete</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>SAQ-20260301-0003</td><td>Credit Risk SAQ</td><td>Retail Banking</td><td>18</td>
+                                <td><span class="rp-pill rp-pill-neutral">Draft</span></td>
+                                <td class="text-end">
+                                    <button class="rp-btn rp-btn-edit"><i class="fas fa-pen-to-square"></i> Edit</button>
+                                    <button class="rp-btn rp-btn-delete"><i class="fas fa-trash-can"></i> Delete</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>SAQ-20260201-0002</td><td>AML / KYC SAQ</td><td>Treasury</td><td>31</td>
+                                <td><span class="rp-pill rp-pill-success">Active</span></td>
+                                <td class="text-end">
+                                    <button class="rp-btn rp-btn-edit"><i class="fas fa-pen-to-square"></i> Edit</button>
+                                    <button class="rp-btn rp-btn-delete"><i class="fas fa-trash-can"></i> Delete</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- =================== DESIGN SYSTEM =================== -->
+        <section class="demo-screen" data-screen="design" hidden>
+            <header class="rp-hero rp-hero--ink">
+                <h1 class="rp-display-lg">Design System</h1>
+                <p class="rp-hero-sub">Colour tokens, components and contrast — everything repaints from the Theme Lab.</p>
+            </header>
+
+            <div class="rp-card p-3 mb-2">
+                <p class="rp-body-sm rp-text-muted mb-2">Buttons</p>
+                <div class="demo-row">
+                    <button class="rp-btn rp-btn-primary"><i class="fas fa-check"></i> Primary</button>
+                    <button class="rp-btn rp-btn-secondary">Secondary</button>
+                    <button class="rp-btn rp-btn-edit"><i class="fas fa-pen-to-square"></i> Edit</button>
+                    <button class="rp-btn rp-btn-delete"><i class="fas fa-trash-can"></i> Delete</button>
+                    <button class="rp-btn rp-btn-primary" disabled>Disabled</button>
+                </div>
+            </div>
+
+            <div class="rp-card p-3 mb-2">
+                <p class="rp-body-sm rp-text-muted mb-2">Pills &amp; level dots</p>
+                <div class="demo-row">
+                    <span class="rp-pill rp-pill-success">Approved</span>
+                    <span class="rp-pill rp-pill-warning">In progress</span>
+                    <span class="rp-pill rp-pill-danger">Overdue</span>
+                    <span class="rp-pill rp-pill-info">Info</span>
+                    <span class="rp-pill rp-pill-violet">Draft</span>
+                    <span class="rp-pill rp-pill-neutral">Neutral</span>
+                </div>
+                <div class="demo-row mt-2">
+                    <span class="rp-body-md d-inline-flex align-items-center gap-2"><span class="rp-level-dot rp-level-success"></span>Green</span>
+                    <span class="rp-body-md d-inline-flex align-items-center gap-2"><span class="rp-level-dot rp-level-warning"></span>Amber</span>
+                    <span class="rp-body-md d-inline-flex align-items-center gap-2"><span class="rp-level-dot rp-level-danger"></span>Red</span>
+                </div>
+            </div>
+
+            <div class="demo-grid-2 mb-2">
+                <div class="rp-card p-3">
+                    <p class="rp-body-sm rp-text-muted mb-2">Form controls</p>
+                    <div class="mb-3">
+                        <label class="rp-label" for="demoInput">Username</label>
+                        <input id="demoInput" class="rp-input" type="text" placeholder="Enter a value" />
+                    </div>
+                    <div class="mb-2">
+                        <label class="rp-label" for="demoSelect">Unit</label>
+                        <select id="demoSelect" class="rp-input">
+                            <option>Group Risk &amp; Compliance</option>
+                            <option>Retail Banking</option>
+                            <option>Treasury</option>
+                        </select>
+                    </div>
+                    <div class="mb-0">
+                        <label class="rp-label" for="demoInputError">Invalid field</label>
+                        <input id="demoInputError" class="rp-input rp-input-error" type="text" value="bad value" />
+                    </div>
+                </div>
+                <div class="rp-card p-3">
+                    <p class="rp-body-sm rp-text-muted mb-2">Notices</p>
+                    <div class="rp-notice rp-notice-success mb-2"><i class="fas fa-circle-check"></i><div>Saved successfully.</div></div>
+                    <div class="rp-notice rp-notice-warning mb-2"><i class="fas fa-triangle-exclamation"></i><div>Deadline approaching.</div></div>
+                    <div class="rp-notice rp-notice-danger mb-2"><i class="fas fa-circle-exclamation"></i><div>Submission rejected.</div></div>
+                    <div class="rp-notice rp-notice-info mb-0"><i class="fas fa-circle-info"></i><div>Awaiting approval.</div></div>
+                </div>
+            </div>
+
+            <div class="rp-card p-3">
+                <p class="rp-body-sm rp-text-muted mb-2">Colour tokens</p>
+                <div class="demo-swatch-grid" id="swatchGrid"></div>
+            </div>
+        </section>
+
+        <!-- =================== LOGIN =================== -->
+        <section class="demo-screen demo-login" data-screen="login" hidden>
+            <div class="rp-login-page">
+                <div class="rp-login-ambient" aria-hidden="true"></div>
+                <main class="rp-login-shell">
+                    <section class="rp-login-brand-panel">
+                        <div class="rp-login-brandmark">
+                            <span class="rp-login-sonar"></span>
+                            <i class="fas fa-shield-halved"></i>
+                        </div>
+                        <p class="rp-login-eyebrow rp-login-eyebrow-light">Enterprise Risk</p>
+                        <h1>Risk Pulse</h1>
+                        <p class="rp-login-brand-copy">Assessments, KRIs and approval workflows in one secure place.</p>
+                        <ul class="rp-login-features">
+                            <li><i class="fas fa-circle-check"></i> SAQ &amp; KRI templates</li>
+                            <li><i class="fas fa-circle-check"></i> Scheduled approvals</li>
+                            <li><i class="fas fa-circle-check"></i> Live dashboards</li>
+                        </ul>
+                    </section>
+                    <section class="rp-login-panel">
+                        <div class="rp-login-header">
+                            <p class="rp-login-eyebrow">Secure Access</p>
+                            <h1>Welcome back</h1>
+                            <p>Sign in with your organization account</p>
+                        </div>
+                        <form class="rp-login-form" onsubmit="return false;">
+                            <div class="rp-login-field">
+                                <label class="rp-label" for="duser">Username</label>
+                                <input id="duser" class="rp-input" type="text" placeholder="Enter your username" />
+                            </div>
+                            <div class="rp-login-field">
+                                <label class="rp-label" for="dpass">Password</label>
+                                <input id="dpass" class="rp-input" type="password" placeholder="Enter your password" />
+                            </div>
+                            <button class="rp-btn rp-btn-primary rp-login-submit" type="submit"><span class="btn-text">Sign in</span></button>
+                        </form>
+                    </section>
+                </main>
+            </div>
+        </section>
+    </div>
+
+    <footer class="rp-footer">
+        <hr />
+        <p>Risk Pulse &middot; design demo &middot; hardcoded data, no backend.</p>
+    </footer>
+</main>
+
+<!-- =================== MODALS =================== -->
+<div class="demo-modal-backdrop" id="modalBackdrop"></div>
+
+<div class="modal demo-modal" id="addUserModal" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add User</h5>
+                <button type="button" class="btn-close" data-close></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3"><label class="rp-label">Username</label><input class="rp-input" type="text" /></div>
+                <div class="mb-3"><label class="rp-label">Unit</label><select class="rp-input"><option>Group Risk &amp; Compliance</option><option>Retail Banking</option></select></div>
+                <div class="mb-3"><label class="rp-label">Role</label><select class="rp-input"><option>Unit Coordinator</option><option>Viewer</option></select></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="rp-btn rp-btn-secondary" data-close>Cancel</button>
+                <button type="button" class="rp-btn rp-btn-primary"><i class="fas fa-check"></i> Create</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal demo-modal" id="editUserModal" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit User</h5>
+                <button type="button" class="btn-close" data-close></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3"><label class="rp-label">Username</label><input class="rp-input" type="text" value="sithumip" /></div>
+                <div class="mb-3"><label class="rp-label">Unit</label><select class="rp-input"><option selected>Retail Banking</option><option>Treasury</option></select></div>
+                <div class="mb-3"><label class="rp-label">Role</label><select class="rp-input"><option selected>Unit Coordinator</option><option>Viewer</option></select></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="rp-btn rp-btn-secondary" data-close>Cancel</button>
+                <button type="button" class="rp-btn rp-btn-primary"><i class="fas fa-check"></i> Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- =================== THEME LAB =================== -->
+<button type="button" class="demo-fab" id="themeFab"><i class="fas fa-swatchbook"></i> Theme Lab</button>
+
+<aside class="demo-panel" id="themePanel" aria-label="Theme lab">
+    <h2>Theme Lab</h2>
+    <p class="demo-panel-sub">Live-tweak the tokens site.css consumes. Compare accents and read WCAG contrast instantly.</p>
+
+    <div class="demo-field">
+        <label>Accent presets</label>
+        <div class="demo-presets" id="presets"></div>
+    </div>
+
+    <div class="demo-field">
+        <label>Primary action (brand orange)</label>
+        <div class="demo-color-line">
+            <input type="color" id="accentPicker" value="#f58220" />
+            <code id="accentHex">#f58220</code>
+        </div>
+        <p class="demo-hint">Changing this rewrites <code>--orange</code>, its hover/deep/soft/wash ramps and <code>--orange-rgb</code>.</p>
+    </div>
+
+    <div class="demo-field">
+        <label>Contrast of the button label on this accent</label>
+        <div class="demo-contrast" id="contrastBox"></div>
+    </div>
+
+    <div class="demo-field">
+        <label>Chrome</label>
+        <div class="demo-color-line" style="margin-bottom:8px;"><input type="color" id="navyDeepPicker" value="#0a192f" /><code>--navy-deep</code></div>
+        <div class="demo-color-line" style="margin-bottom:8px;"><input type="color" id="navyMidPicker" value="#112240" /><code>--navy-mid</code></div>
+        <div class="demo-color-line"><input type="color" id="steelPicker" value="#38bdf8" /><code>--steel</code></div>
+    </div>
+
+    <div class="demo-panel-actions">
+        <button type="button" class="rp-btn rp-btn-secondary" id="resetTheme"><i class="fas fa-rotate-left"></i> Reset</button>
+        <button type="button" class="rp-btn rp-btn-primary" id="copyVars"><i class="fas fa-copy"></i> Copy CSS vars</button>
+    </div>
+    <p class="demo-hint">Tip: press <b>T</b> to toggle this panel; <code>Esc</code> to close.</p>
+</aside>
+
+<script src="demo.js"></script>
+</body>
+</html>

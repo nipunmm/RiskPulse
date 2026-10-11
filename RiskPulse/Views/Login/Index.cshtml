@@ -13,65 +13,88 @@
     <link rel="stylesheet" href="~/lib/sweetalert2/sweetalert2.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
-<body class="rp-shell-centered rp-login-page">
+<body class="rp-login-page">
 
-    <div class="rp-bg-pattern"></div>
-
-    <!-- DECORATIVE: breathing glow behind the panel -->
+    <!-- DECORATIVE: breathing glow behind the shell -->
     <div class="rp-login-ambient" aria-hidden="true"></div>
 
-    <main class="rp-panel rp-panel-login">
+    <main class="rp-login-shell">
 
-        <div class="rp-login-header">
+        <!-- ================================ -->
+        <!-- LEFT: brand panel                -->
+        <!-- ================================ -->
+        <section class="rp-login-brand-panel">
             <div class="rp-login-brandmark" aria-hidden="true">
                 <span class="rp-login-sonar"></span>
-                <div class="rp-mark-hero">
-                    <i class="fas fa-shield-halved"></i>
-                </div>
+                <i class="fas fa-shield-halved"></i>
             </div>
-            <p class="rp-login-eyebrow">Secure Access</p>
-            <h1 class="rp-headline-md rp-text-primary">Risk Pulse</h1>
-            <p class="rp-body-sm rp-text-muted">Collect, assess, and monitor organizational risk data</p>
-        </div>
-
-        <form class="rp-login-form" id="loginForm" novalidate>
-
-            <div class="rp-login-field">
-                <label class="rp-label" for="username">Username</label>
-                <div class="rp-login-input-wrapper">
-                    <i class="fas fa-user rp-login-input-icon"></i>
-                    <input class="rp-input rp-login-input"
-                           type="text"
-                           id="username"
-                           name="username"
-                           placeholder="Enter your username" />
-                </div>
-            </div>
-
-            <div class="rp-login-field">
-                <label class="rp-label" for="password">Password</label>
-                <div class="rp-login-input-wrapper">
-                    <i class="fas fa-key rp-login-input-icon"></i>
-                    <input class="rp-input rp-login-input"
-                           type="password"
-                           id="password"
-                           name="password"
-                           placeholder="Enter your password" />
-                </div>
-            </div>
-
-            <button class="rp-btn rp-btn-primary rp-login-submit" type="submit" id="loginBtn">
-                <span class="btn-text">Authenticate</span>
-            </button>
-
-        </form>
-
-        <div class="rp-login-footer">
-            <p class="rp-body-sm rp-text-outline">
-                <i class="fas fa-circle-info"></i>
-                Authorized personnel only.
+            <p class="rp-login-eyebrow rp-login-eyebrow-light">Risk Management Platform</p>
+            <h1>Risk Pulse</h1>
+            <p class="rp-login-brand-copy">
+                Collect, assess, and monitor organizational risk data — self-assessment
+                questionnaires, key risk indicators, and scheduled assessments in one
+                secure workspace.
             </p>
-        </div>
+            <ul class="rp-login-features">
+                <li><i class="fas fa-circle-check"></i> SAQ &amp; KRI templates with guided designers</li>
+                <li><i class="fas fa-circle-check"></i> Scheduled workflows with approval chains</li>
+                <li><i class="fas fa-circle-check"></i> Live dashboards and submission tracking</li>
+            </ul>
+        </section>
+
+        <!-- ================================ -->
+        <!-- RIGHT: form panel                -->
+        <!-- ================================ -->
+        <section class="rp-login-panel">
+
+            <div class="rp-login-header">
+                <p class="rp-login-eyebrow">Secure Access</p>
+                <h1>Welcome back</h1>
+                <p>Sign in with your organization account</p>
+            </div>
+
+            <form class="rp-login-form" id="loginForm" novalidate>
+
+                <div class="rp-login-field">
+                    <label class="rp-label" for="username">Username</label>
+                    <div class="rp-login-input-wrapper">
+                        <i class="fas fa-user rp-login-input-icon"></i>
+                        <input class="rp-input rp-login-input"
+                               type="text"
+                               id="username"
+                               name="username"
+                               placeholder="Enter your username"
+                               autocomplete="username" />
+                    </div>
+                </div>
+
+                <div class="rp-login-field">
+                    <label class="rp-label" for="password">Password</label>
+                    <div class="rp-login-input-wrapper">
+                        <i class="fas fa-key rp-login-input-icon"></i>
+                        <input class="rp-input rp-login-input"
+                               type="password"
+                               id="password"
+                               name="password"
+                               placeholder="Enter your password"
+                               autocomplete="current-password" />
+                    </div>
+                </div>
+
+                <button class="rp-btn rp-btn-primary rp-login-submit" type="submit" id="loginBtn">
+                    <span class="btn-text">Sign in</span>
+                </button>
+
+            </form>
+
+            <div class="rp-login-footer">
+                <p class="rp-body-sm rp-text-outline">
+                    <i class="fas fa-lock"></i>
+                    Authorized personnel only.
+                </p>
+            </div>
+
+        </section>
 
     </main>
 
@@ -119,7 +142,7 @@
                         RiskPulse.toastError(res.message || 'Login failed.');
                     },
                     complete: function () {
-                        $btn.prop('disabled', false).find('.btn-text').text('Authenticate');
+                        $btn.prop('disabled', false).find('.btn-text').text('Sign in');
                     }
                 },
                 $btn
