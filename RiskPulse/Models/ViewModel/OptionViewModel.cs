@@ -7,5 +7,7 @@ namespace RiskPulse.Models.ViewModel
         public string Label { get; set; } = string.Empty;
 
         public string? Code { get; set; }
+
+        public string? Kind { get; set; }
     }
 }

@@ -123,7 +123,13 @@ public class UnitsService
     {
         return await _db.Units.AsNoTracking()
             .OrderBy(u => u.UnitDesc)
-            .ToOptionListAsync(u => u.UnitId, u => u.UnitDesc);
+            .Select(u => new OptionViewModel
+            {
+                Value = u.UnitId,
+                Label = u.UnitDesc,
+                Kind = u.UnitType.ToString()
+            })
+            .ToListAsync();
     }
 
     public async Task<SaveResultDto> SaveGroupAsync(GroupSaveDto model)

@@ -277,7 +277,11 @@ Rules every component must follow:
   `focus` 2px ring with 2px offset, placeholder `text-muted`). Errors: `.rp-input-error`
   uses `error` border, an error icon and message text below the field linked via
   `aria-describedby` (managed by `RiskPulse.validationError` / `clearFieldErrors`).
-  Selects are select2 with the `rp` theme.
+  Selects are select2 with the `rp` theme. Multi-value selection that benefits from
+  scanning (assigning many units to a group) uses the `.rp-unit-picker` checkbox list
+  instead of a tagging multi-select: a search field, Select all / Clear actions, a
+  scrollable `.rp-unit-list` of `.rp-unit-option` rows (native checkbox + name + type
+  `pill`), and a live `.rp-unit-count` (`ok` ≥ 2 / `warn` otherwise).
 - **Focus:** `:focus-visible` ring 2px `focus` on light, `focus-on-dark` on dark chrome.
   Never `outline: none` without a replacement.
 - **Wizard:** `.rp-stepper` (dots + connectors) and `.rp-wizard-panel`; completed, current
