@@ -2,7 +2,6 @@
 @{
     ViewData["Title"] = "KRI Templates";
 
-    var statusesJson = Json.Serialize(Model.KriStatuses);
     var unitGroupsJson = Json.Serialize(Model.UnitGroups);
     var unitsJson = Json.Serialize(Model.Units);
 }
@@ -30,7 +29,6 @@
             <tr>
                 <th>ID</th>
                 <th>Code</th>
-                <th>Description</th>
                 <th>Assigned To</th>
                 <th>Status</th>
                 <th>KRIs</th>
@@ -60,14 +58,6 @@
                     <!-- HEADER FIELDS -->
                     <div class="p-3 border-bottom" id="kriHeaderFields">
                         <div class="row g-3">
-                            <div class="col-md-8">
-                                <label class="rp-label" for="kriDesc">Description</label>
-                                <input type="text" id="kriDesc" name="kriDesc" class="rp-input" autocomplete="off" />
-                            </div>
-                            <div class="col-md-4 d-none" id="kriCodeCol">
-                                <label class="rp-label" for="kriCode">Code</label>
-                                <input type="text" id="kriCode" name="kriCode" class="rp-input" readonly />
-                            </div>
                             <div class="col-md-4">
                                 <label class="rp-label" for="kriLinkType">Link Type</label>
                                 <select id="kriLinkType" class="rp-input">
@@ -83,9 +73,20 @@
                                 <label class="rp-label" for="kriUnit">Unit</label>
                                 <select id="kriUnit" name="unitId" class="rp-input"></select>
                             </div>
+                            <div class="col-md-4 d-none" id="kriCodeCol">
+                                <label class="rp-label" for="kriCode">Code</label>
+                                <input type="text" id="kriCode" name="kriCode" class="rp-input" readonly />
+                            </div>
                             <div class="col-md-4">
-                                <label class="rp-label" for="kriStatus">Status</label>
-                                <select id="kriStatus" name="kriStatus" class="rp-input"></select>
+                                <label class="rp-label" for="kriActive">Status</label>
+                                <div class="form-check d-flex align-items-center gap-2" style="min-height: 36px;">
+                                    <input class="form-check-input m-0" type="checkbox" id="kriActive" />
+                                    <label class="form-check-label" for="kriActive">Active</label>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <label class="rp-label" for="kriDesc">Description <span class="text-muted fw-normal">(optional)</span></label>
+                                <input type="text" id="kriDesc" name="kriHeaderDesc" class="rp-input" autocomplete="off" />
                             </div>
                         </div>
                     </div>
@@ -168,7 +169,6 @@
             /* =================================================================
                SECTION 1 — PAGE DATA & ENDPOINTS
                ================================================================= */
-            var statuses = @Html.Raw(statusesJson);
             var unitGroups = @Html.Raw(unitGroupsJson);
             var units = @Html.Raw(unitsJson);
             var gridUrl = '@Url.Action("Grid", "KriTemplates")';
@@ -284,6 +284,7 @@
                 var isGroup = $('#kriLinkType').val() === 'group';
                 payload.groupId = isGroup ? (+$('#kriGroup').val() || null) : null;
                 payload.unitId = !isGroup ? (+$('#kriUnit').val() || null) : null;
+                payload.kriStatus = $('#kriActive').is(':checked') ? 'Active' : 'Inactive';
                 return payload;
             }
 
@@ -320,7 +321,6 @@
             function validateHeaderPayload(payload, $form) {
                 if (!payload.groupId && !payload.unitId) { return RiskPulse.validationError($form.find('[name="groupId"], [name="unitId"]'), 'Please select a unit group or a unit.'); }
                 if (payload.groupId && payload.unitId) { return RiskPulse.validationError($form.find('[name="groupId"], [name="unitId"]'), 'Please select either a unit group or a unit, not both.'); }
-                if (!payload.kriStatus) { return RiskPulse.validationError($form.find('[name="kriStatus"]'), 'Please select a status.'); }
                 return true;
             }
 
@@ -333,7 +333,7 @@
 
             function validateFullPayload(payload, $form) {
                 if (!validateHeaderPayload(payload.header, $form)) return false;
-                if (currentKriId === 0 && !payload.kris.length) { return RiskPulse.validationError(null, 'At least one KRI is required.'); }
+                if (!payload.kris.length) { return RiskPulse.validationError(null, 'At least one KRI is required.'); }
                 for (var i = 0; i < payload.kris.length; i++) {
                     var k = payload.kris[i];
                     if (!$.trim(k.kriDesc)) { return RiskPulse.validationError(null, 'Indicator description is required.'); }
@@ -397,7 +397,6 @@
                 columns: [
                     { data: 'kriHeaderId' },
                     { data: 'kriCode' },
-                    { data: 'kriHeaderDesc' },
                     { data: 'groupDesc', render: function (d, type, row) { return RiskPulse.pill(d || row.unitDesc || ''); } },
                     { data: 'kriStatus', render: function (d) { return RiskPulse.statusPill(d); } },
                     { data: 'kriCount', render: function (d) { return RiskPulse.pill(d || 0); } },
@@ -419,7 +418,6 @@
             /* =================================================================
                SECTION 7 — EVENT WIRING & INIT
                ================================================================= */
-            RiskPulse.populateSelect($('#kriStatus'), statuses);
             $('#kriGroup').empty();
             RiskPulse.populateSelect($('#kriGroup'), unitGroups, '0', 'Select a unit group...');
             $('#kriUnit').empty();
@@ -433,6 +431,9 @@
                 else { $('#kriGroup').val(0).trigger('change'); }
             }
             $('#kriLinkType').on('change', toggleKriLinkType);
+            $('#kriActive').on('change', function () {
+                $('#kriTemplateStatusPill').html(RiskPulse.statusPill($(this).is(':checked') ? 'Active' : 'Inactive'));
+            });
 
             function resetHeaderFields() {
                 $('#kriHeaderId').val(0);
@@ -442,7 +443,7 @@
                 $('#kriLinkType').val('group').trigger('change');
                 $('#kriGroup').val(0).trigger('change');
                 $('#kriUnit').val(0).trigger('change');
-                $('#kriStatus').val('Active').trigger('change');
+                $('#kriActive').prop('checked', true);
                 RiskPulse.clearFieldErrors($('#kriTemplateForm'));
             }
 
@@ -479,7 +480,7 @@
                     $('#kriUnit').val(row.unitId).trigger('change');
                     $('#kriGroup').val(0).trigger('change');
                 }
-                $('#kriStatus').val(row.kriStatus).trigger('change');
+                $('#kriActive').prop('checked', row.kriStatus === 'Active');
                 RiskPulse.clearFieldErrors($('#kriTemplateForm'));
 
                 $('#kriTemplateModalLabel').text('Edit KRI Template');

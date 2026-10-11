@@ -12,7 +12,7 @@ namespace RiskPulse.Models.Dto
         public int? UnitId { get; set; }
 
         [StringLength(200, ErrorMessage = "Template description cannot exceed 200 characters.")]
-        public string KriHeaderDesc { get; set; } = string.Empty;
+        public string? KriHeaderDesc { get; set; }
 
         public KriStatus KriStatus { get; set; }
     }

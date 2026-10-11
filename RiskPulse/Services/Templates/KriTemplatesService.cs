@@ -44,10 +44,6 @@ public class KriTemplatesService
     {
         var headerDto = model.Header;
         var desc = headerDto.KriHeaderDesc?.Trim() ?? string.Empty;
-        if (string.IsNullOrWhiteSpace(desc))
-        {
-            throw new InvalidOperationException("Template description is required.");
-        }
 
         var hasGroup = headerDto.GroupId.HasValue && headerDto.GroupId.Value > 0;
         var hasUnit = headerDto.UnitId.HasValue && headerDto.UnitId.Value > 0;
@@ -77,13 +73,13 @@ public class KriTemplatesService
         // --- Validate the KRI set (final-state semantics) before mutating anything ---
         var kris = NormalizeKris(model.Kris);
 
+        if (kris.Count == 0)
+        {
+            throw new InvalidOperationException("At least one KRI is required.");
+        }
+
         if (headerDto.KriHeaderId == 0)
         {
-            if (kris.Count == 0)
-            {
-                throw new InvalidOperationException("At least one KRI is required.");
-            }
-
             var code = await _codeService.GenerateKriCodeAsync();
 
             var header = new KriHeader

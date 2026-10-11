@@ -24,14 +24,11 @@ public class SaqTemplatesController : Controller
     [HttpGet]
     public async Task<IActionResult> Index()
     {
-        var statuses = SaqStatusOptionViewModel.GetAll();
-
         var unitGroups = await _unitsService.GetUnitGroupOptionsAsync();
         var units = await _unitsService.GetUnitOptionsAsync();
 
         return View(new SaqTemplatesIndexViewModel
         {
-            SaqStatuses = statuses,
             UnitGroups = unitGroups,
             Units = units
         });

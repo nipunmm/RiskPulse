@@ -2,7 +2,6 @@
 @{
     ViewData["Title"] = "SAQ Templates";
 
-    var statusesJson = Json.Serialize(Model.SaqStatuses);
     var unitGroupsJson = Json.Serialize(Model.UnitGroups);
     var unitsJson = Json.Serialize(Model.Units);
 }
@@ -30,7 +29,6 @@
             <tr>
                 <th>ID</th>
                 <th>Code</th>
-                <th>Description</th>
                 <th>Assigned To</th>
                 <th>Status</th>
                 <th>Questions</th>
@@ -60,14 +58,6 @@
                     <!-- HEADER FIELDS -->
                     <div class="p-3 border-bottom" id="saqHeaderFields">
                         <div class="row g-3">
-                            <div class="col-md-8">
-                                <label class="rp-label" for="saqDesc">Description</label>
-                                <input type="text" id="saqDesc" name="saqDesc" class="rp-input" autocomplete="off" />
-                            </div>
-                            <div class="col-md-4 d-none" id="saqCodeCol">
-                                <label class="rp-label" for="saqCode">Code</label>
-                                <input type="text" id="saqCode" name="saqCode" class="rp-input" readonly />
-                            </div>
                             <div class="col-md-4">
                                 <label class="rp-label" for="saqLinkType">Link Type</label>
                                 <select id="saqLinkType" class="rp-input">
@@ -83,9 +73,20 @@
                                 <label class="rp-label" for="saqUnit">Unit</label>
                                 <select id="saqUnit" name="unitId" class="rp-input"></select>
                             </div>
+                            <div class="col-md-4 d-none" id="saqCodeCol">
+                                <label class="rp-label" for="saqCode">Code</label>
+                                <input type="text" id="saqCode" name="saqCode" class="rp-input" readonly />
+                            </div>
                             <div class="col-md-4">
-                                <label class="rp-label" for="saqStatus">Status</label>
-                                <select id="saqStatus" name="saqStatus" class="rp-input"></select>
+                                <label class="rp-label" for="saqActive">Status</label>
+                                <div class="form-check d-flex align-items-center gap-2" style="min-height: 36px;">
+                                    <input class="form-check-input m-0" type="checkbox" id="saqActive" />
+                                    <label class="form-check-label" for="saqActive">Active</label>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <label class="rp-label" for="saqDesc">Description <span class="text-muted fw-normal">(optional)</span></label>
+                                <input type="text" id="saqDesc" name="saqDesc" class="rp-input" autocomplete="off" />
                             </div>
                         </div>
                     </div>
@@ -170,7 +171,6 @@
             /* =================================================================
                SECTION 1 — PAGE DATA & ENDPOINTS
                ================================================================= */
-            var statuses = @Html.Raw(statusesJson);
             var unitGroups = @Html.Raw(unitGroupsJson);
             var units = @Html.Raw(unitsJson);
             var gridUrl = '@Url.Action("Grid", "SaqTemplates")';
@@ -310,6 +310,7 @@
                 var isGroup = $('#saqLinkType').val() === 'group';
                 payload.groupId = isGroup ? (+$('#saqGroup').val() || null) : null;
                 payload.unitId = !isGroup ? (+$('#saqUnit').val() || null) : null;
+                payload.saqStatus = $('#saqActive').is(':checked') ? 'Active' : 'Inactive';
                 return payload;
             }
 
@@ -354,7 +355,6 @@
             function validateHeaderPayload(payload, $form) {
                 if (!payload.groupId && !payload.unitId) { return RiskPulse.validationError($form.find('[name="groupId"], [name="unitId"]'), 'Please select a unit group or a unit.'); }
                 if (payload.groupId && payload.unitId) { return RiskPulse.validationError($form.find('[name="groupId"], [name="unitId"]'), 'Please select either a unit group or a unit, not both.'); }
-                if (!payload.saqStatus) { return RiskPulse.validationError($form.find('[name="saqStatus"]'), 'Please select a status.'); }
                 return true;
             }
 
@@ -374,7 +374,7 @@
 
             function validateFullPayload(payload, $form) {
                 if (!validateHeaderPayload(payload.header, $form)) return false;
-                if (currentSaqId === 0 && !payload.questions.length) { return RiskPulse.validationError(null, 'At least one question is required.'); }
+                if (!payload.questions.length) { return RiskPulse.validationError(null, 'At least one question is required.'); }
                 for (var i = 0; i < payload.questions.length; i++) {
                     var q = payload.questions[i];
                     if (!$.trim(q.questionText)) { return RiskPulse.validationError(null, 'Question text is required.'); }
@@ -445,7 +445,6 @@
                 columns: [
                     { data: 'saqHeaderId' },
                     { data: 'saqCode' },
-                    { data: 'saqDesc' },
                     { data: 'groupDesc', render: function (d, type, row) { return RiskPulse.pill(d || row.unitDesc || ''); } },
                     { data: 'saqStatus', render: function (d) { return RiskPulse.statusPill(d); } },
                     { data: 'questionCount', render: function (d) { return RiskPulse.pill(d || 0); } },
@@ -467,7 +466,6 @@
             /* =================================================================
                SECTION 7 — EVENT WIRING & INIT
                ================================================================= */
-            RiskPulse.populateSelect($('#saqStatus'), statuses);
             $('#saqGroup').empty();
             RiskPulse.populateSelect($('#saqGroup'), unitGroups, '0', 'Select a unit group...');
             $('#saqUnit').empty();
@@ -481,6 +479,9 @@
                 else { $('#saqGroup').val(0).trigger('change'); }
             }
             $('#saqLinkType').on('change', toggleSaqLinkType);
+            $('#saqActive').on('change', function () {
+                $('#saqTemplateStatusPill').html(RiskPulse.statusPill($(this).is(':checked') ? 'Active' : 'Inactive'));
+            });
 
             function resetHeaderFields() {
                 $('#saqHeaderId').val(0);
@@ -490,7 +491,7 @@
                 $('#saqLinkType').val('group').trigger('change');
                 $('#saqGroup').val(0).trigger('change');
                 $('#saqUnit').val(0).trigger('change');
-                $('#saqStatus').val('Active').trigger('change');
+                $('#saqActive').prop('checked', true);
                 RiskPulse.clearFieldErrors($('#saqTemplateForm'));
             }
 
@@ -527,7 +528,7 @@
                     $('#saqUnit').val(row.unitId).trigger('change');
                     $('#saqGroup').val(0).trigger('change');
                 }
-                $('#saqStatus').val(row.saqStatus).trigger('change');
+                $('#saqActive').prop('checked', row.saqStatus === 'Active');
                 RiskPulse.clearFieldErrors($('#saqTemplateForm'));
 
                 $('#saqTemplateModalLabel').text('Edit SAQ Template');

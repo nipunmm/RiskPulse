@@ -44,10 +44,6 @@ public class SaqTemplatesService
     {
         var headerDto = model.Header;
         var desc = headerDto.SaqDesc?.Trim() ?? string.Empty;
-        if (string.IsNullOrWhiteSpace(desc))
-        {
-            throw new InvalidOperationException("Template description is required.");
-        }
 
         var hasGroup = headerDto.GroupId.HasValue && headerDto.GroupId.Value > 0;
         var hasUnit = headerDto.UnitId.HasValue && headerDto.UnitId.Value > 0;
@@ -77,13 +73,13 @@ public class SaqTemplatesService
         // --- Validate the question set (final-state semantics) before mutating anything ---
         var questions = NormalizeQuestions(model.Questions);
 
+        if (questions.Count == 0)
+        {
+            throw new InvalidOperationException("At least one question is required.");
+        }
+
         if (headerDto.SaqHeaderId == 0)
         {
-            if (questions.Count == 0)
-            {
-                throw new InvalidOperationException("At least one question is required.");
-            }
-
             var code = await _codeService.GenerateSaqCodeAsync();
 
             var header = new SaqHeader

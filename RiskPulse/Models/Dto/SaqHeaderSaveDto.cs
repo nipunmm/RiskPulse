@@ -12,7 +12,7 @@ namespace RiskPulse.Models.Dto
         public int? UnitId { get; set; }
 
         [StringLength(200, ErrorMessage = "Template description cannot exceed 200 characters.")]
-        public string SaqDesc { get; set; } = string.Empty;
+        public string? SaqDesc { get; set; }
 
         public SaqStatus SaqStatus { get; set; }
     }
