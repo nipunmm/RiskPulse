@@ -8,6 +8,6 @@ namespace RiskPulse.Models.ViewModel
 
         public string? Code { get; set; }
 
-        public string? Kind { get; set; }
+        public string? Type { get; set; }
     }
 }

@@ -158,6 +158,8 @@ window.RiskPulse = (function ($, Swal) {
 
     // Shared result/selection renderer: hex data-color -> swatch square,
     // data-kind -> pill chip (statusPill palette), plain text otherwise.
+    // Markup must be returned as a jQuery object — select2 runs strings
+    // through escapeMarkup, so any HTML string would render as literal text.
     function renderSelect2Option(state) {
         if (!state.id) return state.text;
         var $el = $(state.element);
@@ -169,7 +171,7 @@ window.RiskPulse = (function ($, Swal) {
                 document.createTextNode(state.text)
             );
         }
-        if (kind) return pill(state.text, kind);
+        if (kind) return $(pill(state.text, kind));
         return state.text;
     }
 

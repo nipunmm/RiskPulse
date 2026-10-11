@@ -457,7 +457,7 @@
                     return '<label class="rp-unit-option">' +
                         '<input type="checkbox" class="rp-unit-check" value="' + u.value + '" />' +
                         '<span class="rp-unit-option-name">' + RiskPulse.escapeHtml(u.label) + '</span>' +
-                        RiskPulse.pill(u.kind || 'Unit', unitTypeKind(u.kind)) +
+                        RiskPulse.pill(u.type || 'Unit', unitTypeKind(u.type)) +
                     '</label>';
                 }).join(''));
 

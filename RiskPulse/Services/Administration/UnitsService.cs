@@ -127,7 +127,7 @@ public class UnitsService
             {
                 Value = u.UnitId,
                 Label = u.UnitDesc,
-                Kind = u.UnitType.ToString()
+                Type = u.UnitType.ToString()
             })
             .ToListAsync();
     }
