@@ -7,6 +7,7 @@ namespace RiskPulse.Services.Login
             {
                 { PermissionCatalog.Dashboard, ("Dashboard", "Index") },
                 { PermissionCatalog.Submissions, ("Submissions", "Index") },
+                { PermissionCatalog.Monitoring, ("Monitor", "Index") },
                 { PermissionCatalog.Assessment, ("Assessment", "Activation") },
                 { PermissionCatalog.Users, ("Users", "Index") },
                 { PermissionCatalog.Roles, ("Roles", "Index") },

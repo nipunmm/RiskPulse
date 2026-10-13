@@ -58,6 +58,7 @@ Services  (concrete classes, Scoped DI, talk to AppDbContext directly)
   ├─ Templates:    SaqTemplatesService, KriTemplatesService, AssessmentTemplatesService
   ├─ Assessment:   AssessmentActivationService, AssessmentService, SubmissionsService
   ├─ Dashboard:    DashboardService
+  ├─ Monitoring:   MonitorService
   └─ Utilities:    CodeGeneratorService
   │
 Data  AppDbContext (EF Core 10) → PostgreSQL, schema `riskpulse`
@@ -65,9 +66,9 @@ Data  AppDbContext (EF Core 10) → PostgreSQL, schema `riskpulse`
 
 **Key architectural facts (verified in code):**
 
-- Registration/DI and the full request pipeline live in `Program.cs:13-86`. The 13 services are registered at `Program.cs:26-38`.
+- Registration/DI and the full request pipeline live in `Program.cs:13-86`. The 14 services are registered at `Program.cs:26-39`.
 - Cookie authentication (20-min sliding expiry, HttpOnly) with permission claims; login flow in `Services/Login/LoginOrchestratorService.cs`.
-- Authorisation is policy-per-permission: `Permission:<name>` policies (`Program.cs:49-60`) driven by `PermissionCatalog` (`Services/Login/PermissionCatalog.cs`); page routing by `PermissionPageMapper` (`Services/Login/PermissionPageMapper.cs`).
+- Authorisation is policy-per-permission: `Permission:<name>` policies (`Program.cs:49-61`) driven by `PermissionCatalog` (`Services/Login/PermissionCatalog.cs`); page routing by `PermissionPageMapper` (`Services/Login/PermissionPageMapper.cs`).
 - Enums persisted as `varchar(32)` via `HasConversion<string>()` in `Data/AppDbContext.cs`.
 - JSON contract: inbound `Models/Dto/*`, outbound `Models/ViewModel/*`, shared `ApiResponse<T>` envelope; `JsonStringEnumConverter` enabled (`Program.cs:20-25`).
 - No repository/unit-of-work layer, no service interfaces, no AutoMapper — services are concrete and use `AppDbContext` directly. **PENDING.**
@@ -122,6 +123,7 @@ Legend: ✅ implemented · 🟡 partial/stub · ❌ pending
 | 5.5 | Assessment Activation (grid + modal → snapshot assessment) | ✅ (one-time) | `AssessmentController.cs`, `Services/Assessment/AssessmentActivationService.cs`, `Views/Assessment/Activation.cshtml` |
 | 5.6 | Submissions (fill → review → approve; card board) | ✅ | `SubmissionsController.cs`, `Services/Assessment/SubmissionsService.cs`, `Views/Submissions/*` |
 | 5.7 | Dashboard | ✅ | `DashboardController.cs`, `Services/Dashboard/DashboardService.cs`, `Views/Dashboard/Index.cshtml` |
+| 5.7.1 | Monitoring (cross-unit status matrix) | ✅ | `MonitorController.cs`, `Services/Monitoring/MonitorService.cs`, `Views/Monitor/Index.cshtml` |
 | 5.8 | Risk Register Templates | 🟡 stub | `RiskRegisterTemplatesController.cs`, `Views/RiskRegisterTemplates/Index.cshtml` |
 | 5.9 | Loss Event Report (RCA/RIA) | ❌ | — |
 | 5.10 | Excel export / reporting | ❌ | — |
@@ -205,6 +207,16 @@ Files: `SubmissionsController.cs`, `Services/Assessment/SubmissionsService.cs`, 
 - Fully **server-rendered** (no DataTables): hero KPIs, status distribution (from workflow steps), KRI RAG snapshot (latest period), "needs attention" list, period-history cards. View models: `DashboardViewModel`, `DashboardKpiViewModel`, `DashboardStatusSliceViewModel`, `DashboardAttentionRowViewModel`, `KriSnapshotViewModel`, `PeriodHistoryRowViewModel`.
 - `Views/Dashboard/Index.cshtml` uses the standard top-nav shell.
 - **PENDING:** BRD "role-based dashboards for different profiles" is only partially differentiated (server-rendered scope, no distinct Risk-Department vs Branch dashboard layouts).
+
+### 5.7.1 Monitoring (cross-unit status matrix) — ✅
+Files: `MonitorController.cs`, `Services/Monitoring/MonitorService.cs`, `Views/Monitor/Index.cshtml`.
+- Reached at `/Monitor`, listed under the nav **Assessment** dropdown (gated by the `Monitoring` permission); **Risk Department (Reviewer/Approver) + Administrator only** — branches never see other units.
+- Fully **server-rendered** cross-unit matrix (`MonitorService.GetMonitorAsync`): **rows = units** (grouped Branches then Departments, sticky first column), **columns = assessments** (newest period first, capped to the latest 12 with an assessment filter to focus one), **cells = that unit's `AssessmentUnit` status** as a colour-coded pill (`rp-pill-{kind}` from the unit workflow step) with a hover tooltip (`StepLabel` + `submitted/total`) and an overdue marker (`PeriodEnd < now` and not `FinalApproved`).
+- Clicking a cell opens the existing `/Submissions/Detail/{assessmentUnitId}`; the page is read-only (all workflow actions stay in Submissions).
+- Summary KPIs (units, completed, in progress, not started, overdue), a status legend/slice row (from the `ASSESSMENT-UNIT` workflow steps), a footer row of completed/target units per assessment, and `Unit type` + `Assessment` filters applied via GET query params (`assessmentHeaderId`, `unitType`).
+- View models: `MonitorIndexViewModel`, `MonitorAssessmentColumnViewModel`, `MonitorUnitRowViewModel`, `MonitorCellViewModel`, `MonitorSummaryViewModel`, `MonitorStatusSliceViewModel`.
+- **PENDING:** server-side processing / column virtualisation if assessment history grows large; matrix is limited to the newest 12 assessments by default.
+
 
 ### 5.8 Risk Register Templates — 🟡 stub
 - `RiskRegisterTemplatesController.Index` returns a placeholder view (`RiskRegisterTemplatesController.cs:10`); `Views/RiskRegisterTemplates/Index.cshtml` renders a hero + note only.

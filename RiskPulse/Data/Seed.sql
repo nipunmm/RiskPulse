@@ -23,7 +23,7 @@ ALTER TABLE "riskpulse"."AssessmentUnits"
     ADD COLUMN IF NOT EXISTS "FinalApproverRemarks" text;
 
 -- -----------------------------------------------------------------------------
--- 2. BASE PERMISSIONS (10 Core Permissions)
+-- 2. BASE PERMISSIONS (11 Core Permissions)
 -- -----------------------------------------------------------------------------
 INSERT INTO "riskpulse"."Permissions" ("PermissionId", "PermissionDesc") VALUES
     (1, 'Dashboard'),
@@ -35,7 +35,8 @@ INSERT INTO "riskpulse"."Permissions" ("PermissionId", "PermissionDesc") VALUES
     (7, 'SAQ'),
     (8, 'KRI'),
     (9, 'Risk Register'),
-    (10, 'Assessment Templates')
+    (10, 'Assessment Templates'),
+    (11, 'Monitoring')
 ON CONFLICT ("PermissionId") DO UPDATE 
     SET "PermissionDesc" = EXCLUDED."PermissionDesc";
 
@@ -64,11 +65,11 @@ SELECT setval(pg_get_serial_sequence('"riskpulse"."Roles"', 'RoleId'), (SELECT M
 DELETE FROM "riskpulse"."RolePermissions" WHERE "RoleId" IN (1, 2, 3, 4, 5);
 
 INSERT INTO "riskpulse"."RolePermissions" ("RoleId", "PermissionId") VALUES
-    (1, 1), (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7), (1, 8), (1, 9), (1, 10),
+    (1, 1), (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7), (1, 8), (1, 9), (1, 10), (1, 11),
     (2, 1), (2, 2),
     (3, 1), (3, 2),
-    (4, 1), (4, 2), (4, 3), (4, 6), (4, 7), (4, 8), (4, 10),
-    (5, 1), (5, 2), (5, 3), (5, 6), (5, 7), (5, 8), (5, 10);
+    (4, 1), (4, 2), (4, 3), (4, 6), (4, 7), (4, 8), (4, 10), (4, 11),
+    (5, 1), (5, 2), (5, 3), (5, 6), (5, 7), (5, 8), (5, 10), (5, 11);
 
 -- -----------------------------------------------------------------------------
 -- 5. UNITS (Head Office, Branches)

@@ -55,7 +55,9 @@
                 var isTemplatesActive = currentCtrl == "SaqTemplates" || currentCtrl == "KriTemplates"
                     || currentCtrl == "AssessmentTemplates" || currentCtrl == "RiskRegisterTemplates";
                 var canViewAssessment = User.HasClaim("Permission", PermissionCatalog.Assessment);
-                var isAssessmentActive = currentCtrl == "Assessment";
+                var isAssessmentActive = currentCtrl == "Assessment" || currentCtrl == "Monitor";
+                var canViewMonitor = User.HasClaim("Permission", PermissionCatalog.Monitoring);
+                var isMonitorActive = currentCtrl == "Monitor";
             }
 
             <div class="rp-nav" id="rpNav">
@@ -75,7 +77,7 @@
                     </a>
                 }
 
-                @if (canViewAssessment)
+                @if (canViewAssessment || canViewMonitor)
                 {
                     <div class="dropdown">
                         <button type="button" class="rp-nav-link dropdown-toggle @(isAssessmentActive ? "active" : "")"
@@ -84,12 +86,24 @@
                         </button>
                         <ul class="dropdown-menu rp-nav-menu">
                             <li class="dropdown-header">Assessment</li>
-                            <li>
-                                <a asp-controller="Assessment" asp-action="Activation"
-                                   class="dropdown-item @(isAssessmentActive ? "active" : "")">
-                                    <i class="fas fa-bolt"></i><span>Assessment Activation</span>
-                                </a>
-                            </li>
+                            @if (canViewAssessment)
+                            {
+                                <li>
+                                    <a asp-controller="Assessment" asp-action="Activation"
+                                       class="dropdown-item @(currentCtrl == "Assessment" ? "active" : "")">
+                                        <i class="fas fa-bolt"></i><span>Assessment Activation</span>
+                                    </a>
+                                </li>
+                            }
+                            @if (canViewMonitor)
+                            {
+                                <li>
+                                    <a asp-controller="Monitor" asp-action="Index"
+                                       class="dropdown-item @(currentCtrl == "Monitor" ? "active" : "")">
+                                        <i class="fas fa-magnifying-glass-chart"></i><span>Monitoring</span>
+                                    </a>
+                                </li>
+                            }
                         </ul>
                     </div>
                 }

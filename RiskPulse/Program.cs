@@ -6,6 +6,7 @@ using RiskPulse.Services.Administration;
 using RiskPulse.Services.Assessment;
 using RiskPulse.Services.Dashboard;
 using RiskPulse.Services.Login;
+using RiskPulse.Services.Monitoring;
 using RiskPulse.Services.Templates;
 using RiskPulse.Services.Utilities;
 
@@ -35,6 +36,7 @@ builder.Services.AddScoped<AssessmentActivationService>();
 builder.Services.AddScoped<AssessmentService>();
 builder.Services.AddScoped<SubmissionsService>();
 builder.Services.AddScoped<DashboardService>();
+builder.Services.AddScoped<MonitorService>();
 builder.Services.AddScoped<CodeGeneratorService>();
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
@@ -50,6 +52,7 @@ builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy($"Permission:{PermissionCatalog.Dashboard}", policy => policy.RequireClaim("Permission", PermissionCatalog.Dashboard));
     options.AddPolicy($"Permission:{PermissionCatalog.Submissions}", policy => policy.RequireClaim("Permission", PermissionCatalog.Submissions));
+    options.AddPolicy($"Permission:{PermissionCatalog.Monitoring}", policy => policy.RequireClaim("Permission", PermissionCatalog.Monitoring));
     options.AddPolicy($"Permission:{PermissionCatalog.Assessment}", policy => policy.RequireClaim("Permission", PermissionCatalog.Assessment));
     options.AddPolicy($"Permission:{PermissionCatalog.Roles}", policy => policy.RequireClaim("Permission", PermissionCatalog.Roles));
     options.AddPolicy($"Permission:{PermissionCatalog.Users}", policy => policy.RequireClaim("Permission", PermissionCatalog.Users));

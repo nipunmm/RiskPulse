@@ -1,0 +1,205 @@
+@using RiskPulse.Models.Enum
+@model RiskPulse.Models.ViewModel.MonitorIndexViewModel
+@{
+    ViewData["Title"] = "Monitor";
+
+    string CellShort(string stepCode) => stepCode switch
+    {
+        "Pending" => "New",
+        "InProgress" => "WIP",
+        "UnitApproved" => "Unit",
+        "RiskReviewed" => "Risk",
+        "FinalApproved" => "Done",
+        "Returned" => "Rtn",
+        _ => stepCode
+    };
+
+    var groups = Model.Units
+        .GroupBy(u => u.UnitType)
+        .Select(g => new { Type = g.Key, Units = g.ToList() })
+        .ToList();
+
+    var kpis = new[]
+    {
+        (Label: "Units", Value: Model.Summary.UnitCount, Icon: "fa-building", Kind: "neutral", Sub: $"{Model.Summary.AssessmentCount} assessments"),
+        (Label: "Completed", Value: Model.Summary.CompletedCount, Icon: "fa-circle-check", Kind: "success", Sub: $"{Model.Summary.TargetCount} targets"),
+        (Label: "In progress", Value: Model.Summary.InProgressCount, Icon: "fa-spinner", Kind: "warning", Sub: "awaiting action"),
+        (Label: "Not started", Value: Model.Summary.NotStartedCount, Icon: "fa-hourglass-start", Kind: "neutral", Sub: "pending entry"),
+        (Label: "Overdue", Value: Model.Summary.OverdueCount, Icon: "fa-triangle-exclamation", Kind: "danger", Sub: "past period end")
+    };
+}
+
+<header class="rp-hero rp-hero--teal">
+    <h1 class="rp-display-lg">Monitor</h1>
+    <p class="rp-hero-sub">
+        Cross-unit status of every assessment — see which branch or department has completed each reporting cycle at a glance.
+    </p>
+</header>
+
+@if (!string.IsNullOrEmpty(Model.LoadError))
+{
+    <div class="alert alert-warning" role="alert">
+        <i class="fas fa-triangle-exclamation me-2"></i>@Model.LoadError
+    </div>
+}
+
+@* ====== SECTION 1 — Summary KPIs ====== *@
+<div class="row g-2 mb-2">
+    @foreach (var kpi in kpis)
+    {
+        <div class="col-6 col-md-4 col-xl">
+            <div class="rp-card p-3 h-100">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <p class="rp-label-md mb-0 rp-text-muted">@kpi.Label</p>
+                    <i class="fas @kpi.Icon rp-text-muted"></i>
+                </div>
+                <p class="rp-stat-value mb-1">@kpi.Value</p>
+                <p class="mb-0"><span class="rp-pill rp-pill-@kpi.Kind">@kpi.Sub</span></p>
+            </div>
+        </div>
+    }
+</div>
+
+@* ====== SECTION 2 — Filters + legend ====== *@
+<div class="rp-card p-2 mb-2">
+    <form method="get" asp-controller="Monitor" asp-action="Index" class="rp-monitor-filter">
+        <div class="rp-monitor-filter-fields">
+            <div class="rp-monitor-field">
+                <label class="rp-label-md rp-text-muted" for="monitorAssessmentFilter">Assessment</label>
+                <select id="monitorAssessmentFilter" name="assessmentHeaderId" class="rp-input">
+                    <option value="">All assessments</option>
+                    @foreach (var option in Model.AssessmentOptions)
+                    {
+                        <option value="@option.Value" selected="@(Model.AssessmentHeaderId == option.Value)">@option.Code · @option.Label</option>
+                    }
+                </select>
+            </div>
+            <div class="rp-monitor-field">
+                <label class="rp-label-md rp-text-muted" for="monitorUnitTypeFilter">Unit type</label>
+                <select id="monitorUnitTypeFilter" name="unitType" class="rp-input">
+                    <option value="">All units</option>
+                    <option value="Branch" selected="@(Model.UnitType == UnitType.Branch)">Branches</option>
+                    <option value="Department" selected="@(Model.UnitType == UnitType.Department)">Departments</option>
+                </select>
+            </div>
+            <div class="rp-monitor-field rp-monitor-field-btn">
+                <button type="submit" class="rp-btn rp-btn-secondary"><i class="fas fa-filter"></i> Filter</button>
+            </div>
+        </div>
+    </form>
+
+    @if (Model.Slices.Any())
+    {
+        <div class="rp-monitor-legend">
+            @foreach (var slice in Model.Slices)
+            {
+                <span class="rp-pill rp-pill-@slice.PillKind">@slice.Count · @slice.StepLabel</span>
+            }
+        </div>
+    }
+</div>
+
+@* ====== SECTION 3 — Matrix ====== *@
+<div class="rp-card p-2 mb-2">
+    <p class="rp-body-sm rp-text-muted px-1 pt-1 mb-2">
+        Each cell is a branch or department's status for that assessment; click a cell to open its submission.
+    </p>
+
+    @if (Model.Units.Any() && Model.Assessments.Any())
+    {
+        <div class="table-responsive">
+            <table class="table rp-table rp-monitor-table w-100 align-middle">
+                <thead>
+                    <tr>
+                        <th class="rp-monitor-sticky">Unit</th>
+                        @foreach (var column in Model.Assessments)
+                        {
+                            <th class="text-center">
+                                <span class="rp-monitor-col-code">@column.AssessmentCode</span>
+                                <span class="rp-monitor-col-period">@(column.PeriodStart?.ToString("dd MMM yy")) &rarr; @(column.PeriodEnd?.ToString("dd MMM yy"))</span>
+                            </th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var group in groups)
+                    {
+                        <tr class="rp-monitor-group">
+                            <td colspan="@(Model.Assessments.Count + 1)">
+                                @(group.Type == UnitType.Branch ? "Branches" : "Departments")
+                                <span class="rp-monitor-group-count">@group.Units.Count</span>
+                            </td>
+                        </tr>
+
+                        @foreach (var row in group.Units)
+                        {
+                            <tr>
+                                <td class="rp-monitor-sticky">
+                                    <span class="rp-monitor-unit-code">@row.UnitCode</span>
+                                    <span class="rp-monitor-unit-desc">@row.UnitDesc</span>
+                                </td>
+                                @for (var i = 0; i < Model.Assessments.Count; i++)
+                                {
+                                    var cell = i < row.Cells.Count ? row.Cells[i] : null;
+                                    if (cell == null)
+                                    {
+                                        <td class="text-center rp-monitor-empty" title="Not targeted">—</td>
+                                    }
+                                    else
+                                    {
+                                        <td class="text-center">
+                                            <a href="@Url.Action("Detail", "Submissions", new { id = cell.AssessmentUnitId })"
+                                               class="rp-monitor-cell"
+                                               title="@cell.StatusLabel — @cell.SubmittedCount of @cell.ItemCount items@(cell.IsOverdue ? " (overdue)" : "")">
+                                                <span class="rp-pill rp-pill-@cell.StatusKind">@CellShort(cell.StepCode)</span>
+                                                <span class="rp-monitor-progress">@cell.SubmittedCount/@cell.ItemCount</span>
+                                                @if (cell.IsOverdue)
+                                                {
+                                                    <span class="rp-monitor-overdue"><i class="fas fa-clock"></i> overdue</span>
+                                                }
+                                            </a>
+                                        </td>
+                                    }
+                                }
+                            </tr>
+                        }
+                    }
+                </tbody>
+                <tfoot>
+                    <tr class="rp-monitor-foot">
+                        <th class="rp-monitor-sticky">Completed</th>
+                        @foreach (var column in Model.Assessments)
+                        {
+                            <th class="text-center">@column.CompletedCount / @column.UnitCount</th>
+                        }
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    }
+    else
+    {
+        <div class="rp-empty-state">
+            <i class="fas fa-magnifying-glass-chart rp-empty-state-icon"></i>
+            <p class="rp-body-md mb-0">No assessments to monitor yet.</p>
+        </div>
+    }
+
+    @if (Model.Truncated)
+    {
+        <p class="rp-body-xs rp-text-muted mt-2 mb-0 px-1">
+            <i class="fas fa-circle-info me-1"></i>Showing the @Model.Assessments.Count most recent assessments. Choose one in the filter above to focus a single period.
+        </p>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            // ====== SECTION 1 — Auto-apply filters ======
+            $('.rp-monitor-filter select').on('change', function () {
+                $(this).closest('form').trigger('submit');
+            });
+        })();
+    </script>
+}

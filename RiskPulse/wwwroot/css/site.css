@@ -1241,6 +1241,50 @@ select.rp-input {
 .rp-table td .rp-body-xs { display: block; }
 .rp-table td.num, .rp-table th.num { text-align: right; font-variant-numeric: tabular-nums lining-nums; }
 
+/* --- Monitoring matrix (units x assessments status heatmap) --- */
+.rp-monitor-filter-fields { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0.75rem; padding: 0.35rem 0.25rem 0.5rem; }
+.rp-monitor-field { display: flex; flex-direction: column; gap: 0.25rem; min-width: 15rem; }
+.rp-monitor-field-btn { min-width: 0; }
+.rp-monitor-filter select.rp-input { min-width: 15rem; }
+.rp-monitor-legend { display: flex; flex-wrap: wrap; gap: 0.5rem; padding: 0.35rem 0.25rem; border-top: 1px solid var(--border); }
+.rp-monitor-table { border-collapse: separate; border-spacing: 0; }
+.rp-monitor-table th, .rp-monitor-table td { white-space: nowrap; }
+.rp-monitor-table thead th { text-align: center; }
+.rp-monitor-table td.rp-monitor-sticky, .rp-monitor-table th.rp-monitor-sticky {
+  position: sticky;
+  left: 0;
+  z-index: 6;
+  background: var(--surface);
+  font-family: var(--font-sans);
+  text-align: left;
+  box-shadow: 1px 0 0 var(--border);
+}
+.rp-monitor-table thead th.rp-monitor-sticky { z-index: 12; background: var(--surface-soft); }
+.rp-monitor-table tfoot th.rp-monitor-sticky { background: var(--surface-soft); }
+.rp-monitor-table tbody tr:hover td.rp-monitor-sticky { background: var(--steel-wash); }
+.rp-monitor-col-code { display: block; font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-2); }
+.rp-monitor-col-period { display: block; font-weight: 600; font-size: 0.66rem; letter-spacing: 0; text-transform: none; color: var(--text-muted); }
+.rp-monitor-group td {
+  background: var(--surface-soft-2);
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-2);
+}
+.rp-monitor-group-count { margin-left: 0.4rem; color: var(--text-muted); font-weight: 600; }
+.rp-monitor-unit-code { display: block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--text-muted); }
+.rp-monitor-unit-desc { display: block; font-size: 0.82rem; font-weight: 600; color: var(--ink); }
+.rp-monitor-cell { display: inline-flex; flex-direction: column; align-items: center; gap: 2px; text-decoration: none; }
+.rp-monitor-cell:hover { text-decoration: none; }
+.rp-monitor-cell .rp-pill { min-width: 3.1rem; justify-content: center; }
+.rp-monitor-cell:hover .rp-pill { outline: 2px solid var(--focus); outline-offset: 1px; }
+.rp-monitor-progress { font-size: 0.66rem; color: var(--text-muted); font-variant-numeric: tabular-nums lining-nums; }
+.rp-monitor-empty { color: var(--text-disabled); }
+.rp-monitor-overdue { font-size: 0.6rem; font-weight: 700; color: var(--error); }
+
+
 /* Frame: clipped 16px radius wrapper (wrap every table) */
 .rp-table-wrap {
   border: 1px solid var(--border);
