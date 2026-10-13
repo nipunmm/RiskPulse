@@ -3,16 +3,16 @@ using RiskPulse.Models.Enum;
 
 namespace RiskPulse.Data.Entries
 {
-    public class Schedule
+    public class AssessmentActivation
     {
         [Key]
-        public int ScheduleId { get; set; }
+        public int AssessmentActivationId { get; set; }
 
-        public string ScheduleCode { get; set; } = string.Empty;
+        public string ActivationCode { get; set; } = string.Empty;
 
-        public ScheduleStatus ScheduleStatus { get; set; }
+        public AssessmentActivationStatus ActivationStatus { get; set; }
 
-        public ScheduleType ScheduleType { get; set; }
+        public AssessmentType AssessmentType { get; set; }
 
         public DateTime? StartDate { get; set; }
 
@@ -22,7 +22,9 @@ namespace RiskPulse.Data.Entries
 
         public int? RecurringDay { get; set; }
 
-        public ICollection<ScheduleItem> ScheduleItems { get; set; } = new List<ScheduleItem>();
+        public int? AssessmentTemplateId { get; set; }
+
+        public AssessmentTemplate? AssessmentTemplate { get; set; }
 
         public ICollection<AssessmentHeader> AssessmentHeaders { get; set; } = new List<AssessmentHeader>();
 

@@ -1,6 +1,6 @@
 namespace RiskPulse.Models.Enum
 {
-    public enum ScheduleType
+    public enum AssessmentType
     {
         OneTime,
         Recurring

@@ -3,15 +3,16 @@ using RiskPulse.Data;
 using RiskPulse.Data.Entries;
 using RiskPulse.Models.Enum;
 using RiskPulse.Models.ViewModel;
+using RiskPulse.Services.Assessment;
 
 namespace RiskPulse.Services.Dashboard;
 
 public class DashboardService
 {
-    private const string ItemApprovedStepCode = "Approved";
-    private const string ItemSubmittedStepCode = "Submitted";
-    private const string UnitAuthorizedStepCode = "Authorized";
-    private const string UnitWorkflowCode = "ASSESSMENT-UNIT";
+    private const string ItemApprovedStepCode = WorkflowStepCodes.Approved;
+    private const string ItemSubmittedStepCode = WorkflowStepCodes.Submitted;
+    private const string UnitFinalApprovedStepCode = WorkflowStepCodes.FinalApproved;
+    private const string UnitWorkflowCode = WorkflowStepCodes.AssessmentUnitWorkflow;
 
     private readonly AppDbContext _db;
 
@@ -75,8 +76,8 @@ public class DashboardService
 
         var attentionItems = await BuildAttentionItemsAsync(unitId);
 
-        var openCount = units.Count(u => u.StepCode != UnitAuthorizedStepCode);
-        var readyCount = units.Count(u => u.StepCode != UnitAuthorizedStepCode && u.ItemCount > 0 && u.ApprovedCount == u.ItemCount);
+        var openCount = units.Count(u => u.StepCode != UnitFinalApprovedStepCode);
+        var readyCount = units.Count(u => u.StepCode != UnitFinalApprovedStepCode && u.ItemCount > 0 && u.ApprovedCount == u.ItemCount);
 
         var kpis = new List<DashboardKpiViewModel>
         {
@@ -150,7 +151,7 @@ public class DashboardService
                     ItemCount = u.ItemCount,
                     SubmittedCount = u.SubmittedCount,
                     ApprovedCount = u.ApprovedCount,
-                    ReadyToAuthorize = u.StepCode != UnitAuthorizedStepCode && u.ItemCount > 0 && u.ApprovedCount == u.ItemCount,
+                    ReadyToAuthorize = u.StepCode != UnitFinalApprovedStepCode && u.ItemCount > 0 && u.ApprovedCount == u.ItemCount,
                     AuthorizedBy = u.AuthorizedBy ?? string.Empty,
                     AuthorizedOn = u.AuthorizedOn
                 })
@@ -172,7 +173,7 @@ public class DashboardService
             .ToList();
 
         var latestKriHeaderIds = await _db.AssessmentItems.AsNoTracking()
-            .Where(i => latestUnitIds.Contains(i.AssessmentUnitId) && i.ItemType == ScheduleItemType.Kri)
+            .Where(i => latestUnitIds.Contains(i.AssessmentUnitId) && i.ItemType == AssessmentItemType.Kri)
             .Select(i => i.ItemId)
             .Distinct()
             .ToListAsync();
@@ -213,7 +214,7 @@ public class DashboardService
     {
         var items = await _db.AssessmentItems.AsNoTracking()
             .Where(i => i.AssessmentUnit!.UnitId == unitId
-                     && i.AssessmentUnit.WorkflowStep!.StepCode != UnitAuthorizedStepCode
+                     && i.AssessmentUnit.WorkflowStep!.StepCode != UnitFinalApprovedStepCode
                      && i.WorkflowStep!.StepCode != ItemApprovedStepCode)
             .OrderBy(i => i.AssessmentUnit!.AssessmentHeader!.PeriodEnd)
             .Select(i => new AttentionItemSnapshot
@@ -229,8 +230,8 @@ public class DashboardService
             })
             .ToListAsync();
 
-        var saqIds = items.Where(i => i.ItemType == ScheduleItemType.Saq).Select(i => i.ReferenceId).Distinct().ToList();
-        var kriIds = items.Where(i => i.ItemType == ScheduleItemType.Kri).Select(i => i.ReferenceId).Distinct().ToList();
+        var saqIds = items.Where(i => i.ItemType == AssessmentItemType.Saq).Select(i => i.ReferenceId).Distinct().ToList();
+        var kriIds = items.Where(i => i.ItemType == AssessmentItemType.Kri).Select(i => i.ReferenceId).Distinct().ToList();
 
         var saqTitles = await _db.SaqHeaders.AsNoTracking()
             .Where(h => saqIds.Contains(h.SaqHeaderId))
@@ -248,13 +249,13 @@ public class DashboardService
             string referenceCode = string.Empty;
             string itemType = i.ItemType.ToString();
 
-            if (i.ItemType == ScheduleItemType.Saq && saqTitles.TryGetValue(i.ReferenceId, out var saq))
+            if (i.ItemType == AssessmentItemType.Saq && saqTitles.TryGetValue(i.ReferenceId, out var saq))
             {
                 title = saq.SaqDesc;
                 referenceCode = saq.SaqCode ?? string.Empty;
                 itemType = "Saq";
             }
-            else if (i.ItemType == ScheduleItemType.Kri && kriTitles.TryGetValue(i.ReferenceId, out var kri))
+            else if (i.ItemType == AssessmentItemType.Kri && kriTitles.TryGetValue(i.ReferenceId, out var kri))
             {
                 title = kri.KriHeaderDesc ?? string.Empty;
                 referenceCode = kri.KriCode ?? string.Empty;
@@ -293,11 +294,14 @@ public class DashboardService
 
     private static string StatusPillKind(string stepCode) => stepCode switch
     {
-        "Pending" => "neutral",
-        "InProgress" => "warning",
-        "Submitted" => "warning",
-        "Approved" => "success",
-        "Authorized" => "success",
+        WorkflowStepCodes.Pending => "neutral",
+        WorkflowStepCodes.InProgress => "warning",
+        WorkflowStepCodes.Submitted => "warning",
+        WorkflowStepCodes.UnitApproved => "info",
+        WorkflowStepCodes.RiskReviewed => "warning",
+        WorkflowStepCodes.Approved => "success",
+        WorkflowStepCodes.FinalApproved => "success",
+        WorkflowStepCodes.Returned => "danger",
         _ => "neutral"
     };
 
@@ -337,7 +341,7 @@ public class DashboardService
 
         public int AssessmentUnitId { get; set; }
 
-        public ScheduleItemType ItemType { get; set; }
+        public AssessmentItemType ItemType { get; set; }
 
         public int ReferenceId { get; set; }
 

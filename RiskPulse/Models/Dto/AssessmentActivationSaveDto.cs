@@ -3,11 +3,13 @@ using RiskPulse.Models.Enum;
 
 namespace RiskPulse.Models.Dto
 {
-    public class ScheduleSaveDto
+    public class AssessmentActivationSaveDto
     {
-        public int ScheduleId { get; set; }
+        public int AssessmentActivationId { get; set; }
 
-        public ScheduleType ScheduleType { get; set; }
+        public AssessmentType AssessmentType { get; set; }
+
+        public int? AssessmentTemplateId { get; set; }
 
         public DateTime? StartDate { get; set; }
 
@@ -15,7 +17,7 @@ namespace RiskPulse.Models.Dto
 
         public DateTime? StartMonth { get; set; }
 
-        [Range(1, 7, ErrorMessage = "Recurring day must be between 1 and 7.")]
+        [Range(1, 31, ErrorMessage = "Recurring day must be between 1 and 31.")]
         public int? RecurringDay { get; set; }
     }
 }

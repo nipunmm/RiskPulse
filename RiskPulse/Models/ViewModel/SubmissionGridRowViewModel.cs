@@ -14,6 +14,8 @@ namespace RiskPulse.Models.ViewModel
 
         public string StatusLabel { get; set; } = string.Empty;
 
+        public string StepCode { get; set; } = string.Empty;
+
         public int ItemCount { get; set; }
 
         public int SubmittedCount { get; set; }

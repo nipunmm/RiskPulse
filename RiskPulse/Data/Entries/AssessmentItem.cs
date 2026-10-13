@@ -12,7 +12,7 @@ namespace RiskPulse.Data.Entries
 
         public AssessmentUnit? AssessmentUnit { get; set; }
 
-        public ScheduleItemType ItemType { get; set; }
+        public AssessmentItemType ItemType { get; set; }
 
         public int ItemId { get; set; }
 

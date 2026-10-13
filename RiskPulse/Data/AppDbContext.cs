@@ -109,34 +109,49 @@ namespace RiskPulse.Data
                     .OnDelete(DeleteBehavior.Restrict);
             });
 
-            //ScheduleStatus/ScheduleType enum to string conversion
-            modelBuilder.Entity<Schedule>(entity =>
+            //AssessmentActivationStatus/AssessmentType enum to string conversion + AssessmentTemplate (Restrict)
+            modelBuilder.Entity<AssessmentActivation>(entity =>
             {
-                entity.Property(s => s.ScheduleStatus)
+                entity.Property(a => a.ActivationStatus)
                     .HasConversion<string>()
                     .HasMaxLength(32);
 
-                entity.Property(s => s.ScheduleType)
+                entity.Property(a => a.AssessmentType)
                     .HasConversion<string>()
                     .HasMaxLength(32);
+
+                entity.HasOne(a => a.AssessmentTemplate)
+                    .WithMany()
+                    .HasForeignKey(a => a.AssessmentTemplateId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
-            //ScheduleItem polymorphic links (Schedule ↔ SaqHeader/KriHeader by ItemType + ItemId; ItemId has no FK)
-            modelBuilder.Entity<ScheduleItem>(entity =>
+            //AssessmentTemplate header (unique generated code) + polymorphic item links
+            //(template ↔ SaqHeader/KriHeader by ItemType + ItemId; ItemId has no FK)
+            modelBuilder.Entity<AssessmentTemplate>(entity =>
             {
-                entity.Property(si => si.ItemType)
+                entity.Property(t => t.AssessmentTemplateCode)
+                    .HasMaxLength(50);
+
+                entity.HasIndex(t => t.AssessmentTemplateCode)
+                    .IsUnique();
+            });
+
+            modelBuilder.Entity<AssessmentTemplateItem>(entity =>
+            {
+                entity.Property(i => i.ItemType)
                     .HasConversion<string>()
                     .HasMaxLength(32);
 
-                entity.HasOne(si => si.Schedule)
-                    .WithMany(s => s.ScheduleItems)
-                    .HasForeignKey(si => si.ScheduleId)
+                entity.HasOne(i => i.AssessmentTemplate)
+                    .WithMany(t => t.AssessmentTemplateItems)
+                    .HasForeignKey(i => i.AssessmentTemplateId)
                     .OnDelete(DeleteBehavior.Cascade);
 
-                entity.HasIndex(si => new { si.ScheduleId, si.ItemType, si.ItemId })
+                entity.HasIndex(i => new { i.AssessmentTemplateId, i.ItemType, i.ItemId })
                     .IsUnique();
 
-                entity.HasIndex(si => new { si.ItemType, si.ItemId });
+                entity.HasIndex(i => new { i.ItemType, i.ItemId });
             });
 
             //Kri relationships
@@ -151,7 +166,7 @@ namespace RiskPulse.Data
                     .OnDelete(DeleteBehavior.Cascade);
             });
 
-            //AssessmentStatus enum to string conversion + Schedule → AssessmentHeader (Restrict)
+            //AssessmentStatus enum to string conversion + AssessmentActivation → AssessmentHeader (Restrict)
             modelBuilder.Entity<AssessmentHeader>(entity =>
             {
                 entity.Property(h => h.AssessmentStatus)
@@ -164,9 +179,13 @@ namespace RiskPulse.Data
                 entity.HasIndex(h => h.AssessmentCode)
                     .IsUnique();
 
-                entity.HasOne(h => h.Schedule)
-                    .WithMany(s => s.AssessmentHeaders)
-                    .HasForeignKey(h => h.ScheduleId)
+                //One assessment per activation period (guards generation idempotency)
+                entity.HasIndex(h => new { h.AssessmentActivationId, h.PeriodStart })
+                    .IsUnique();
+
+                entity.HasOne(h => h.AssessmentActivation)
+                    .WithMany(a => a.AssessmentHeaders)
+                    .HasForeignKey(h => h.AssessmentActivationId)
                     .OnDelete(DeleteBehavior.Restrict);
             });
 
@@ -336,9 +355,11 @@ namespace RiskPulse.Data
 
         public DbSet<Kri> Kris { get; set; }
 
-        public DbSet<Schedule> Schedules { get; set; }
+        public DbSet<AssessmentTemplate> AssessmentTemplates { get; set; }
 
-        public DbSet<ScheduleItem> ScheduleItems { get; set; }
+        public DbSet<AssessmentTemplateItem> AssessmentTemplateItems { get; set; }
+
+        public DbSet<AssessmentActivation> AssessmentActivations { get; set; }
 
         public DbSet<AssessmentHeader> AssessmentHeaders { get; set; }
 

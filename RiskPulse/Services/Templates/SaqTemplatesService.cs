@@ -180,8 +180,8 @@ public class SaqTemplatesService
             throw new InvalidOperationException("Cannot delete a locked template.");
         }
 
-        await _db.ScheduleItems
-            .Where(si => si.ItemType == ScheduleItemType.Saq && si.ItemId == saqHeaderId)
+        await _db.AssessmentTemplateItems
+            .Where(i => i.ItemType == AssessmentItemType.Saq && i.ItemId == saqHeaderId)
             .ExecuteDeleteAsync();
 
         _db.SaqHeaders.Remove(header);

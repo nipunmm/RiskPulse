@@ -8,9 +8,9 @@ namespace RiskPulse.Data.Entries
         [Key]
         public int AssessmentHeaderId { get; set; }
 
-        public int ScheduleId { get; set; }
+        public int AssessmentActivationId { get; set; }
 
-        public Schedule? Schedule { get; set; }
+        public AssessmentActivation? AssessmentActivation { get; set; }
 
         public string AssessmentCode { get; set; } = string.Empty;
 

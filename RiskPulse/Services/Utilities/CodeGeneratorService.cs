@@ -26,10 +26,17 @@ public class CodeGeneratorService
             .Select(h => h.KriCode!));
     }
 
-    public Task<string> GenerateScheduleCodeAsync()
+    public Task<string> GenerateAssessmentTemplateCodeAsync()
     {
-        return GenerateCodeAsync("SCH", _db.Schedules
-            .Select(s => s.ScheduleCode));
+        return GenerateCodeAsync("AST", _db.AssessmentTemplates
+            .Where(t => t.AssessmentTemplateCode != null)
+            .Select(t => t.AssessmentTemplateCode!));
+    }
+
+    public Task<string> GenerateActivationCodeAsync()
+    {
+        return GenerateCodeAsync("ACT", _db.AssessmentActivations
+            .Select(a => a.ActivationCode));
     }
 
     public Task<string> GenerateAssessmentCodeAsync()

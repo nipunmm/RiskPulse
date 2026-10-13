@@ -10,21 +10,21 @@ namespace RiskPulse.Services.Assessment;
 public class SubmissionsService
 {
     // Item-level step codes
-    public const string ItemPendingStepCode = "Pending";
-    public const string ItemSubmittedStepCode = "Submitted";
-    public const string ItemApprovedStepCode = "Approved";
+    public const string ItemPendingStepCode = WorkflowStepCodes.Pending;
+    public const string ItemSubmittedStepCode = WorkflowStepCodes.Submitted;
+    public const string ItemApprovedStepCode = WorkflowStepCodes.Approved;
 
     // Unit-level step codes (4 levels)
-    public const string UnitPendingStepCode = "Pending";
-    public const string UnitInProgressStepCode = "InProgress";
-    public const string UnitApprovedStepCode = "UnitApproved";
-    public const string UnitRiskReviewedStepCode = "RiskReviewed";
-    public const string UnitFinalApprovedStepCode = "FinalApproved";
-    public const string UnitReturnedStepCode = "Returned";
+    public const string UnitPendingStepCode = WorkflowStepCodes.Pending;
+    public const string UnitInProgressStepCode = WorkflowStepCodes.InProgress;
+    public const string UnitApprovedStepCode = WorkflowStepCodes.UnitApproved;
+    public const string UnitRiskReviewedStepCode = WorkflowStepCodes.RiskReviewed;
+    public const string UnitFinalApprovedStepCode = WorkflowStepCodes.FinalApproved;
+    public const string UnitReturnedStepCode = WorkflowStepCodes.Returned;
 
     // Workflows
-    private const string ItemWorkflowCode = "ASSESSMENT-ITEM";
-    private const string UnitWorkflowCode = "ASSESSMENT-UNIT";
+    private const string ItemWorkflowCode = WorkflowStepCodes.AssessmentItemWorkflow;
+    private const string UnitWorkflowCode = WorkflowStepCodes.AssessmentUnitWorkflow;
 
     // System Roles
     public const string RoleAdmin = "Administrator";
@@ -43,18 +43,25 @@ public class SubmissionsService
     private static bool IsRiskOrAdminRole(string role) =>
         role == RoleAdmin || role == RoleRiskReviewer || role == RoleRiskApprover;
 
-    // --- Submissions grid (role-aware: all units for Risk/Admin, own unit for branch) ---
-    public async Task<List<SubmissionGridRowViewModel>> GetGridRowsAsync(int userId, string userRole)
+    // --- Submissions board (role-aware: all units for Risk/Admin, own unit for branch) ---
+    public async Task<SubmissionsIndexViewModel> GetIndexAsync(int userId, string userRole)
     {
         IQueryable<AssessmentUnit> query = _db.AssessmentUnits.AsNoTracking();
+        var unitDesc = "All units";
 
         if (!IsRiskOrAdminRole(userRole))
         {
-            var unitId = await GetUserUnitIdAsync(userId);
-            query = query.Where(u => u.UnitId == unitId);
+            var unit = await _db.Users.AsNoTracking()
+                .Where(u => u.Id == userId)
+                .Select(u => new { u.UnitId, UnitDesc = u.Unit!.UnitDesc })
+                .SingleOrDefaultAsync()
+                ?? throw new InvalidOperationException("Your user profile was not found.");
+
+            query = query.Where(u => u.UnitId == unit.UnitId);
+            unitDesc = unit.UnitDesc;
         }
 
-        return await query
+        var rows = await query
             .OrderByDescending(u => u.AssessmentHeader!.PeriodStart)
             .ThenBy(u => u.Unit!.UnitDesc)
             .Select(u => new SubmissionGridRowViewModel
@@ -65,11 +72,31 @@ public class SubmissionsService
                 PeriodStart = u.AssessmentHeader.PeriodStart,
                 PeriodEnd = u.AssessmentHeader.PeriodEnd,
                 StatusLabel = u.WorkflowStep!.StepLabel,
+                StepCode = u.WorkflowStep!.StepCode,
                 ItemCount = u.AssessmentItems.Count,
                 SubmittedCount = u.AssessmentItems.Count(i => i.WorkflowStep!.StepCode == ItemSubmittedStepCode
                                                            || i.WorkflowStep!.StepCode == ItemApprovedStepCode)
             })
             .ToListAsync();
+
+        var model = new SubmissionsIndexViewModel { UnitDesc = unitDesc };
+        foreach (var row in rows)
+        {
+            if (row.StepCode == UnitFinalApprovedStepCode)
+            {
+                model.Completed.Add(row);
+            }
+            else if (row.StepCode == UnitPendingStepCode)
+            {
+                model.Pending.Add(row);
+            }
+            else
+            {
+                model.InProgress.Add(row);
+            }
+        }
+
+        return model;
     }
 
     // --- Detail (role-aware) ---
@@ -148,7 +175,7 @@ public class SubmissionsService
     {
         var item = await LoadOwnedItemAsync(assessmentItemId, userId);
 
-        if (item.ItemType != ScheduleItemType.Saq)
+        if (item.ItemType != AssessmentItemType.Saq)
         {
             throw new InvalidOperationException("This item is not a Self Assessment Questionnaire.");
         }
@@ -198,7 +225,7 @@ public class SubmissionsService
     {
         var item = await LoadOwnedItemAsync(assessmentItemId, userId);
 
-        if (item.ItemType != ScheduleItemType.Kri)
+        if (item.ItemType != AssessmentItemType.Kri)
         {
             throw new InvalidOperationException("This item is not a Key Risk Indicator set.");
         }
@@ -248,7 +275,7 @@ public class SubmissionsService
     {
         var item = await LoadOwnedItemForUpdateAsync(dto.AssessmentItemId, userId);
 
-        if (item.ItemType != ScheduleItemType.Saq)
+        if (item.ItemType != AssessmentItemType.Saq)
         {
             throw new InvalidOperationException("This item is not a Self Assessment Questionnaire.");
         }
@@ -314,7 +341,7 @@ public class SubmissionsService
     {
         var item = await LoadOwnedItemForUpdateAsync(dto.AssessmentItemId, userId);
 
-        if (item.ItemType != ScheduleItemType.Kri)
+        if (item.ItemType != AssessmentItemType.Kri)
         {
             throw new InvalidOperationException("This item is not a Key Risk Indicator set.");
         }
@@ -602,8 +629,8 @@ public class SubmissionsService
 
     private async Task<List<AssessmentItemRowViewModel>> BuildItemRowsAsync(List<AssessmentItem> items)
     {
-        var saqIds = items.Where(i => i.ItemType == ScheduleItemType.Saq).Select(i => i.ItemId).Distinct().ToList();
-        var kriIds = items.Where(i => i.ItemType == ScheduleItemType.Kri).Select(i => i.ItemId).Distinct().ToList();
+        var saqIds = items.Where(i => i.ItemType == AssessmentItemType.Saq).Select(i => i.ItemId).Distinct().ToList();
+        var kriIds = items.Where(i => i.ItemType == AssessmentItemType.Kri).Select(i => i.ItemId).Distinct().ToList();
 
         var saqHeaders = await _db.SaqHeaders.AsNoTracking()
             .Where(h => saqIds.Contains(h.SaqHeaderId))
@@ -620,12 +647,12 @@ public class SubmissionsService
             {
                 string title;
                 string code;
-                if (i.ItemType == ScheduleItemType.Saq && saqHeaders.TryGetValue(i.ItemId, out var saq))
+                if (i.ItemType == AssessmentItemType.Saq && saqHeaders.TryGetValue(i.ItemId, out var saq))
                 {
                     title = saq.SaqDesc;
                     code = saq.SaqCode ?? string.Empty;
                 }
-                else if (i.ItemType == ScheduleItemType.Kri && kriHeaders.TryGetValue(i.ItemId, out var kri))
+                else if (i.ItemType == AssessmentItemType.Kri && kriHeaders.TryGetValue(i.ItemId, out var kri))
                 {
                     title = kri.KriHeaderDesc ?? string.Empty;
                     code = kri.KriCode ?? string.Empty;
@@ -656,7 +683,7 @@ public class SubmissionsService
 
     private async Task EnsureCompleteAsync(AssessmentItem item)
     {
-        if (item.ItemType == ScheduleItemType.Saq)
+        if (item.ItemType == AssessmentItemType.Saq)
         {
             var total = await _db.SaqQuestions.AsNoTracking().CountAsync(q => q.SaqHeaderId == item.ItemId);
             var answered = await _db.SaqAssessmentAnswers.AsNoTracking().CountAsync(a => a.AssessmentItemId == item.AssessmentItemId);
@@ -666,7 +693,7 @@ public class SubmissionsService
                 throw new InvalidOperationException($"Please answer all {total} questions before submitting.");
             }
         }
-        else if (item.ItemType == ScheduleItemType.Kri)
+        else if (item.ItemType == AssessmentItemType.Kri)
         {
             var total = await _db.Kris.AsNoTracking().CountAsync(k => k.KriHeaderId == item.ItemId);
             var entered = await _db.KriAssessmentValues.AsNoTracking().CountAsync(v => v.AssessmentItemId == item.AssessmentItemId);

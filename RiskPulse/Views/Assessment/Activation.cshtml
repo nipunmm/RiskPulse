@@ -1,0 +1,316 @@
+@model RiskPulse.Models.ViewModel.AssessmentIndexViewModel
+@{
+    ViewData["Title"] = "Assessment Activation";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/lib/datatables/dataTables.bootstrap5.min.css" />
+}
+
+<header class="rp-hero rp-hero--teal">
+    <h1 class="rp-display-lg">Assessment Activation</h1>
+    <p class="rp-hero-sub">
+        Activate an assessment from a template — this snapshots its SAQ and KRI items into a live assessment for the targeted units.
+    </p>
+    <div class="rp-hero-actions">
+        <button type="button" class="rp-btn rp-btn-primary" id="addActivationBtn">
+            <i class="fas fa-plus"></i> New Activation
+        </button>
+    </div>
+</header>
+
+<div class="rp-card p-2">
+    <div class="table-responsive">
+    <table id="activationTable" class="table rp-table table-sm w-100 align-middle">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Code</th>
+                <th>Assessment Template</th>
+                <th>SAQ</th>
+                <th>KRI</th>
+                <th>Type</th>
+                <th>Period</th>
+                <th>Status</th>
+                <th class="text-end">Actions</th>
+            </tr>
+        </thead>
+    </table>
+    </div>
+</div>
+
+<!-- ============================================================
+     ACTIVATION MODAL — template + one-time window
+     ============================================================ -->
+<div class="modal fade" id="activationModal" tabindex="-1" aria-labelledby="activationModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable">
+        <div class="modal-content">
+            <form id="activationForm" novalidate>
+                <input type="hidden" id="activationId" value="0" />
+                <div class="modal-header py-2">
+                    <div>
+                        <h5 class="modal-title" id="activationModalLabel">New Activation</h5>
+                        <div id="activationStatusPill" class="mt-1"></div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-2">
+                        <label class="rp-label" for="activationTemplate">Assessment Template</label>
+                        <select id="activationTemplate" class="rp-input">
+                            <option value="">Select an assessment template...</option>
+                            @foreach (var template in Model.TemplateOptions)
+                            {
+                                <option value="@template.Value">@template.Label</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-md-6">
+                            <label class="rp-label" for="activationStartDate">Start Date</label>
+                            <input type="date" id="activationStartDate" class="rp-input" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="rp-label" for="activationEndDate">End Date</label>
+                            <input type="date" id="activationEndDate" class="rp-input" />
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer py-2">
+                    <button type="button" class="rp-btn rp-btn-delete me-auto" id="activationDeleteBtn">
+                        <i class="fas fa-trash-can"></i> Delete
+                    </button>
+                    <button type="button" class="rp-btn rp-btn-secondary" id="activationDisableBtn">
+                        <i class="fas fa-ban"></i> Disable
+                    </button>
+                    <button type="button" class="rp-btn rp-btn-secondary" id="activationEnableBtn">
+                        <i class="fas fa-rotate-right"></i> Enable
+                    </button>
+                    <button type="button" class="rp-btn rp-btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="rp-btn rp-btn-secondary" id="activationSaveBtn">
+                        <i class="fas fa-floppy-disk"></i> <span id="activationSaveLabel">Save Draft</span>
+                    </button>
+                    <button type="button" class="rp-btn rp-btn-primary" id="activationActivateBtn">
+                        <i class="fas fa-bolt"></i> Activate
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/lib/datatables/jquery.dataTables.min.js"></script>
+    <script src="~/lib/datatables/dataTables.bootstrap5.min.js"></script>
+    <script>
+        (function ($) {
+            'use strict';
+
+            /* =================================================================
+               SECTION 1 — ENDPOINTS
+               ================================================================= */
+            var gridUrl = '@Url.Action("Grid", "Assessment")';
+            var saveUrl = '@Url.Action("Save", "Assessment")';
+            var saveAndActivateUrl = '@Url.Action("SaveAndActivate", "Assessment")';
+            var setEnabledUrl = '@Url.Action("SetEnabled", "Assessment")';
+            var deleteUrl = '@Url.Action("Delete", "Assessment")';
+
+            /* =================================================================
+               SECTION 2 — DATA GRID (DataTables)
+               ================================================================= */
+            var activationTable = RiskPulse.initGrid($('#activationTable'), {
+                ajax: { url: gridUrl },
+                columns: [
+                    { data: 'assessmentActivationId' },
+                    { data: 'activationCode' },
+                    { data: 'assessmentTemplateDesc', render: function (d) { return RiskPulse.escapeHtml(d || '—'); } },
+                    { data: 'saqCount', render: function (d) { return RiskPulse.pill(d); } },
+                    { data: 'kriCount', render: function (d) { return RiskPulse.pill(d); } },
+                    { data: 'assessmentType', render: function (d) { return d === 'Recurring' ? 'Recurring' : 'One-time'; } },
+                    { data: 'startDate', render: function (d, type, row) {
+                        if (!d) { return '<span class="text-muted">—</span>'; }
+                        var start = d.substring(0, 10);
+                        var end = row.endDate ? row.endDate.substring(0, 10) : '';
+                        return RiskPulse.escapeHtml(end ? (start + ' → ' + end) : start);
+                    } },
+                    { data: 'activationStatus', render: function (d) {
+                        return d === 'Disabled' ? RiskPulse.pill(d, 'warning') : RiskPulse.statusPill(d);
+                    } },
+                    { data: null, orderable: false, searchable: false, className: 'text-end', render: function (d, type, row) {
+                        if (row.activationStatus === 'Completed') {
+                            return '<span class="text-muted small">—</span>';
+                        }
+                        return '<button type="button" class="rp-btn rp-btn-edit edit-activation-btn"><i class="fas fa-pen-to-square"></i> Edit</button>';
+                    } }
+                ],
+                order: [[0, 'desc']]
+            });
+
+            /* =================================================================
+               SECTION 3 — FORM PAYLOAD BUILDERS
+               ================================================================= */
+            function buildPayload() {
+                return {
+                    assessmentActivationId: +$('#activationId').val() || 0,
+                    assessmentTemplateId: +$('#activationTemplate').val() || 0,
+                    assessmentType: 'OneTime',
+                    startDate: $('#activationStartDate').val() || null,
+                    endDate: $('#activationEndDate').val() || null
+                };
+            }
+
+            /* =================================================================
+               SECTION 4 — VALIDATION
+               ================================================================= */
+            function validatePayload(payload) {
+                if (!payload.assessmentTemplateId) {
+                    return RiskPulse.validationError($('#activationTemplate'), 'Select an assessment template.');
+                }
+                if (!payload.startDate) {
+                    return RiskPulse.validationError($('#activationStartDate'), 'Select a start date.');
+                }
+                if (!payload.endDate) {
+                    return RiskPulse.validationError($('#activationEndDate'), 'Select an end date.');
+                }
+                if (payload.endDate < payload.startDate) {
+                    return RiskPulse.validationError($('#activationEndDate'), 'End date cannot be before the start date.');
+                }
+                return true;
+            }
+
+            /* =================================================================
+               SECTION 5 — MODAL OPEN / CLOSE
+               ================================================================= */
+            function statusPillHtml(status) {
+                return status === 'Disabled' ? RiskPulse.pill(status, 'warning') : RiskPulse.statusPill(status);
+            }
+
+            var editingRow = null;
+
+            function resetModal() {
+                editingRow = null;
+                $('#activationId').val(0);
+                $('#activationTemplate').val('').trigger('change.select2');
+                $('#activationStartDate').val('');
+                $('#activationEndDate').val('');
+                $('#activationModalLabel').text('New Activation');
+                $('#activationStatusPill').html(statusPillHtml('Draft'));
+                $('#activationSaveLabel').text('Save Draft');
+                $('#activationActivateBtn').show();
+                $('#activationDeleteBtn').hide();
+                $('#activationDisableBtn').hide();
+                $('#activationEnableBtn').hide();
+                RiskPulse.clearFieldErrors($('#activationForm'));
+            }
+
+            function openAddModal() {
+                resetModal();
+                RiskPulse.showModal('activationModal');
+            }
+
+            function openEditModal(row) {
+                var isDraft = row.activationStatus === 'Draft';
+                var status = row.activationStatus;
+                editingRow = row;
+                $('#activationId').val(row.assessmentActivationId);
+                $('#activationTemplate').val(row.assessmentTemplateId || '').trigger('change.select2');
+                $('#activationStartDate').val(row.startDate ? row.startDate.substring(0, 10) : '');
+                $('#activationEndDate').val(row.endDate ? row.endDate.substring(0, 10) : '');
+                $('#activationModalLabel').text('Edit Activation');
+                $('#activationStatusPill').html(statusPillHtml(status));
+                $('#activationSaveLabel').text(isDraft ? 'Save Draft' : 'Save Changes');
+                $('#activationActivateBtn').toggle(isDraft);
+                $('#activationDeleteBtn').toggle(isDraft);
+                $('#activationDisableBtn').toggle(status === 'Active');
+                $('#activationEnableBtn').toggle(status === 'Disabled');
+                RiskPulse.clearFieldErrors($('#activationForm'));
+                RiskPulse.showModal('activationModal');
+            }
+
+            /* =================================================================
+               SECTION 6 — SAVE / ACTIVATE
+               ================================================================= */
+            function submitActivation(url, $trigger) {
+                var payload = buildPayload();
+                if (validatePayload(payload) !== true) {
+                    return;
+                }
+                RiskPulse.postJson(url, payload, {
+                    success: function (res) {
+                        RiskPulse.hideModal($('#activationForm'));
+                        activationTable.ajax.reload(null, false);
+                        RiskPulse.toastSuccess(res.message || 'Assessment activation saved successfully.');
+                    },
+                    fail: function (res) {
+                        RiskPulse.toastError(res.message || 'Unable to save the assessment activation.');
+                    }
+                }, $trigger);
+            }
+
+            function submitToggle(enabled, $trigger) {
+                var id = +$('#activationId').val() || 0;
+                if (!id) { return; }
+                RiskPulse.postJson(setEnabledUrl, { assessmentActivationId: id, enabled: enabled }, {
+                    success: function (res) {
+                        RiskPulse.hideModal($('#activationForm'));
+                        activationTable.ajax.reload(null, false);
+                        RiskPulse.toastSuccess(res.message || (enabled ? 'Activation enabled.' : 'Activation disabled.'));
+                    },
+                    fail: function (res) {
+                        RiskPulse.toastError(res.message || 'Unable to update the activation.');
+                    }
+                }, $trigger);
+            }
+
+            function submitDelete() {
+                var id = +$('#activationId').val() || 0;
+                if (!id) { return; }
+                var code = editingRow ? editingRow.activationCode : '';
+                RiskPulse.confirmDelete(
+                    'Delete activation ' + code + '?',
+                    'This draft activation will be permanently removed.',
+                    function () {
+                        RiskPulse.postJson(deleteUrl, { id: id }, {
+                            success: function (res) {
+                                RiskPulse.hideModal($('#activationForm'));
+                                activationTable.ajax.reload(null, false);
+                                RiskPulse.toastSuccess(res.message || 'Draft activation deleted.');
+                            },
+                            fail: function (res) {
+                                RiskPulse.toastError(res.message || 'Unable to delete the activation.');
+                            }
+                        });
+                    });
+            }
+
+            /* =================================================================
+               SECTION 7 — EVENTS
+               ================================================================= */
+            $('#addActivationBtn').on('click', openAddModal);
+
+            $('#activationSaveBtn').on('click', function () {
+                submitActivation(saveUrl, $(this));
+            });
+
+            $('#activationActivateBtn').on('click', function () {
+                submitActivation(saveAndActivateUrl, $(this));
+            });
+
+            $('#activationTable').on('click', '.edit-activation-btn', function () {
+                openEditModal(activationTable.row($(this).closest('tr')).data());
+            });
+
+            $('#activationDisableBtn').on('click', function () {
+                submitToggle(false, $(this));
+            });
+
+            $('#activationEnableBtn').on('click', function () {
+                submitToggle(true, $(this));
+            });
+
+            $('#activationDeleteBtn').on('click', function () {
+                submitDelete();
+            });
+        })(jQuery);
+    </script>
+}

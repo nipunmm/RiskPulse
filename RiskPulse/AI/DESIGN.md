@@ -284,9 +284,10 @@ Rules every component must follow:
   `pill`), and a live `.rp-unit-count` (`ok` ≥ 2 / `warn` otherwise).
 - **Focus:** `:focus-visible` ring 2px `focus` on light, `focus-on-dark` on dark chrome.
   Never `outline: none` without a replacement.
-- **Wizard:** `.rp-stepper` (dots + connectors) and `.rp-wizard-panel`; completed, current
-  and upcoming steps differ by icon/number and label weight, not color alone. Picker cards
-  `.rp-picker`/`.rp-pick-*`, preview modal `.rp-preview-*`.
+- **Dense multi-select:** `RiskPulse.createChecklistPicker` (`.rp-soft-tabs` + `.rp-check-picker`)
+  and the `RiskPulse.templatePreview` read-only modal (`.rp-preview-*`). (Legacy wizard/picker
+  CSS `.rp-stepper`/`.rp-wizard-panel` and `.rp-picker`/`.rp-pick-*` is dormant — dropped from the
+  markup when the Assessment wizard was replaced by the grid + modal.)
 - **Modal:** Bootstrap 5, gradient header, soft shadow, footer actions; opened only via
   `RiskPulse.showModal/hideModal`; traps focus, closes on Esc, returns focus to trigger.
   Modal controls use a compact enterprise density (`.modal .rp-input` 36px, tighter

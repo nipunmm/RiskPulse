@@ -167,8 +167,8 @@ public class KriTemplatesService
 
         await _db.Kris.Where(k => k.KriHeaderId == kriHeaderId).ExecuteDeleteAsync();
 
-        await _db.ScheduleItems
-            .Where(si => si.ItemType == ScheduleItemType.Kri && si.ItemId == kriHeaderId)
+        await _db.AssessmentTemplateItems
+            .Where(i => i.ItemType == AssessmentItemType.Kri && i.ItemId == kriHeaderId)
             .ExecuteDeleteAsync();
 
         _db.KriHeaders.Remove(header);

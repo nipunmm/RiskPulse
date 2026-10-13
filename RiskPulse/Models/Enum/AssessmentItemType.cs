@@ -1,6 +1,6 @@
 namespace RiskPulse.Models.Enum
 {
-    public enum ScheduleItemType
+    public enum AssessmentItemType
     {
         Saq,
         Kri

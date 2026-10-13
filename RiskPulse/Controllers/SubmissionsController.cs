@@ -23,22 +23,19 @@ public class SubmissionsController : Controller
     private string CurrentUserRole =>
         User.FindFirstValue(ClaimTypes.Role) ?? string.Empty;
 
-    // --- Page load (Index) ---
+    // --- Page load (Index) — submissions board (role-aware: all units for Risk/Admin, own unit for branch) ---
     [HttpGet]
-    public IActionResult Index()
+    public async Task<IActionResult> Index()
     {
-        return View();
-    }
-
-    // --- Submissions grid (role-aware: all units for Risk/Admin, own unit for branch) ---
-    [HttpGet]
-    public async Task<IActionResult> Grid()
-    {
-        return await ControllerHelpers.TryExecute(async () =>
+        try
         {
-            var rows = await _submissionsService.GetGridRowsAsync(CurrentUserId, CurrentUserRole);
-            return Json(ApiResponse.Ok(rows));
-        }, "Unable to load assessments. Please try again.");
+            var model = await _submissionsService.GetIndexAsync(CurrentUserId, CurrentUserRole);
+            return View(model);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return NotFound(ex.Message);
+        }
     }
 
     // --- Assessment detail (role-aware) ---

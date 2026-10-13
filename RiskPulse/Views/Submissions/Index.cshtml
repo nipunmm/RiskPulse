@@ -1,98 +1,68 @@
+@model RiskPulse.Models.ViewModel.SubmissionsIndexViewModel
 @{
     ViewData["Title"] = "Submissions";
-}
 
-@section Styles {
-    <link rel="stylesheet" href="~/lib/datatables/dataTables.bootstrap5.min.css" />
+    string PillClass(string stepCode) => stepCode switch
+    {
+        "FinalApproved" => "success",
+        "UnitApproved" or "RiskReviewed" => "info",
+        "Returned" => "danger",
+        "InProgress" => "warning",
+        _ => "neutral"
+    };
 }
 
 <header class="rp-hero rp-hero--slate">
     <h1 class="rp-display-lg">Submissions</h1>
     <p class="rp-hero-sub">
-        Track the risk assessments assigned to your unit and complete their questionnaires.
+        Track the risk assessments assigned to <strong>@Model.UnitDesc</strong> and complete their questionnaires.
     </p>
 </header>
 
-<div class="rp-card p-2">
-    <div class="table-responsive">
-    <table id="submissionTable" class="table rp-table table-sm w-100 align-middle">
-        <thead>
-            <tr>
-                <th>Code</th>
-                <th>Unit</th>
-                <th>Period</th>
-                <th>Status</th>
-                <th>Progress</th>
-                <th class="text-end">Actions</th>
-            </tr>
-        </thead>
-    </table>
-    </div>
+<div class="row g-2">
+    @foreach (var column in new[]
+    {
+        (Title: "Pending", Icon: "fa-hourglass-start", Accent: "neutral", Items: Model.Pending),
+        (Title: "In Progress", Icon: "fa-spinner", Accent: "warning", Items: Model.InProgress),
+        (Title: "Completed", Icon: "fa-circle-check", Accent: "success", Items: Model.Completed)
+    })
+    {
+        <div class="col-12 col-xl-4">
+            <div class="rp-card h-100 d-flex flex-column">
+                <div class="rp-card-head">
+                    <h2 class="rp-card-title"><i class="fas @column.Icon me-2"></i>@column.Title</h2>
+                    <span class="rp-pill rp-pill-@column.Accent">@column.Items.Count</span>
+                </div>
+                <div class="rp-card-body d-flex flex-column gap-2">
+                    @foreach (var item in column.Items)
+                    {
+                        <a href="@Url.Action("Detail", "Submissions", new { id = item.AssessmentUnitId })"
+                           class="border rounded p-3 text-decoration-none text-reset d-block">
+                            <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
+                                <span class="rp-body-md fw-semibold">@item.AssessmentCode</span>
+                                <span class="rp-pill rp-pill-@PillClass(item.StepCode)">@item.StatusLabel</span>
+                            </div>
+                            <p class="rp-body-sm rp-text-muted mb-1">
+                                <i class="fas fa-building me-1"></i>@item.UnitDesc
+                            </p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="rp-body-xs rp-text-muted">
+                                    @(item.PeriodStart?.ToString("dd MMM yy")) &rarr; @(item.PeriodEnd?.ToString("dd MMM yy"))
+                                </span>
+                                <span class="rp-pill rp-pill-neutral">@item.SubmittedCount of @item.ItemCount</span>
+                            </div>
+                        </a>
+                    }
+
+                    @if (!column.Items.Any())
+                    {
+                        <div class="rp-empty-state">
+                            <i class="fas @column.Icon rp-empty-state-icon"></i>
+                            <p class="rp-body-sm mb-0">Nothing here.</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    }
 </div>
-
-@section Scripts {
-    <script src="~/lib/datatables/jquery.dataTables.min.js"></script>
-    <script src="~/lib/datatables/dataTables.bootstrap5.min.js"></script>
-    <script>
-        (function ($) {
-
-            /* =================================================================
-               SECTION 1 — PAGE DATA & ENDPOINTS
-               ================================================================= */
-            var gridUrl = '@Url.Action("Grid", "Submissions")';
-            var detailUrl = '@Url.Action("Detail", "Submissions")';
-
-            /* =================================================================
-               SECTION 2 — RENDER HELPERS
-               ================================================================= */
-            function submissionStatusPill(label) {
-                var kind = { 
-                    'Pending Entry': 'neutral',
-                    'Pending': 'neutral', 
-                    'In Progress': 'warning', 
-                    'InProgress': 'warning',
-                    'Submitted': 'warning', 
-                    'Unit Approved': 'success',
-                    'UnitApproved': 'success',
-                    'Risk Dept Reviewed': 'success',
-                    'RiskReviewed': 'success',
-                    'Final Approved': 'success',
-                    'FinalApproved': 'success',
-                    'Returned for Revision': 'danger',
-                    'Returned': 'danger'
-                }[label] || 'neutral';
-                return RiskPulse.pill(label, kind);
-            }
-
-            function dateOnly(value) {
-                return value ? String(value).substring(0, 10) : '';
-            }
-
-            /* =================================================================
-               SECTION 3 — DATA GRID (DataTables)
-               ================================================================= */
-            var submissionTable = RiskPulse.initGrid($('#submissionTable'), {
-                ajax: { url: gridUrl },
-                columns: [
-                    { data: 'assessmentCode' },
-                    { data: 'unitDesc' },
-                    { data: null, render: function (d) { return RiskPulse.escapeHtml(dateOnly(d.periodStart) + ' \u2192 ' + dateOnly(d.periodEnd)); } },
-                    { data: 'statusLabel', render: function (d) { return submissionStatusPill(d); } },
-                    { data: null, render: function (d) { return RiskPulse.pill(d.submittedCount + ' of ' + d.itemCount); } },
-                    { data: null, orderable: false, searchable: false, className: 'text-end', render: function (d) {
-                        return '<button type="button" class="rp-btn rp-btn-secondary open-unit-btn"><i class="fas fa-folder-open"></i> Open</button>';
-                    } }
-                ],
-                order: [[2, 'desc']]
-            });
-
-            /* =================================================================
-               SECTION 4 — EVENT WIRING
-               ================================================================= */
-            $('#submissionTable tbody').on('click', '.open-unit-btn', function () {
-                var row = submissionTable.row($(this).closest('tr')).data();
-                window.location = detailUrl + '?id=' + row.assessmentUnitId;
-            });
-        })(jQuery);
-    </script>
-}

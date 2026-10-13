@@ -1753,63 +1753,182 @@ select.rp-input {
 .rp-checklist-row:hover { background: var(--surface-soft); }
 .rp-checklist-row label { margin: 0; flex: 1; cursor: pointer; }
 
-.rp-preview-question {
-  padding: 1rem;
-  border: 1px solid var(--border);
-  border-radius: var(--r-panel);
-  background: var(--surface);
-  margin-bottom: 0.75rem;
+/* Soft tabs — lightweight tab strip for composer/picker panes */
+.rp-soft-tabs { display: flex; gap: 0.25rem; border-bottom: 1px solid var(--border); margin-bottom: 0.75rem; }
+.rp-soft-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.875rem;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: none;
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  cursor: pointer;
 }
-.rp-preview-question-head { display: flex; align-items: flex-start; gap: 0.625rem; margin-bottom: 0.5rem; }
+.rp-soft-tab:hover { color: var(--steel-deep); }
+.rp-soft-tab.active { color: var(--steel-deep); border-bottom-color: var(--steel-deep); }
+.rp-soft-tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.15rem;
+  height: 1.15rem;
+  padding: 0 0.3rem;
+  border-radius: var(--r-pill);
+  background: var(--surface-soft-2);
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+.rp-soft-tab.active .rp-soft-tab-count { background: var(--info-wash); color: var(--steel-deep); }
+
+/* Compact checklist picker — dense searchable multi-select (SAQ/KRI composer) */
+.rp-check-picker {
+  border: 1px solid var(--form-border);
+  border-radius: var(--r-control);
+  background: var(--surface);
+  overflow: hidden;
+  transition: border-color var(--t) var(--ease), box-shadow var(--t) var(--ease);
+}
+.rp-check-picker.rp-input-error { border-color: var(--error); box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--error); }
+.rp-check-picker-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.625rem;
+  background: var(--surface-soft);
+  border-bottom: 1px solid var(--border);
+}
+.rp-check-search { position: relative; flex: 1 1 auto; min-width: 0; }
+.rp-check-search i {
+  position: absolute;
+  left: 0.625rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+.rp-check-search-input {
+  width: 100%;
+  min-height: 34px;
+  padding: 0.375rem 0.625rem 0.375rem 1.9rem;
+  border: 1px solid var(--form-border);
+  border-radius: var(--r-xs);
+  background: var(--surface);
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  color: var(--ink);
+  outline: none;
+  transition: border-color var(--t) var(--ease), box-shadow var(--t) var(--ease);
+}
+.rp-check-search-input:focus { border-color: var(--focus); box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--focus); }
+.rp-check-search-input::placeholder { color: var(--text-muted); }
+.rp-check-actions { display: flex; gap: 0.375rem; flex: 0 0 auto; }
+.rp-check-mini-btn {
+  padding: 0.3125rem 0.625rem;
+  border: 1px solid var(--form-border);
+  border-radius: var(--r-xs);
+  background: var(--surface);
+  color: var(--steel-deep);
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color var(--t) var(--ease), background var(--t) var(--ease);
+}
+.rp-check-mini-btn:hover { border-color: var(--focus); background: var(--info-wash); }
+.rp-check-list { max-height: 248px; overflow-y: auto; padding: 0.25rem; }
+.rp-check-row {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.4375rem 0.625rem;
+  border-radius: var(--r-xs);
+  cursor: pointer;
+  transition: background var(--t) var(--ease);
+}
+.rp-check-row:hover { background: var(--surface-soft); }
+.rp-check-row-main { display: flex; align-items: center; gap: 0.5rem; flex: 1 1 auto; min-width: 0; }
+.rp-check-row-title { font-size: 0.8125rem; font-weight: 600; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rp-check-empty { padding: 1.25rem 0.75rem; text-align: center; }
+.rp-check-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.4375rem 0.75rem;
+  border-top: 1px solid var(--border);
+  background: var(--surface-soft);
+}
+.rp-check-count { font-size: 0.78rem; font-weight: 700; color: var(--navy-mid); }
+.rp-check-count.rp-check-count-ok { color: var(--success); }
+
+/* Compact read-only template preview (dense enterprise density) */
+.rp-preview-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 0.375rem; margin-bottom: 0.625rem; }
+.rp-preview-question {
+  padding: 0.5rem 0.625rem;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  margin-bottom: 0.4rem;
+}
+.rp-preview-question:last-child { margin-bottom: 0; }
+.rp-preview-question-head { display: flex; align-items: flex-start; gap: 0.5rem; }
 .rp-preview-qnum {
   flex: 0 0 auto;
-  width: 1.5rem;
-  height: 1.5rem;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0 0.25rem;
   border-radius: var(--r-pill);
   background: var(--surface-soft-2);
   color: var(--text-2);
-  font-size: 0.75rem;
+  font-size: 0.68rem;
   font-weight: 700;
   display: inline-flex;
   align-items: center;
   justify-content: center;
 }
-.rp-preview-question-text { flex: 1; font-weight: 600; color: var(--ink); }
-.rp-preview-options { display: flex; flex-direction: column; gap: 0.375rem; margin-top: 0.5rem; }
+.rp-preview-question-text { flex: 1; min-width: 0; font-weight: 600; color: var(--ink); font-size: 0.8125rem; }
+.rp-preview-options { display: flex; flex-wrap: wrap; gap: 0.25rem; margin: 0.375rem 0 0 1.75rem; }
 .rp-preview-option {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 0.75rem;
+  gap: 0.3rem;
+  padding: 0.2rem 0.5rem;
   border: 1px solid var(--border);
-  border-radius: var(--r-sm);
+  border-radius: var(--r-pill);
   background: var(--surface-soft);
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   color: var(--text-2b);
 }
-.rp-preview-option i { color: var(--text-disabled); }
-.rp-preview-meta { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.75rem; }
+.rp-preview-option i { color: var(--text-disabled); font-size: 0.68rem; }
 .rp-preview-comment {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 700;
   color: var(--text-muted);
+  white-space: nowrap;
 }
-.rp-preview-error, .rp-preview-loading { padding: 2rem; text-align: center; color: var(--text-muted); }
-.rp-preview-retry { color: var(--steel-deep); cursor: pointer; background: none; border: none; font-weight: 700; font-size: 0.875rem; }
+.rp-preview-error, .rp-preview-loading { padding: 1.5rem; text-align: center; color: var(--text-muted); }
+.rp-preview-retry { color: var(--steel-deep); cursor: pointer; background: none; border: none; font-weight: 700; font-size: 0.8125rem; }
 .rp-preview-kri-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.625rem 0.75rem;
+  gap: 0.625rem;
+  padding: 0.375rem 0.5rem;
   border-bottom: 1px solid var(--surface-soft-2);
 }
+.rp-preview-kri-row:nth-child(odd) { background: var(--surface-soft); }
 .rp-preview-kri-row:last-child { border-bottom: none; }
-.rp-preview-kri-limits { display: flex; gap: 0.5rem; flex-wrap: wrap; }
-.rp-preview-kri-desc { color: var(--text-muted); font-size: 0.875rem; }
+.rp-preview-kri-limits { display: flex; gap: 0.375rem; flex-wrap: wrap; align-items: center; }
+.rp-preview-kri-desc { color: var(--text-muted); font-size: 0.8125rem; }
 .rp-preview-assignment { display: flex; flex-wrap: wrap; gap: 0.375rem; }
 
 /* Template picker cards (wizard steps 2/3) */

@@ -50,8 +50,12 @@
                 var isAdministrationActive = currentCtrl == "Roles" || currentCtrl == "Users" || currentCtrl == "Units";
                 var canViewTemplates = User.HasClaim("Permission", PermissionCatalog.Saq)
                     || User.HasClaim("Permission", PermissionCatalog.Kri)
+                    || User.HasClaim("Permission", PermissionCatalog.AssessmentTemplates)
                     || User.HasClaim("Permission", PermissionCatalog.RiskRegister);
-                var isTemplatesActive = currentCtrl == "SaqTemplates" || currentCtrl == "KriTemplates" || currentCtrl == "RiskRegisterTemplates";
+                var isTemplatesActive = currentCtrl == "SaqTemplates" || currentCtrl == "KriTemplates"
+                    || currentCtrl == "AssessmentTemplates" || currentCtrl == "RiskRegisterTemplates";
+                var canViewAssessment = User.HasClaim("Permission", PermissionCatalog.Assessment);
+                var isAssessmentActive = currentCtrl == "Assessment";
             }
 
             <div class="rp-nav" id="rpNav">
@@ -71,12 +75,23 @@
                     </a>
                 }
 
-                @if (User.HasClaim("Permission", PermissionCatalog.Schedule))
+                @if (canViewAssessment)
                 {
-                    <a asp-controller="Schedule" asp-action="Index"
-                       class="rp-nav-link @(currentCtrl == "Schedule" ? "active" : "")">
-                        <i class="fas fa-calendar-check"></i><span>Schedule</span>
-                    </a>
+                    <div class="dropdown">
+                        <button type="button" class="rp-nav-link dropdown-toggle @(isAssessmentActive ? "active" : "")"
+                                data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-clipboard-check"></i><span>Assessment</span><i class="fas fa-chevron-down rp-caret"></i>
+                        </button>
+                        <ul class="dropdown-menu rp-nav-menu">
+                            <li class="dropdown-header">Assessment</li>
+                            <li>
+                                <a asp-controller="Assessment" asp-action="Activation"
+                                   class="dropdown-item @(isAssessmentActive ? "active" : "")">
+                                    <i class="fas fa-bolt"></i><span>Assessment Activation</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
                 }
 
                 @if (canViewTemplates)
@@ -111,7 +126,16 @@
                                 <li>
                                     <a asp-controller="RiskRegisterTemplates" asp-action="Index"
                                        class="dropdown-item @(currentCtrl == "RiskRegisterTemplates" ? "active" : "")">
-                                        <i class="fas fa-triangle-exclamation"></i><span>Risk Register</span>
+                                        <i class="fas fa-triangle-exclamation"></i><span>Risk Register Templates</span>
+                                    </a>
+                                </li>
+                            }
+                            @if (User.HasClaim("Permission", PermissionCatalog.AssessmentTemplates))
+                            {
+                                <li>
+                                    <a asp-controller="AssessmentTemplates" asp-action="Index"
+                                       class="dropdown-item @(currentCtrl == "AssessmentTemplates" ? "active" : "")">
+                                        <i class="fas fa-layer-group"></i><span>Assessment Templates</span>
                                     </a>
                                 </li>
                             }

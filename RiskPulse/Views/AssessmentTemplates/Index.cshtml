@@ -1,0 +1,311 @@
+@model RiskPulse.Models.ViewModel.AssessmentTemplatesIndexViewModel
+@{
+    ViewData["Title"] = "Assessment Templates";
+
+    var saqsJson = Json.Serialize(Model.Saqs);
+    var krisJson = Json.Serialize(Model.Kris);
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/lib/datatables/dataTables.bootstrap5.min.css" />
+}
+
+<header class="rp-hero rp-hero--teal">
+    <h1 class="rp-display-lg">Assessment Templates</h1>
+    <p class="rp-hero-sub">
+        Compose an assessment from the relevant SAQ and KRI templates — the building blocks used when an assessment is activated.
+    </p>
+    <div class="rp-hero-actions">
+        <button type="button" class="rp-btn rp-btn-primary" id="addAssessmentTemplateBtn">
+            <i class="fas fa-plus"></i> Add Template
+        </button>
+    </div>
+</header>
+
+<div class="rp-card p-2">
+    <div class="table-responsive">
+    <table id="assessmentTemplateTable" class="table rp-table table-sm w-100 align-middle">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Code</th>
+                <th>SAQ</th>
+                <th>KRI</th>
+                <th>Status</th>
+                <th class="text-end">Actions</th>
+            </tr>
+        </thead>
+    </table>
+    </div>
+</div>
+
+<!-- ============================================================
+     ASSESSMENT TEMPLATE MODAL — header fields + SAQ/KRI pickers
+     ============================================================ -->
+<div class="modal fade" id="assessmentTemplateModal" tabindex="-1" aria-labelledby="assessmentTemplateModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <form id="assessmentTemplateForm" novalidate>
+                <input type="hidden" id="assessmentTemplateId" value="0" />
+                <div class="modal-header py-2">
+                    <div>
+                        <h5 class="modal-title" id="assessmentTemplateModalLabel">Add Assessment Template</h5>
+                        <div id="assessmentTemplateStatusPill" class="mt-1"></div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-2 mb-2">
+                        <div class="col-md-8">
+                            <label class="rp-label" for="asmtDesc">Description <span class="text-muted fw-normal">(optional)</span></label>
+                            <input type="text" id="asmtDesc" class="rp-input" autocomplete="off" placeholder="e.g. Branch quarterly risk assessment" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="rp-label" for="asmtActive">Status</label>
+                            <div class="form-check d-flex align-items-center gap-2" style="min-height: 36px;">
+                                <input class="form-check-input m-0" type="checkbox" id="asmtActive" />
+                                <label class="form-check-label" for="asmtActive">Active</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <label class="rp-label mb-2">Compose from templates</label>
+
+                    <div class="rp-soft-tabs" role="tablist">
+                        <button type="button" class="rp-soft-tab active" data-tab="saq" role="tab" aria-selected="true">
+                            SAQ Templates <span class="rp-soft-tab-count" id="asmtSaqTabCount">0</span>
+                        </button>
+                        <button type="button" class="rp-soft-tab" data-tab="kri" role="tab" aria-selected="false">
+                            KRI Templates <span class="rp-soft-tab-count" id="asmtKriTabCount">0</span>
+                        </button>
+                    </div>
+
+                    <div class="rp-tab-pane" data-pane="saq">
+                        <div id="asmtSaqList"></div>
+                    </div>
+                    <div class="rp-tab-pane d-none" data-pane="kri">
+                        <div id="asmtKriList"></div>
+                    </div>
+                </div>
+                <div class="modal-footer py-2">
+                    <button type="button" class="rp-btn rp-btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="rp-btn rp-btn-primary" id="saveAssessmentTemplateBtn">
+                        <i class="fas fa-check"></i> Save Template
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================
+     TEMPLATE PREVIEW MODAL (shared SAQ/KRI — read-only)
+     ============================================================ -->
+<div class="modal fade" id="templatePreviewModal" tabindex="-1" aria-labelledby="templatePreviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="templatePreviewModalLabel">Template preview</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="templatePreviewBody"></div>
+            <div class="modal-footer">
+                <button type="button" class="rp-btn rp-btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/lib/datatables/jquery.dataTables.min.js"></script>
+    <script src="~/lib/datatables/dataTables.bootstrap5.min.js"></script>
+    <script>
+        (function ($) {
+
+            /* =================================================================
+               SECTION 1 — PAGE DATA & ENDPOINTS
+               ================================================================= */
+            var saqs = @Html.Raw(saqsJson);
+            var kris = @Html.Raw(krisJson);
+            var gridUrl = '@Url.Action("Grid", "AssessmentTemplates")';
+            var saveUrl = '@Url.Action("Save", "AssessmentTemplates")';
+            var deleteUrl = '@Url.Action("Delete", "AssessmentTemplates")';
+            var saqPreviewUrl = '@Url.Action("SaqPreview", "AssessmentTemplates")';
+            var kriPreviewUrl = '@Url.Action("KriPreview", "AssessmentTemplates")';
+
+            var currentAssessmentTemplateId = 0;
+
+            /* =================================================================
+               SECTION 2 — TEMPLATE PICKERS + PREVIEW (shared module helpers)
+               ================================================================= */
+            var preview = RiskPulse.templatePreview({
+                modalId: 'templatePreviewModal',
+                bodyId: 'templatePreviewBody',
+                labelId: 'templatePreviewModalLabel',
+                saqUrl: saqPreviewUrl,
+                kriUrl: kriPreviewUrl
+            });
+
+            var saqPicker = RiskPulse.createChecklistPicker({
+                containerSel: '#asmtSaqList',
+                options: saqs,
+                searchPlaceholder: 'Search SAQ templates...',
+                emptyText: 'No SAQ templates available yet.',
+                previewOpen: preview.openSaq,
+                onSelectionChange: function (ids) { $('#asmtSaqTabCount').text(ids.length + '/' + saqs.length); }
+            });
+
+            var kriPicker = RiskPulse.createChecklistPicker({
+                containerSel: '#asmtKriList',
+                options: kris,
+                searchPlaceholder: 'Search KRI templates...',
+                emptyText: 'No KRI templates available yet.',
+                previewOpen: preview.openKri,
+                onSelectionChange: function (ids) { $('#asmtKriTabCount').text(ids.length + '/' + kris.length); }
+            });
+
+            // Tab strip — one picker visible at a time (compact modal).
+            $('.rp-soft-tab').on('click', function () {
+                var tab = $(this).data('tab');
+                $('.rp-soft-tab').removeClass('active').attr('aria-selected', 'false');
+                $(this).addClass('active').attr('aria-selected', 'true');
+                $('.rp-tab-pane').addClass('d-none');
+                $('.rp-tab-pane[data-pane="' + tab + '"]').removeClass('d-none');
+            });
+
+            /* =================================================================
+               SECTION 3 — FORM PAYLOAD BUILDERS
+               ================================================================= */
+            function buildPayload() {
+                return {
+                    assessmentTemplateId: +$('#assessmentTemplateId').val() || 0,
+                    assessmentTemplateDesc: $.trim($('#asmtDesc').val()),
+                    isActive: $('#asmtActive').is(':checked'),
+                    saqHeaderIds: saqPicker.selectedIds(),
+                    kriHeaderIds: kriPicker.selectedIds()
+                };
+            }
+
+            /* =================================================================
+               SECTION 4 — VALIDATION
+               ================================================================= */
+            function validatePayload(payload) {
+                if (!payload.saqHeaderIds.length && !payload.kriHeaderIds.length) {
+                    return RiskPulse.validationError(null, 'Select at least one SAQ or KRI template.');
+                }
+                return true;
+            }
+
+            /* =================================================================
+               SECTION 5 — DATA GRID (DataTables)
+               ================================================================= */
+            var assessmentTemplateTable = RiskPulse.initGrid($('#assessmentTemplateTable'), {
+                ajax: { url: gridUrl },
+                columns: [
+                    { data: 'assessmentTemplateId' },
+                    { data: 'assessmentTemplateCode' },
+                    { data: 'saqCount', render: function (d, type, row) {
+                        var title = (row.saqCodes || []).join(', ');
+                        return '<span title="' + RiskPulse.escapeHtml(title) + '">' + RiskPulse.pill(d) + '</span>';
+                    } },
+                    { data: 'kriCount', render: function (d, type, row) {
+                        var title = (row.kriCodes || []).join(', ');
+                        return '<span title="' + RiskPulse.escapeHtml(title) + '">' + RiskPulse.pill(d) + '</span>';
+                    } },
+                    { data: 'isActive', render: function (d) { return RiskPulse.statusPill(d ? 'Active' : 'Inactive'); } },
+                    { data: null, orderable: false, searchable: false, className: 'text-end', render: function () {
+                        return [
+                            '<button type="button" class="rp-btn rp-btn-edit edit-assessment-template-btn"><i class="fas fa-pen-to-square"></i> Edit</button>',
+                            '<button type="button" class="rp-btn rp-btn-delete delete-assessment-template-btn"><i class="fas fa-trash-can"></i> Delete</button>'
+                        ].join(' ');
+                    } }
+                ],
+                order: [[0, 'desc']]
+            });
+
+            /* =================================================================
+               SECTION 6 — MODAL OPEN / CLOSE
+               ================================================================= */
+            function resetModal() {
+                currentAssessmentTemplateId = 0;
+                $('#assessmentTemplateId').val(0);
+                $('#asmtDesc').val('');
+                $('#asmtActive').prop('checked', true);
+                saqPicker.setSelected([]);
+                kriPicker.setSelected([]);
+                $('#assessmentTemplateModalLabel').text('Add Assessment Template');
+                $('#assessmentTemplateStatusPill').html(RiskPulse.statusPill('Active'));
+                RiskPulse.clearFieldErrors($('#assessmentTemplateForm'));
+            }
+
+            function openAddModal() {
+                resetModal();
+                RiskPulse.showModal('assessmentTemplateModal');
+            }
+
+            function openEditModal(row) {
+                currentAssessmentTemplateId = row.assessmentTemplateId;
+                $('#assessmentTemplateId').val(row.assessmentTemplateId);
+                $('#asmtDesc').val(row.assessmentTemplateDesc);
+                $('#asmtActive').prop('checked', !!row.isActive);
+                saqPicker.setSelected(row.saqHeaderIds || []);
+                kriPicker.setSelected(row.kriHeaderIds || []);
+                $('#assessmentTemplateModalLabel').text('Edit Assessment Template');
+                $('#assessmentTemplateStatusPill').html(RiskPulse.statusPill(row.isActive ? 'Active' : 'Inactive'));
+                RiskPulse.clearFieldErrors($('#assessmentTemplateForm'));
+                RiskPulse.showModal('assessmentTemplateModal');
+            }
+
+            /* =================================================================
+               SECTION 7 — EVENT WIRING & INIT
+               ================================================================= */
+            $('#asmtActive').on('change', function () {
+                if (currentAssessmentTemplateId) {
+                    $('#assessmentTemplateStatusPill').html(RiskPulse.statusPill($(this).is(':checked') ? 'Active' : 'Inactive'));
+                }
+            });
+
+            $('#addAssessmentTemplateBtn').on('click', openAddModal);
+
+            $('#assessmentTemplateTable tbody').on('click', '.edit-assessment-template-btn', function () {
+                openEditModal(assessmentTemplateTable.row($(this).closest('tr')).data());
+            });
+
+            $('#assessmentTemplateTable tbody').on('click', '.delete-assessment-template-btn', function () {
+                var row = assessmentTemplateTable.row($(this).closest('tr')).data();
+                var display = row.assessmentTemplateDesc || row.assessmentTemplateCode;
+                RiskPulse.confirmDelete(
+                    'Delete assessment template?',
+                    'This will permanently delete "' + display + '".',
+                    function () {
+                        RiskPulse.postJson(deleteUrl, { id: row.assessmentTemplateId }, {
+                            success: function (res) {
+                                assessmentTemplateTable.ajax.reload(null, false);
+                                RiskPulse.toastSuccess(res.message || 'Assessment template deleted successfully.');
+                            },
+                            fail: function (res) {
+                                RiskPulse.toastError(res.message || 'Unable to delete assessment template.');
+                            }
+                        });
+                    }
+                );
+            });
+
+            $('#assessmentTemplateForm').on('submit', function (e) {
+                e.preventDefault();
+                var payload = buildPayload();
+                if (!validatePayload(payload)) return;
+                RiskPulse.postJson(saveUrl, payload, {
+                    success: function (res) {
+                        RiskPulse.hideModal($('#assessmentTemplateForm'));
+                        assessmentTemplateTable.ajax.reload(null, false);
+                        RiskPulse.toastSuccess(res.message || 'Assessment template saved successfully.');
+                    },
+                    fail: function (res) {
+                        RiskPulse.toastError(res.message || 'Unable to save assessment template.');
+                    }
+                }, $('#saveAssessmentTemplateBtn'));
+            });
+        })(jQuery);
+    </script>
+}
