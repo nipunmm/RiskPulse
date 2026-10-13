@@ -2,9 +2,8 @@ using Microsoft.EntityFrameworkCore;
 using RiskPulse.Data;
 using RiskPulse.Models.Enum;
 using RiskPulse.Models.ViewModel;
-using RiskPulse.Services.Assessment;
 
-namespace RiskPulse.Services.Monitoring;
+namespace RiskPulse.Services.Assessment;
 
 // --- Cross-unit monitoring view (units x assessments status matrix) ---
 public class MonitorService
